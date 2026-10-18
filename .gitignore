@@ -20,3 +20,6 @@ release/
 .DS_Store
 Thumbs.db
 *.log
+
+# Agent worktrees
+.claude/worktrees/
