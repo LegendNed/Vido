@@ -1,0 +1,146 @@
+/* Audio: device checklist (Audio page + first-run wizard) and the checkbox control. */
+
+/* ---------------------------------------------------------------- checkbox */
+
+.checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  cursor: pointer;
+}
+.checkbox.disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.checkbox > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.checkbox > .box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: transparent;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.checkbox > .box svg {
+  stroke-width: 3;
+}
+.checkbox:not(.disabled):hover > .box {
+  border-color: var(--muted);
+}
+.checkbox > input:checked + .box {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+.checkbox:not(.disabled):hover > input:checked + .box {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.checkbox > input:focus-visible + .box {
+  outline: 2px solid var(--info);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------- device checklist */
+
+.audio-intro {
+  margin: -8px 0 0;
+}
+
+.device-group > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px 8px;
+}
+.device-group > header > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--muted);
+}
+.device-group > header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.device-group > header p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.device-group > .banner {
+  margin: 4px 16px 12px;
+}
+
+.device-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 4px;
+}
+.device-row {
+  border-top: 1px solid var(--border);
+}
+.device-row > .line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px 6px 16px;
+}
+.device-row > .line > .checkbox {
+  flex: 0 1 auto;
+}
+.device-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.device-label > .sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+.device-row.missing .device-label > .name {
+  color: var(--text-2);
+}
+.device-row .meter {
+  flex: none;
+}
+
+/* Per-track settings below a ticked row. */
+.device-settings {
+  margin: 0 16px 12px 44px;
+  padding: 2px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+.device-settings > .field:first-child {
+  border-top: none;
+}
+
+/* Compact variant inside the first-run wizard. */
+.wizard .device-group {
+  margin: 12px 0;
+}
+.wizard .device-group > header {
+  padding: 10px 14px 6px;
+}
+.wizard .device-row > .line {
+  min-height: 38px;
+  padding: 4px 14px;
+}

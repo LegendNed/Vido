@@ -145,11 +145,7 @@ impl AudioEngine {
         let mut receivers = Vec::new();
         let mut source_threads = Vec::new();
         for t in &cfg.tracks {
-            let kind = if t.kind == TrackKind::Desktop {
-                DeviceKind::Output
-            } else {
-                DeviceKind::Input
-            };
+            let kind = t.kind.device_kind();
             let shared = SourceShared::new();
             let (tx, rx) = bounded::<AudioChunk>(1024);
             let scfg = SourceConfig {
@@ -160,7 +156,18 @@ impl AudioEngine {
             let sh = shared.clone();
             let th = std::thread::Builder::new()
                 .name(format!("vido-audio-{}", t.id))
-                .spawn(move || run_source(scfg, sh, tx))
+                .spawn(move || {
+                    // Each device has its own thread: a crash here only silences this
+                    // track; the mixer and the other sources keep running.
+                    let sh2 = sh.clone();
+                    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        run_source(scfg, sh, tx);
+                    }));
+                    if r.is_err() {
+                        tracing::error!("audio source thread crashed (see log)");
+                        *sh2.state.lock() = SourceState::Lost;
+                    }
+                })
                 .map_err(|e| AppError::internal(format!("spawn audio thread: {e}")))?;
             source_threads.push(th);
             receivers.push(rx);

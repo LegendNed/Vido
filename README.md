@@ -44,9 +44,10 @@ editor trims, crops, mutes tracks and compresses clips to a target size.
 
 **Audio**
 
-- Desktop audio (WASAPI loopback of any output device), microphone, up to 4 extra inputs.
-- Per-track enable, mute, volume (0–200 %), gain (−20…+30 dB), mono downmix, device selection
-  (or "follow Windows default").
+- Device checklist: tick any number of output devices (recorded via WASAPI loopback) and input
+  devices (microphones, line-in), up to 16; each ticked device is its own track. "Windows
+  default" entries follow the default device.
+- Per-track name, mute, volume (0–200 %), gain (−20…+30 dB), mono downmix.
 - Optional RNNoise noise suppression for inputs (local, off by default).
 - Each clip gets a **mix track** (what players play) plus **one track per source** for editing.
 - 44.1/48 kHz, AAC (default) or Opus; live level meters in settings.

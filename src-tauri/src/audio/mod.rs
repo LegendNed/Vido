@@ -10,7 +10,7 @@ pub mod wasapi;
 use serde::Serialize;
 use ts_rs::TS;
 
-#[derive(Serialize, TS, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Serialize, TS, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum DeviceKind {

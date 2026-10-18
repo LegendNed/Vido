@@ -116,6 +116,38 @@ export function Toggle({
   );
 }
 
+/** Checkbox; `children` is its clickable label. Styled in styles/audio.css. */
+export function Checkbox({
+  checked,
+  onChange,
+  disabled,
+  title,
+  children,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  title?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <label className={`checkbox${disabled ? " disabled" : ""}`} title={title}>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => {
+          onChange(e.target.checked);
+        }}
+      />
+      <span className="box" aria-hidden="true">
+        <Icon name="check" size={12} />
+      </span>
+      {children}
+    </label>
+  );
+}
+
 export interface Option<T extends string | number> {
   value: T;
   label: string;

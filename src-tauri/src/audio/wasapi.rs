@@ -160,7 +160,12 @@ pub fn run_source(cfg: SourceConfig, shared: Arc<SourceShared>, tx: Sender<Audio
             Ok(()) => {}
             Err(e) => {
                 if !logged_failure {
-                    tracing::warn!("audio source ({:?}) unavailable: {}", cfg.kind, e.message);
+                    tracing::warn!(
+                        "audio source ({:?}, {}) unavailable: {}",
+                        cfg.kind,
+                        cfg.device_id.as_deref().unwrap_or("default device"),
+                        e.message
+                    );
                     logged_failure = true;
                 }
                 *shared.state.lock() = SourceState::Lost;

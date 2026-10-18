@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./styles/global.css";
 import "./styles/views.css";
+import "./styles/audio.css";
 
 // Lets CSS style per-window (e.g. transparent HUD / region overlay).
 document.documentElement.classList.add(`win-${getCurrentWindow().label}`);
