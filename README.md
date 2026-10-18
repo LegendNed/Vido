@@ -1,7 +1,7 @@
-# ClipDeck
+# Vido
 
 A lightweight, **local-first** replay-buffer clipper for Windows — like Medal.tv, minus the account,
-cloud, ads, watermark and telemetry. ClipDeck keeps the last moments of your screen and audio in a
+cloud, ads, watermark and telemetry. Vido keeps the last moments of your screen and audio in a
 rolling buffer; press a hotkey and the last 15/30/60 s are saved as an MP4 in milliseconds. A built-in
 editor trims, crops, mutes tracks and compresses clips to a target size.
 
@@ -55,7 +55,7 @@ editor trims, crops, mutes tracks and compresses clips to a target size.
 **Saving**
 
 - Hotkeys for 15/30/60 s, custom length (or whole buffer), manual recording, pause, open last clip, open editor.
-- Configurable folder and filename template (`ClipDeck_{date}_{time}`, `{source}`, `{duration}`).
+- Configurable folder and filename template (`Vido_{date}_{time}`, `{source}`, `{duration}`).
 - MP4 or MKV; instant copy or re-encode-on-save.
 - Post-save actions: open editor, open folder, copy path, run a command.
 
@@ -137,16 +137,16 @@ segment-file cleanup), pause/resume (paused time excluded, A/V aligned) and manu
 
 ## Installer & portable builds
 
-**Installer:** `pnpm tauri build` → `src-tauri/target/release/bundle/nsis/ClipDeck_<version>_x64-setup.exe`.
+**Installer:** `pnpm tauri build` → `src-tauri/target/release/bundle/nsis/Vido_<version>_x64-setup.exe`.
 Per-user install (no admin rights), Start-menu entry, uninstaller. FFmpeg DLLs are installed next
 to the executable. WebView2 is installed by the bootstrapper if missing.
 
-**Portable:** `pnpm package:portable` → `release/ClipDeck-<version>-portable-x64.zip`. Unzip anywhere
-and run `clipdeck.exe`. A file named `portable` next to the exe switches ClipDeck to portable mode:
+**Portable:** `pnpm package:portable` → `release/Vido-<version>-portable-x64.zip`. Unzip anywhere
+and run `vido.exe`. A file named `portable` next to the exe switches Vido to portable mode:
 settings, logs, cache and the WebView2 profile are stored in `.\data` and nothing is written to
-`%APPDATA%`/`%LOCALAPPDATA%`. (Clips go to `Videos\ClipDeck` unless you change the output folder.)
+`%APPDATA%`/`%LOCALAPPDATA%`. (Clips go to `Videos\Vido` unless you change the output folder.)
 
-ClipDeck never updates itself and does not start with Windows unless you enable it
+Vido never updates itself and does not start with Windows unless you enable it
 (Settings → Advanced).
 
 ---
@@ -160,7 +160,7 @@ On first launch a short setup appears in the main window:
 3. **Buffer** — how much to keep (15 s – 5 min presets) and quality.
 4. **Save hotkey** — defaults to **Ctrl+Shift+F6** (save last 30 s).
 
-“Start buffering” saves the choices and starts the buffer. Afterwards ClipDeck starts minimized in
+“Start buffering” saves the choices and starts the buffer. Afterwards Vido starts minimized in
 the tray (configurable). The red tray dot means “buffering”; left-click opens the window.
 
 ---
@@ -223,7 +223,7 @@ failures (another app owns the shortcut) are shown per action. Editor shortcuts:
 
 ## Windows APIs & permissions
 
-ClipDeck runs as a normal user — **no administrator rights and no drivers**.
+Vido runs as a normal user — **no administrator rights and no drivers**.
 
 | Feature                    | API                                                 | Requirement                                                                                                   |
 | -------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -233,7 +233,7 @@ ClipDeck runs as a normal user — **no administrator rights and no drivers**.
 | Encoding                   | FFmpeg: NVENC / AMF / QSV / x264 / x265 / SVT-AV1   | current GPU driver for hardware encoders                                                                      |
 | Audio                      | WASAPI shared mode (loopback for outputs)           | microphone: _Settings → Privacy & security → Microphone → Let desktop apps access your microphone_ must be on |
 | Device changes             | `IMMNotificationClient`                             | —                                                                                                             |
-| Global hotkeys             | `RegisterHotKey` (via tauri-plugin-global-shortcut) | games running **as administrator** only see hotkeys from elevated apps — run ClipDeck elevated in that case   |
+| Global hotkeys             | `RegisterHotKey` (via tauri-plugin-global-shortcut) | games running **as administrator** only see hotkeys from elevated apps — run Vido elevated in that case       |
 | HUD hidden from recordings | `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`  | Windows 10 2004+                                                                                              |
 | UI                         | WebView2                                            | evergreen runtime                                                                                             |
 
@@ -243,12 +243,12 @@ Window capture shows a yellow border on Windows 10 (a Windows privacy indicator;
 
 ## Settings & files
 
-| What                        | Installed                          | Portable               |
-| --------------------------- | ---------------------------------- | ---------------------- |
-| Settings                    | `%APPDATA%\ClipDeck\settings.json` | `.\data\settings.json` |
-| Logs (5 × 5 MB, rotated)    | `%LOCALAPPDATA%\ClipDeck\logs`     | `.\data\logs`          |
-| Buffer segments, thumbnails | `%LOCALAPPDATA%\ClipDeck\cache`    | `.\data\cache`         |
-| Clips                       | `Videos\ClipDeck` (configurable)   | same                   |
+| What                        | Installed                      | Portable               |
+| --------------------------- | ------------------------------ | ---------------------- |
+| Settings                    | `%APPDATA%\Vido\settings.json` | `.\data\settings.json` |
+| Logs (5 × 5 MB, rotated)    | `%LOCALAPPDATA%\Vido\logs`     | `.\data\logs`          |
+| Buffer segments, thumbnails | `%LOCALAPPDATA%\Vido\cache`    | `.\data\cache`         |
+| Clips                       | `Videos\Vido` (configurable)   | same                   |
 
 All defaults: [`config/default-settings.json`](config/default-settings.json) (generated from the
 Rust defaults; a test keeps it in sync). Invalid or partially broken settings files are repaired
@@ -259,7 +259,7 @@ section by section on startup; a corrupt file is kept as `settings.json.corrupt-
 ## Known limitations
 
 - **Exclusive fullscreen:** Windows' capture APIs can't see true exclusive-fullscreen games (most
-  modern DX11/DX12 games use “fullscreen optimizations” and work fine). ClipDeck detects black
+  modern DX11/DX12 games use “fullscreen optimizations” and work fine). Vido detects black
   frames and suggests borderless/windowed mode. Game-hook injection is deliberately not used (anti-cheat risk).
 - **HDR:** recorded as SDR; colours of HDR content can look different.
 - **Desktop Duplication fallback** does not include the mouse cursor.
@@ -306,6 +306,6 @@ Tauri's asset protocol (scoped to the clips folder and opened files). See
 
 ## License
 
-ClipDeck is licensed under the **GNU GPL v3.0 or later** (see [LICENSE](LICENSE)). It links
+Vido is licensed under the **GNU GPL v3.0 or later** (see [LICENSE](LICENSE)). It links
 FFmpeg's GPL build (including x264/x265); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 for FFmpeg source availability and other notices.

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions for ClipDeck's own windows. Native work happens in Rust commands; the webview only gets events and basic window control.",
+  "description": "Permissions for Vido's own windows. Native work happens in Rust commands; the webview only gets events and basic window control.",
   "windows": ["main", "editor", "hud", "region"],
   "permissions": [
     "core:default",

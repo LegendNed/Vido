@@ -66,10 +66,10 @@ export function FirstRun() {
 
         {step === 0 && (
           <>
-            <h2>Welcome to ClipDeck</h2>
+            <h2>Welcome to Vido</h2>
             <p className="muted">
-              ClipDeck keeps the last moments of your screen in memory and saves them as a clip with
-              one key. Everything stays on this PC. Pick the display to record:
+              Vido keeps the last moments of your screen in memory and saves them as a clip with one
+              key. Everything stays on this PC. Pick the display to record:
             </p>
             <div className="choice-grid">
               {displays.map((d) => {

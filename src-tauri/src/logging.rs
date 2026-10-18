@@ -34,13 +34,13 @@ fn filter_for(level: LogLevel) -> EnvFilter {
     };
     // Keep noisy dependencies quiet unless explicitly tracing.
     EnvFilter::new(format!(
-        "{lvl},tao=warn,wry=warn,tauri=warn,tracing=warn,clipdeck_lib={lvl}"
+        "{lvl},tao=warn,wry=warn,tauri=warn,tracing=warn,vido_lib={lvl}"
     ))
 }
 
 pub fn init(log_dir: &Path, level: LogLevel) -> LogGuard {
     let writer = FileRotate::new(
-        log_dir.join("clipdeck.log"),
+        log_dir.join("vido.log"),
         AppendCount::new(MAX_LOG_FILES),
         ContentLimit::BytesSurpassed(MAX_LOG_BYTES),
         Compression::None,

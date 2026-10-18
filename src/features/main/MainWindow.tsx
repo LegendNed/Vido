@@ -58,7 +58,7 @@ export function MainWindow() {
   if (loadError) {
     return (
       <div className="empty">
-        <h3>ClipDeck could not load</h3>
+        <h3>Vido could not load</h3>
         <p>{loadError}</p>
       </div>
     );
@@ -91,7 +91,7 @@ export function MainWindow() {
           </div>
         ))}
         <div className="foot">
-          ClipDeck {info?.version}
+          Vido {info?.version}
           {info?.portable ? " · portable" : ""}
           <br />
           Local only · no telemetry

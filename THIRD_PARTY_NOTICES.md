@@ -1,10 +1,10 @@
 # Third-party notices
 
-ClipDeck is licensed under the GNU General Public License v3.0 or later (see `LICENSE`).
+Vido is licensed under the GNU General Public License v3.0 or later (see `LICENSE`).
 
 ## FFmpeg
 
-ClipDeck dynamically links FFmpeg (libavcodec, libavformat, libavfilter, libavutil,
+Vido dynamically links FFmpeg (libavcodec, libavformat, libavfilter, libavutil,
 libswresample, libswscale), version 8.1, built by
 [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds) in its **GPL** variant, which
 includes libx264, libx265, SVT-AV1, libopus and others.

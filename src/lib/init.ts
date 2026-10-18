@@ -1,6 +1,6 @@
 import type { DisplayInfo } from "./tauri/types";
 
-/** Data injected by Rust into each window (`window.__CLIPDECK_INIT__`). */
+/** Data injected by Rust into each window (`window.__VIDO_INIT__`). */
 export interface WindowInit {
   page?: string | null;
   clip?: string;
@@ -9,10 +9,10 @@ export interface WindowInit {
 
 declare global {
   interface Window {
-    __CLIPDECK_INIT__?: WindowInit;
+    __VIDO_INIT__?: WindowInit;
   }
 }
 
 export function windowInit(): WindowInit {
-  return window.__CLIPDECK_INIT__ ?? {};
+  return window.__VIDO_INIT__ ?? {};
 }

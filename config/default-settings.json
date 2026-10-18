@@ -76,7 +76,7 @@
   },
   "saving": {
     "outputDir": null,
-    "filenameTemplate": "ClipDeck_{date}_{time}",
+    "filenameTemplate": "Vido_{date}_{time}",
     "container": "mp4",
     "saveMode": "remux",
     "postSave": {

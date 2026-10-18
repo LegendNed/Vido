@@ -1,15 +1,15 @@
 [package]
-name = "clipdeck"
+name = "vido"
 version = "0.1.0"
 description = "Local-first replay buffer and clip editor"
-authors = ["ClipDeck contributors"]
+authors = ["Vido contributors"]
 license = "GPL-3.0-or-later"
 edition = "2021"
 rust-version = "1.85"
 publish = false
 
 [lib]
-name = "clipdeck_lib"
+name = "vido_lib"
 crate-type = ["rlib"]
 
 [build-dependencies]

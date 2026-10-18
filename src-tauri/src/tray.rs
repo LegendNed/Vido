@@ -11,7 +11,7 @@ use crate::actions;
 use crate::engine::{BufferState, BufferStatus};
 use crate::ui;
 
-const TRAY_ID: &str = "clipdeck";
+const TRAY_ID: &str = "vido";
 
 pub struct TrayHandles {
     status: MenuItem<tauri::Wry>,
@@ -72,16 +72,16 @@ pub fn icon(state: BufferState, recording: bool) -> Image<'static> {
 }
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
-    let status = MenuItem::with_id(app, "status", "ClipDeck — stopped", false, None::<&str>)?;
+    let status = MenuItem::with_id(app, "status", "Vido — stopped", false, None::<&str>)?;
     let save30 = MenuItem::with_id(app, "save30", "Save last 30 seconds", true, None::<&str>)?;
     let save60 = MenuItem::with_id(app, "save60", "Save last 60 seconds", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Start buffer", true, None::<&str>)?;
     let record = MenuItem::with_id(app, "record", "Start recording", true, None::<&str>)?;
-    let open = MenuItem::with_id(app, "open", "Open ClipDeck", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Open Vido", true, None::<&str>)?;
     let editor = MenuItem::with_id(app, "editor", "Edit last clip", true, None::<&str>)?;
     let folder = MenuItem::with_id(app, "folder", "Open clips folder", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit ClipDeck", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit Vido", true, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(app);
     let menu = Menu::with_items(
         app,
@@ -104,7 +104,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     )?;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon(BufferState::Stopped, false))
-        .tooltip("ClipDeck")
+        .tooltip("Vido")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, e| match e.id().as_ref() {
@@ -153,7 +153,7 @@ fn label(s: &BufferStatus) -> String {
         BufferState::Paused => "Paused".into(),
         BufferState::Starting => "Starting…".into(),
         BufferState::Waiting => "Waiting for capture source…".into(),
-        BufferState::Error => "Error — open ClipDeck for details".into(),
+        BufferState::Error => "Error — open Vido for details".into(),
         BufferState::Stopped => "Stopped".into(),
     }
 }
@@ -164,13 +164,13 @@ pub fn update(app: &AppHandle, s: &BufferStatus) {
         return;
     };
     let text = label(s);
-    let _ = h.status.set_text(format!("ClipDeck — {text}"));
+    let _ = h.status.set_text(format!("Vido — {text}"));
     let recording = s.recording.is_some();
     let key = (s.state, recording);
     let mut last = h.last.lock();
     if *last == Some(key) {
         if let Some(tray) = app.tray_by_id(TRAY_ID) {
-            let _ = tray.set_tooltip(Some(format!("ClipDeck — {text}")));
+            let _ = tray.set_tooltip(Some(format!("Vido — {text}")));
         }
         return;
     }
@@ -187,7 +187,7 @@ pub fn update(app: &AppHandle, s: &BufferStatus) {
     });
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
         let _ = tray.set_icon(Some(icon(s.state, recording)));
-        let _ = tray.set_tooltip(Some(format!("ClipDeck — {text}")));
+        let _ = tray.set_tooltip(Some(format!("Vido — {text}")));
     }
 }
 

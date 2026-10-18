@@ -44,7 +44,7 @@ impl Recording {
         let stop2 = stop_at.clone();
         let fp = final_path.clone();
         let thread = std::thread::Builder::new()
-            .name("clipdeck-recording".into())
+            .name("vido-recording".into())
             .spawn(move || record(snap, rx, &fp, container, &stop2))
             .map_err(|e| AppError::internal(format!("spawn recorder: {e}")))?;
         tracing::info!("recording started → {}", final_path.display());
@@ -121,7 +121,7 @@ fn record(
                 default,
             })?;
         }
-        mux.set_metadata("encoder", "ClipDeck");
+        mux.set_metadata("encoder", "Vido");
         mux.write_header(false)?;
         let us = av::q(1, 1_000_000);
         let bases: Vec<i64> = epoch

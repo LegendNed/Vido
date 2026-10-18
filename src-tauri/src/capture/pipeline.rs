@@ -346,7 +346,7 @@ impl VideoPipeline {
         let stats = Arc::new(VideoStats::default());
         let (stop2, stats2) = (stop.clone(), stats.clone());
         let thread = std::thread::Builder::new()
-            .name("clipdeck-video".into())
+            .name("vido-video".into())
             .spawn(move || {
                 crate::win::enter_mta();
                 unsafe {

@@ -5,7 +5,7 @@ import type { SaveMode } from "./SaveMode";
 
 export type SavingSettings = { 
 /**
- * `null` = `Videos\ClipDeck`.
+ * `null` = `Videos\Vido`.
  */
 outputDir: string | null, 
 /**

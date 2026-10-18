@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ClipDeck",
+  "productName": "Vido",
   "version": "0.1.0",
-  "identifier": "com.clipdeck.desktop",
+  "identifier": "com.vido.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -33,11 +33,11 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "publisher": "ClipDeck contributors",
-    "copyright": "Copyright (C) 2026 ClipDeck contributors. Licensed under GPL-3.0-or-later.",
+    "publisher": "Vido contributors",
+    "copyright": "Copyright (C) 2026 Vido contributors. Licensed under GPL-3.0-or-later.",
     "category": "Video",
     "shortDescription": "Local-first replay buffer and clip editor",
-    "longDescription": "ClipDeck keeps a rolling replay buffer of your screen and audio and saves the last N seconds as a clip with one hotkey. No accounts, no cloud, no telemetry.",
+    "longDescription": "Vido keeps a rolling replay buffer of your screen and audio and saves the last N seconds as a clip with one hotkey. No accounts, no cloud, no telemetry.",
     "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],

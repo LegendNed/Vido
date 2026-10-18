@@ -61,7 +61,7 @@ fn report_error(app: &AppHandle, kind: &str, e: &AppError) {
 pub fn save(app: &AppHandle, seconds: Option<u32>) {
     let app = app.clone();
     std::thread::Builder::new()
-        .name("clipdeck-save".into())
+        .name("vido-save".into())
         .spawn(move || {
             let Some(state) = app.try_state::<AppState>() else {
                 return;

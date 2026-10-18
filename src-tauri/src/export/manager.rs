@@ -46,7 +46,7 @@ impl ExportManager {
         let cancels: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>> = Arc::default();
         let c2 = cancels.clone();
         std::thread::Builder::new()
-            .name("clipdeck-export".into())
+            .name("vido-export".into())
             .spawn(move || {
                 while let Ok(job) = rx.recv() {
                     let id = job.id.clone();

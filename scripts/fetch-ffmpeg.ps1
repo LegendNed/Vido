@@ -1,4 +1,4 @@
-# Downloads the FFmpeg shared dev build (headers + import libs + DLLs) that ClipDeck links against.
+# Downloads the FFmpeg shared dev build (headers + import libs + DLLs) that Vido links against.
 # Source: BtbN/FFmpeg-Builds (https://github.com/BtbN/FFmpeg-Builds). Verified against the release checksums.
 #
 # Usage: pwsh scripts/fetch-ffmpeg.ps1 [-Version 8.1] [-Variant gpl|lgpl]
@@ -14,7 +14,7 @@ $dest = Join-Path $root "third_party\ffmpeg"
 $name = "ffmpeg-n$Version-latest-win64-$Variant-shared-$Version"
 $base = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest"
 
-$tmp = Join-Path ([IO.Path]::GetTempPath()) ("clipdeck-ffmpeg-" + [guid]::NewGuid().ToString("N"))
+$tmp = Join-Path ([IO.Path]::GetTempPath()) ("vido-ffmpeg-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tmp | Out-Null
 try {
     $zip = Join-Path $tmp "$name.zip"

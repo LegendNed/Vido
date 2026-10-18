@@ -159,7 +159,7 @@ impl AudioEngine {
             };
             let sh = shared.clone();
             let th = std::thread::Builder::new()
-                .name(format!("clipdeck-audio-{}", t.id))
+                .name(format!("vido-audio-{}", t.id))
                 .spawn(move || run_source(scfg, sh, tx))
                 .map_err(|e| AppError::internal(format!("spawn audio thread: {e}")))?;
             source_threads.push(th);
@@ -181,7 +181,7 @@ impl AudioEngine {
             let levels = levels.clone();
             let rate = cfg.sample_rate;
             std::thread::Builder::new()
-                .name("clipdeck-mixer".into())
+                .name("vido-mixer".into())
                 .spawn(move || {
                     let ctx = MixerCtx {
                         rate,

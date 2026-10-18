@@ -74,7 +74,7 @@ pub fn remux_file(input: &Path, output: &Path, container: Container) -> AppResul
                 default: i <= 1,
             })?;
         }
-        mux.set_metadata("encoder", "ClipDeck");
+        mux.set_metadata("encoder", "Vido");
         mux.write_header(container == Container::Mp4)?;
         let mut pkt = Packet::new();
         while dmx.read(&mut pkt)? {
@@ -118,7 +118,7 @@ fn write_inner(
             default,
         })?;
     }
-    mux.set_metadata("encoder", "ClipDeck");
+    mux.set_metadata("encoder", "Vido");
     mux.set_metadata("comment", &format!("Captured from {}", epoch.source_name));
     mux.write_header(container == Container::Mp4)?;
 

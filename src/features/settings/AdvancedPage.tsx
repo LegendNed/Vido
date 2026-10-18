@@ -84,7 +84,7 @@ export function AdvancedPage() {
           />
         </Field>
         <Field
-          label="Closing the window keeps ClipDeck in the tray"
+          label="Closing the window keeps Vido in the tray"
           description="Otherwise closing quits the app."
         >
           <Toggle
@@ -302,7 +302,7 @@ export function AdvancedPage() {
         <Section title="About">
           <Field label="Version">
             <span className="mono">
-              ClipDeck {info.version} · FFmpeg {info.ffmpegVersion}
+              Vido {info.version} · FFmpeg {info.ffmpegVersion}
               {info.portable ? " · portable" : ""}
             </span>
           </Field>

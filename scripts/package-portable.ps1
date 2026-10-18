@@ -1,8 +1,8 @@
-# Builds a portable ClipDeck folder + zip:
-#   release/ClipDeck-<version>-portable-x64/
-#     clipdeck.exe, FFmpeg DLLs, portable (marker), LICENSE, THIRD_PARTY_NOTICES.md, licenses/
+# Builds a portable Vido folder + zip:
+#   release/Vido-<version>-portable-x64/
+#     vido.exe, FFmpeg DLLs, portable (marker), LICENSE, THIRD_PARTY_NOTICES.md, licenses/
 # With the `portable` marker present, settings, logs, cache and the WebView2 profile
-# are kept in .\data next to the exe. Clips still default to Videos\ClipDeck
+# are kept in .\data next to the exe. Clips still default to Videos\Vido
 # (change the output folder in Settings → Saving to keep everything on a USB drive).
 #
 # Usage: pwsh scripts/package-portable.ps1 [-SkipBuild]
@@ -19,10 +19,10 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { throw "tauri build failed" }
 }
 
-$exe = Join-Path $root "src-tauri\target\release\clipdeck.exe"
+$exe = Join-Path $root "src-tauri\target\release\vido.exe"
 if (-not (Test-Path $exe)) { throw "Missing $exe — run without -SkipBuild" }
 
-$name = "ClipDeck-$version-portable-x64"
+$name = "Vido-$version-portable-x64"
 $outDir = Join-Path $root "release\$name"
 
 # Someone may have run the previous portable build: keep its settings/logs (.\data)
@@ -30,8 +30,8 @@ $outDir = Join-Path $root "release\$name"
 $userData = Join-Path $outDir "data"
 $stash = $null
 if (Test-Path $userData) {
-    if (Get-Process -Name clipdeck -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$outDir*" }) {
-        throw "ClipDeck is running from $outDir — quit it (tray → Quit) and run this script again."
+    if (Get-Process -Name vido -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$outDir*" }) {
+        throw "Vido is running from $outDir — quit it (tray → Quit) and run this script again."
     }
     $stash = Join-Path $root "release\.$name-data-$(Get-Date -Format yyyyMMddHHmmss)"
     Move-Item -LiteralPath $userData -Destination $stash
@@ -47,7 +47,7 @@ Get-ChildItem (Join-Path $root "third_party\ffmpeg\bin") -Filter *.dll |
 Copy-Item (Join-Path $root "LICENSE") $outDir
 Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $outDir
 Copy-Item (Join-Path $root "third_party\ffmpeg\LICENSE.txt") (Join-Path $outDir "licenses\FFmpeg-LICENSE.txt")
-Set-Content -Path (Join-Path $outDir "portable") -Value "This file enables portable mode: data is stored in .\data next to clipdeck.exe."
+Set-Content -Path (Join-Path $outDir "portable") -Value "This file enables portable mode: data is stored in .\data next to vido.exe."
 
 $zip = Join-Path $root "release\$name.zip"
 if (Test-Path $zip) { Remove-Item -LiteralPath $zip -Force }

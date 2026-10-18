@@ -191,7 +191,7 @@ impl ClipLibrary {
         }
         let pending = self.pending_thumbs.clone();
         std::thread::Builder::new()
-            .name("clipdeck-thumbs".into())
+            .name("vido-thumbs".into())
             .spawn(move || {
                 let mut any = false;
                 for (src, dst) in jobs {

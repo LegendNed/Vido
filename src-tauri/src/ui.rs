@@ -24,7 +24,7 @@ fn builder<'a>(
     label: &'a str,
     init: serde_json::Value,
 ) -> WebviewWindowBuilder<'a, tauri::Wry, AppHandle> {
-    let script = format!("window.__CLIPDECK_INIT__ = {init};");
+    let script = format!("window.__VIDO_INIT__ = {init};");
     let mut b = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .initialization_script(&script)
         .theme(Some(Theme::Dark));
@@ -47,7 +47,7 @@ pub fn show_main(app: &AppHandle, page: Option<&str>) {
         focus(&w);
     } else {
         let built = builder(app, MAIN, json!({ "page": page }))
-            .title("ClipDeck")
+            .title("Vido")
             .inner_size(1040.0, 700.0)
             .min_inner_size(860.0, 560.0)
             .center()
@@ -94,7 +94,7 @@ pub fn open_editor(app: &AppHandle, path: &Path) {
         return;
     }
     let r = builder(app, EDITOR, json!({ "clip": p }))
-        .title("ClipDeck Editor")
+        .title("Vido Editor")
         .inner_size(1180.0, 780.0)
         .min_inner_size(900.0, 600.0)
         .center()
@@ -154,7 +154,7 @@ pub fn sync_hud(app: &AppHandle, s: &Settings) {
         Some(w) => w,
         None => {
             let built = builder(app, HUD, json!({}))
-                .title("ClipDeck HUD")
+                .title("Vido HUD")
                 .inner_size(HUD_W, HUD_H)
                 .decorations(false)
                 .transparent(true)

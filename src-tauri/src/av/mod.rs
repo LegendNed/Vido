@@ -1,6 +1,6 @@
 //! Thin, safe(ish) RAII wrappers over the FFmpeg C API (`ffmpeg-sys-next`).
 //!
-//! Only what ClipDeck needs: packets, frames, codec contexts, dictionaries,
+//! Only what Vido needs: packets, frames, codec contexts, dictionaries,
 //! codec parameters, input/output format contexts and D3D11 hardware contexts.
 //! All raw pointers are owned by exactly one wrapper and freed on drop.
 

@@ -5,7 +5,7 @@ import { EditorWindow } from "./features/editor/EditorWindow";
 import { Hud } from "./features/hud/Hud";
 import { MainWindow } from "./features/main/MainWindow";
 
-/** Every ClipDeck window loads this bundle; the window label picks the view. */
+/** Every Vido window loads this bundle; the window label picks the view. */
 export function App() {
   const label = getCurrentWindow().label;
   switch (label) {

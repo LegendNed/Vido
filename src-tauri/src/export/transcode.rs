@@ -421,7 +421,7 @@ fn run_inner(
             default: o == 0,
         })?;
     }
-    mux.set_metadata("encoder", "ClipDeck");
+    mux.set_metadata("encoder", "Vido");
     mux.write_header(plan.container == Container::Mp4)?;
     let encoder_name = venc.as_ref().map(|e| e.name().to_string());
 

@@ -100,8 +100,8 @@ mod tests {
     fn renders_default_template() {
         let now = Local.with_ymd_and_hms(2026, 10, 18, 14, 32, 5).unwrap();
         assert_eq!(
-            render_filename("ClipDeck_{date}_{time}", now, "x", 30),
-            "ClipDeck_2026-10-18_14-32-05"
+            render_filename("Vido_{date}_{time}", now, "x", 30),
+            "Vido_2026-10-18_14-32-05"
         );
         assert_eq!(
             render_filename("{source} - {duration}", now, "Game: \"Best\" <Ed.>", 15),

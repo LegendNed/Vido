@@ -579,39 +579,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clipdeck"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "chrono",
- "crossbeam-channel",
- "ffmpeg-sys-next",
- "file-rotate",
- "libc",
- "nnnoiseless",
- "parking_lot",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-dialog",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-opener",
- "tauri-plugin-single-instance",
- "tempfile",
- "thiserror 2.0.21",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "ts-rs",
- "uuid",
- "windows",
- "windows-core",
-]
-
-[[package]]
 name = "combine"
 version = "4.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4895,6 +4862,39 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vido"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "chrono",
+ "crossbeam-channel",
+ "ffmpeg-sys-next",
+ "file-rotate",
+ "libc",
+ "nnnoiseless",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-dialog",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-opener",
+ "tauri-plugin-single-instance",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "ts-rs",
+ "uuid",
+ "windows",
+ "windows-core",
+]
 
 [[package]]
 name = "vswhom"

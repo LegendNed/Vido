@@ -3,13 +3,13 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
-use clipdeck_lib::av::{self, Demuxer, Frame, Muxer, StreamSpec};
-use clipdeck_lib::encode::audio::AudioEncoder;
-use clipdeck_lib::encode::video::{Rate, VideoEncoder, VideoEncoderConfig};
-use clipdeck_lib::export::{
+use vido_lib::av::{self, Demuxer, Frame, Muxer, StreamSpec};
+use vido_lib::encode::audio::AudioEncoder;
+use vido_lib::encode::video::{Rate, VideoEncoder, VideoEncoderConfig};
+use vido_lib::export::{
     self, frames, probe, transcode, AudioOut, CropRect, ExportAudioTrack, ExportRequest, VideoPlan,
 };
-use clipdeck_lib::settings::{
+use vido_lib::settings::{
     AudioCodec, Container, EncoderPreference, QualityPreset, RateMode, ScalePreset, VideoCodec,
 };
 

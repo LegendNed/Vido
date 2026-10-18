@@ -336,7 +336,7 @@ impl Engine {
         engine.clean_stale_buffers();
         let sup = engine.clone();
         std::thread::Builder::new()
-            .name("clipdeck-supervisor".into())
+            .name("vido-supervisor".into())
             .spawn(move || sup.supervise())
             .expect("spawn supervisor");
         engine
@@ -450,7 +450,7 @@ impl Engine {
             st.warnings.retain(|w| !w.starts_with("HDR"));
             if hdr {
                 st.warnings.push(
-                    "HDR is on for this display; ClipDeck records in SDR, so colours may look different.".into(),
+                    "HDR is on for this display; Vido records in SDR, so colours may look different.".into(),
                 );
             }
         }
@@ -923,9 +923,7 @@ impl Engine {
                                         a.name
                                     ),
                                 )
-                                .hint(
-                                    "ClipDeck switches back automatically when the device returns.",
-                                ),
+                                .hint("Vido switches back automatically when the device returns."),
                             );
                         } else if !lost {
                             st.lost_audio.remove(&a.id);

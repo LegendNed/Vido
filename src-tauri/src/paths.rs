@@ -1,13 +1,15 @@
 //! Filesystem locations. Resolved before Tauri starts (logging and FFmpeg need them early).
 //!
-//! Installed mode: settings in `%APPDATA%\ClipDeck`, cache/logs in `%LOCALAPPDATA%\ClipDeck`.
+//! Installed mode: settings in `%APPDATA%\Vido`, cache/logs in `%LOCALAPPDATA%\Vido`.
 //! Portable mode (a file named `portable` next to the exe): everything under `<exe dir>\data`.
 
 use std::path::{Path, PathBuf};
 
 use crate::error::{AppError, AppResult};
 
-pub const APP_DIR_NAME: &str = "ClipDeck";
+pub const APP_DIR_NAME: &str = "Vido";
+/// The app's previous name; its folders are migrated once on first launch.
+pub const LEGACY_DIR_NAME: &str = "ClipDeck";
 pub const PORTABLE_MARKER: &str = "portable";
 
 #[derive(Debug, Clone)]
@@ -37,10 +39,17 @@ impl AppPaths {
             let d = exe_dir.join("data");
             (d.clone(), d)
         } else {
-            let roaming = env_dir("APPDATA")?.join(APP_DIR_NAME);
-            let local = env_dir("LOCALAPPDATA")?.join(APP_DIR_NAME);
-            (roaming, local)
+            let roaming_root = env_dir("APPDATA")?;
+            let local_root = env_dir("LOCALAPPDATA")?;
+            migrate_legacy_dir(&roaming_root);
+            migrate_legacy_dir(&local_root);
+            (
+                roaming_root.join(APP_DIR_NAME),
+                local_root.join(APP_DIR_NAME),
+            )
         };
+        let videos = videos_dir();
+        migrate_legacy_dir(&videos);
 
         let paths = Self {
             portable,
@@ -48,7 +57,7 @@ impl AppPaths {
             default_cache_dir: local_dir.join("cache"),
             log_dir: local_dir.join("logs"),
             data_dir,
-            default_output_dir: videos_dir().join(APP_DIR_NAME),
+            default_output_dir: videos.join(APP_DIR_NAME),
             exe_dir,
         };
         for dir in [&paths.data_dir, &paths.default_cache_dir, &paths.log_dir] {
@@ -59,6 +68,28 @@ impl AppPaths {
 
     pub fn settings_file(&self) -> PathBuf {
         self.data_dir.join("settings.json")
+    }
+}
+
+/// Renames `<parent>\ClipDeck` to `<parent>\Vido` once (the app was renamed).
+/// Never overwrites: if the new folder already exists, the old one is left alone.
+/// Runs before logging starts, so failures are only reported on stderr.
+pub fn migrate_legacy_dir(parent: &Path) -> bool {
+    let old = parent.join(LEGACY_DIR_NAME);
+    let new = parent.join(APP_DIR_NAME);
+    if !old.is_dir() || new.exists() {
+        return false;
+    }
+    match std::fs::rename(&old, &new) {
+        Ok(()) => true,
+        Err(e) => {
+            eprintln!(
+                "could not migrate {} to {}: {e}",
+                old.display(),
+                new.display()
+            );
+            false
+        }
     }
 }
 
@@ -114,5 +145,27 @@ pub fn dunce_canonical(p: &Path) -> Option<PathBuf> {
         Some(PathBuf::from(rest))
     } else {
         Some(c)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_folder_is_renamed_once_and_never_overwrites() {
+        let root = tempfile::tempdir().unwrap();
+        let old = root.path().join(LEGACY_DIR_NAME);
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join("clip.mp4"), b"x").unwrap();
+        assert!(migrate_legacy_dir(root.path()));
+        assert!(root.path().join(APP_DIR_NAME).join("clip.mp4").is_file());
+        assert!(!old.exists());
+        // Second run: nothing to do.
+        assert!(!migrate_legacy_dir(root.path()));
+        // Both exist: leave both untouched.
+        std::fs::create_dir_all(&old).unwrap();
+        assert!(!migrate_legacy_dir(root.path()));
+        assert!(old.is_dir());
     }
 }

@@ -1,4 +1,4 @@
-//! ClipDeck backend: capture engine, replay buffer, encoders, export and OS
+//! Vido backend: capture engine, replay buffer, encoders, export and OS
 //! integration. The webview frontend only talks to this crate through the
 //! commands in [`commands`] and the events in [`events`].
 
@@ -52,7 +52,7 @@ fn fatal(msg: &str) {
         MessageBoxW(
             None,
             &HSTRING::from(msg),
-            &HSTRING::from("ClipDeck"),
+            &HSTRING::from("Vido"),
             MB_OK | MB_ICONERROR,
         );
     }
@@ -137,7 +137,7 @@ fn setup(
     // thread: the main thread must stay STA (the window library needs OLE there).
     let h2 = handle.clone();
     std::thread::Builder::new()
-        .name("clipdeck-devices".into())
+        .name("vido-devices".into())
         .spawn(move || {
             crate::win::enter_mta();
             let h3 = h2.clone();
@@ -173,7 +173,7 @@ fn setup(
 
     // Probe encoders off the UI thread, then start buffering.
     std::thread::Builder::new()
-        .name("clipdeck-startup".into())
+        .name("vido-startup".into())
         .spawn(move || {
             let c = caps.get_or_probe(false);
             tracing::info!(
@@ -199,7 +199,7 @@ pub fn run() {
         Ok(p) => p,
         Err(e) => {
             fatal(&format!(
-                "ClipDeck could not create its data folders:\n{}",
+                "Vido could not create its data folders:\n{}",
                 e.message
             ));
             return;
@@ -209,7 +209,7 @@ pub fn run() {
     let settings = store.get();
     let _log = logging::init(&paths.log_dir, settings.advanced.log_level);
     tracing::info!(
-        "ClipDeck {} starting (portable: {}, FFmpeg {})",
+        "Vido {} starting (portable: {}, FFmpeg {})",
         env!("CARGO_PKG_VERSION"),
         paths.portable,
         av::version()
@@ -288,7 +288,7 @@ pub fn run() {
         Ok(a) => a,
         Err(e) => {
             tracing::error!("failed to start: {e}");
-            fatal(&format!("ClipDeck failed to start:\n{e}"));
+            fatal(&format!("Vido failed to start:\n{e}"));
             return;
         }
     };
@@ -300,7 +300,7 @@ pub fn run() {
                 s.exports.cancel_all();
                 s.engine.shutdown();
             }
-            tracing::info!("ClipDeck exited");
+            tracing::info!("Vido exited");
         }
         _ => {}
     });

@@ -85,7 +85,7 @@ export function HotkeysPage() {
         </Button>
       </div>
       <Banner tone="info">
-        Hotkeys work while games are focused. If a game runs as administrator, run ClipDeck as
+        Hotkeys work while games are focused. If a game runs as administrator, run Vido as
         administrator too — Windows blocks shortcuts from reaching more privileged apps.
       </Banner>
       <Section

@@ -89,7 +89,7 @@ function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults
       (d) => {
         if (cancelled) return;
         setDetails(d);
-        void getCurrentWindow().setTitle(`${d.info.fileName} — ClipDeck Editor`);
+        void getCurrentWindow().setTitle(`${d.info.fileName} — Vido Editor`);
       },
       (e: unknown) => {
         if (!cancelled) setLoadError(errorMessage(e));

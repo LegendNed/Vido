@@ -11,16 +11,16 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
-use clipdeck_lib::audio::engine::{AudioEngine, AudioEngineConfig};
-use clipdeck_lib::av::{self, Demuxer};
-use clipdeck_lib::buffer::clock::SessionClock;
-use clipdeck_lib::buffer::{Epoch, Limits, ReplayBuffer, Storage, StreamInfo, StreamKind};
-use clipdeck_lib::capture::convert::Rect;
-use clipdeck_lib::capture::enumerate;
-use clipdeck_lib::capture::pipeline::{TargetSpec, VideoConfig, VideoPipeline};
-use clipdeck_lib::engine::recording::Recording;
-use clipdeck_lib::export::remux::write_snapshot;
-use clipdeck_lib::settings::{
+use vido_lib::audio::engine::{AudioEngine, AudioEngineConfig};
+use vido_lib::av::{self, Demuxer};
+use vido_lib::buffer::clock::SessionClock;
+use vido_lib::buffer::{Epoch, Limits, ReplayBuffer, Storage, StreamInfo, StreamKind};
+use vido_lib::capture::convert::Rect;
+use vido_lib::capture::enumerate;
+use vido_lib::capture::pipeline::{TargetSpec, VideoConfig, VideoPipeline};
+use vido_lib::engine::recording::Recording;
+use vido_lib::export::remux::write_snapshot;
+use vido_lib::settings::{
     AdvancedSettings, AudioCodec, AudioTrackSettings, CaptureSettings, Container, ScalePreset,
     TrackKind, WindowRef,
 };
@@ -171,8 +171,8 @@ impl Live {
             clip.size_bytes,
             clip.duration_sec
         );
-        // Keep a copy for manual inspection: CLIPDECK_E2E_OUT=C:\path\dir
-        if let Ok(out) = std::env::var("CLIPDECK_E2E_OUT") {
+        // Keep a copy for manual inspection: VIDO_E2E_OUT=C:\path\dir
+        if let Ok(out) = std::env::var("VIDO_E2E_OUT") {
             let _ = std::fs::copy(&path, Path::new(&out).join(name));
         }
         path

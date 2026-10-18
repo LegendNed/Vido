@@ -1,6 +1,6 @@
-# ClipDeck architecture
+# Vido architecture
 
-ClipDeck is split into a **control panel** (React/TypeScript in a WebView2 window) and a **capture
+Vido is split into a **control panel** (React/TypeScript in a WebView2 window) and a **capture
 engine** (Rust, inside the Tauri process). The UI only sends typed commands and renders typed events;
 all capture, audio, encoding, file IO, hotkeys and tray work happen in Rust.
 
@@ -10,13 +10,13 @@ all capture, audio, encoding, file IO, hotkeys and tray work happen in Rust.
 flowchart LR
   subgraph Rust process
     main[main / UI thread<br/>tao event loop, tray, hotkey callbacks]
-    sup[clipdeck-supervisor<br/>status, meters, health, retries]
-    vid[clipdeck-video<br/>WGC/DDA → D3D11 → encoder]
-    aud1[clipdeck-audio-desktop<br/>WASAPI loopback]
-    aud2[clipdeck-audio-mic<br/>WASAPI capture]
-    mix[clipdeck-mixer<br/>align, mix, RNNoise, AAC/Opus]
-    exp[clipdeck-export<br/>job queue]
-    dev[clipdeck-devices<br/>IMMNotificationClient]
+    sup[vido-supervisor<br/>status, meters, health, retries]
+    vid[vido-video<br/>WGC/DDA → D3D11 → encoder]
+    aud1[vido-audio-desktop<br/>WASAPI loopback]
+    aud2[vido-audio-mic<br/>WASAPI capture]
+    mix[vido-mixer<br/>align, mix, RNNoise, AAC/Opus]
+    exp[vido-export<br/>job queue]
+    dev[vido-devices<br/>IMMNotificationClient]
   end
   vid -- packets --> buf[(ReplayBuffer)]
   aud1 -- chunks --> mix
@@ -131,7 +131,7 @@ bindings`). `src/lib/tauri/commands.ts` wraps every command with typed arguments
 
 ## Security notes
 
-- Capabilities only grant core window/event permissions to ClipDeck's own windows; everything
+- Capabilities only grant core window/event permissions to Vido's own windows; everything
   else goes through app commands with Rust-side validation.
 - Paths from the UI are checked: deletions are restricted to media files inside the clips folder;
   read-only operations require existing media files; export outputs must be absolute with the
