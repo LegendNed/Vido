@@ -1,0 +1,11 @@
+# Keep LF everywhere (Prettier enforces LF; avoids CRLF churn from core.autocrlf).
+* text=auto eol=lf
+
+# Windows-only scripts may stay CRLF-agnostic but are stored as LF as well.
+*.ps1 text eol=lf
+
+# Binary assets
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
