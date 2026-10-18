@@ -9,6 +9,7 @@ pub mod store;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::audio::DeviceKind;
 use crate::error::{AppError, AppResult};
 
 pub const SETTINGS_VERSION: u32 = 1;
@@ -17,7 +18,8 @@ pub const BUFFER_SECONDS_MAX: u32 = 600;
 pub const BUFFER_MAX_MB_MIN: u32 = 1024;
 pub const BUFFER_MAX_MB_MAX: u32 = 20 * 1024;
 pub const ALLOWED_FPS: [u32; 6] = [0, 24, 30, 48, 60, 120];
-pub const MAX_AUDIO_TRACKS: usize = 6;
+/// Audio sources (checked devices) per session; the clip gets these plus the mix track.
+pub const MAX_AUDIO_TRACKS: usize = 16;
 pub const FILENAME_TOKENS: [&str; 4] = ["date", "time", "source", "duration"];
 
 // ---------------------------------------------------------------------------
@@ -121,9 +123,20 @@ pub enum AudioCodec {
 pub enum TrackKind {
     /// Loopback capture of an output (render) device.
     Desktop,
+    /// Capture of an input device (microphone, line-in, ...).
     Microphone,
-    /// Any additional input device.
+    /// Legacy: extra input device from older settings; behaves like `Microphone`.
     Input,
+}
+
+impl TrackKind {
+    /// Which endpoints the track records: outputs (loopback) or inputs.
+    pub fn device_kind(self) -> DeviceKind {
+        match self {
+            Self::Desktop => DeviceKind::Output,
+            Self::Microphone | Self::Input => DeviceKind::Input,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -511,6 +524,12 @@ impl AudioTrackSettings {
             noise_suppression: false,
         }
     }
+
+    /// What the track records: (direction, endpoint id or `None` for the Windows
+    /// default). At most one track per key.
+    pub fn device_key(&self) -> (DeviceKind, Option<&str>) {
+        (self.kind.device_kind(), self.device_id.as_deref())
+    }
 }
 
 impl Default for AudioSettings {
@@ -652,6 +671,7 @@ impl Settings {
     /// is reset to defaults (and logged) instead of refusing to start.
     pub fn repaired(mut self) -> (Self, Vec<String>) {
         let mut notes = self.migrate_legacy_names();
+        notes.extend(self.audio.drop_duplicate_devices());
         macro_rules! repair {
             ($section:ident) => {
                 if let Err(e) = self.$section.validate() {
@@ -855,6 +875,7 @@ impl AudioSettings {
             "enable the mixed track, separate tracks, or both",
         )?;
         let mut ids = std::collections::HashSet::new();
+        let mut devices = std::collections::HashMap::new();
         for (i, t) in self.tracks.iter().enumerate() {
             let f = |name: &str| format!("audio.tracks.{i}.{name}");
             check(
@@ -879,6 +900,12 @@ impl AudioSettings {
                     "invalid device id",
                 )?;
             }
+            if let Some(other) = devices.insert(t.device_key(), t.name.as_str()) {
+                return Err(AppError::invalid(
+                    f("deviceId"),
+                    format!("this device is already recorded on the track \"{other}\""),
+                ));
+            }
             check_finite(f64::from(t.volume), &f("volume"))?;
             check_range(t.volume, 0.0, 2.0, &f("volume"))?;
             check_finite(f64::from(t.gain_db), &f("gainDb"))?;
@@ -897,6 +924,31 @@ impl AudioSettings {
             }
         }
         Ok(())
+    }
+
+    /// Older versions allowed several tracks on the same device; keeps one track per
+    /// device (the first enabled one, else the first) so such files still load.
+    pub fn drop_duplicate_devices(&mut self) -> Vec<String> {
+        let mut keep: Vec<AudioTrackSettings> = Vec::with_capacity(self.tracks.len());
+        let mut notes = Vec::new();
+        for t in std::mem::take(&mut self.tracks) {
+            match keep.iter_mut().find(|k| k.device_key() == t.device_key()) {
+                None => keep.push(t),
+                Some(k) => {
+                    let dropped = if t.enabled && !k.enabled {
+                        std::mem::replace(k, t)
+                    } else {
+                        t
+                    };
+                    notes.push(format!(
+                        "audio track \"{}\" removed: it recorded the same device as \"{}\"",
+                        dropped.name, k.name
+                    ));
+                }
+            }
+        }
+        self.tracks = keep;
+        notes
     }
 }
 
@@ -1158,6 +1210,113 @@ mod tests {
         s.hotkeys.save60 = Some("ctrl+shift+f5".into());
         let e = s.validate().unwrap_err();
         assert_eq!(e.field.as_deref(), Some("hotkeys.save60"));
+    }
+
+    fn track(id: &str, kind: TrackKind, device: Option<&str>, enabled: bool) -> AudioTrackSettings {
+        AudioTrackSettings {
+            device_id: device.map(Into::into),
+            ..AudioTrackSettings::new(id, kind, id, enabled)
+        }
+    }
+
+    fn field_of(a: &AudioSettings) -> Option<String> {
+        a.validate().unwrap_err().field
+    }
+
+    #[test]
+    fn audio_allows_sixteen_sources() {
+        assert_eq!(MAX_AUDIO_TRACKS, 16);
+        let mut a = AudioSettings {
+            tracks: (0..MAX_AUDIO_TRACKS)
+                .map(|i| {
+                    let kind = if i % 2 == 0 {
+                        TrackKind::Desktop
+                    } else {
+                        TrackKind::Microphone
+                    };
+                    track(&format!("t{i}"), kind, Some(&format!("{{dev-{i}}}")), true)
+                })
+                .collect(),
+            ..Default::default()
+        };
+        a.validate().unwrap();
+        a.tracks
+            .push(track("extra", TrackKind::Desktop, Some("{extra}"), false));
+        assert_eq!(field_of(&a).as_deref(), Some("audio.tracks"));
+    }
+
+    #[test]
+    fn audio_rejects_two_tracks_on_one_device() {
+        let mut a = AudioSettings::default();
+        // The same endpoint id as output (loopback) and input is two different sources,
+        // and "Windows default" is its own entry next to explicit devices.
+        a.tracks
+            .push(track("out-a", TrackKind::Desktop, Some("{a}"), true));
+        a.tracks
+            .push(track("in-a", TrackKind::Microphone, Some("{a}"), true));
+        a.validate().unwrap();
+
+        let mut b = a.clone();
+        b.tracks
+            .push(track("out-a2", TrackKind::Desktop, Some("{a}"), false));
+        assert_eq!(field_of(&b).as_deref(), Some("audio.tracks.4.deviceId"));
+
+        let mut c = a.clone();
+        c.tracks
+            .push(track("desktop2", TrackKind::Desktop, None, true));
+        assert_eq!(field_of(&c).as_deref(), Some("audio.tracks.4.deviceId"));
+
+        // Legacy `input` tracks are inputs, so they collide with microphone tracks.
+        let mut d = a.clone();
+        d.tracks
+            .push(track("input-1", TrackKind::Input, Some("{a}"), true));
+        assert_eq!(field_of(&d).as_deref(), Some("audio.tracks.4.deviceId"));
+
+        // Ids stay unique too.
+        let mut e = a.clone();
+        e.tracks
+            .push(track("out-a", TrackKind::Desktop, Some("{b}"), true));
+        assert_eq!(field_of(&e).as_deref(), Some("audio.tracks.4.id"));
+    }
+
+    #[test]
+    fn legacy_input_tracks_still_load() {
+        let s: Settings = serde_json::from_str(
+            r#"{ "audio": { "tracks": [
+                { "id": "desktop", "kind": "desktop", "name": "Desktop audio", "deviceId": null,
+                  "enabled": true, "muted": false, "volume": 1, "gainDb": 0, "mono": false,
+                  "noiseSuppression": false },
+                { "id": "input-1", "kind": "input", "name": "Input 1", "deviceId": "{x}",
+                  "enabled": true, "muted": false, "volume": 1.5, "gainDb": 6, "mono": true,
+                  "noiseSuppression": true } ] } }"#,
+        )
+        .unwrap();
+        s.validate().unwrap();
+        let t = &s.audio.tracks[1];
+        assert_eq!(t.kind, TrackKind::Input);
+        assert_eq!(t.device_key(), (DeviceKind::Input, Some("{x}")));
+        assert_eq!(s.repaired().1, Vec::<String>::new());
+    }
+
+    #[test]
+    fn repair_keeps_one_track_per_device() {
+        let mut s = Settings::default();
+        s.audio.bitrate_kbps = 256;
+        // Old settings could record the default microphone twice ("mic" is off by default).
+        s.audio
+            .tracks
+            .push(track("input-1", TrackKind::Input, None, true));
+        s.audio
+            .tracks
+            .push(track("desktop-2", TrackKind::Desktop, None, false));
+        assert!(s.validate().is_err());
+        let (fixed, notes) = s.repaired();
+        fixed.validate().unwrap();
+        let ids: Vec<&str> = fixed.audio.tracks.iter().map(|t| t.id.as_str()).collect();
+        assert_eq!(ids, ["desktop", "input-1"]);
+        assert_eq!(notes.len(), 2, "{notes:?}");
+        // The rest of the audio section survives.
+        assert_eq!(fixed.audio.bitrate_kbps, 256);
     }
 
     #[test]

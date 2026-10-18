@@ -38,7 +38,10 @@ flowchart LR
 `engine::Engine` owns at most one `Session` = video pipeline + audio engine + a buffer **epoch**.
 
 1. `resolve_target` turns settings into a concrete display/window/region (`capture::enumerate`).
-2. `AudioEngine::start` opens encoders (mix track + one per source) and starts WASAPI threads.
+2. `AudioEngine::start` opens encoders (mix track + one per source) and starts one WASAPI thread
+   per source. Sources are the devices ticked on the Audio page (up to 16): every output device
+   via loopback and every input device, each `(direction, device)` at most once; "Windows
+   default" entries (`deviceId: null`) follow the default device.
 3. `VideoPipeline::start` creates a D3D11 device on the adapter that drives the target display,
    opens WGC (or DDA), picks the output size and opens the best encoder:
    - hardware encoders that accept D3D11 frames (NVENC, AMF) get textures from an FFmpeg
@@ -47,8 +50,10 @@ flowchart LR
 4. `ReplayBuffer::begin_epoch` gets the stream list (codec parameters incl. extradata, time bases,
    titles); then both pipelines receive `go()` and start pushing packets.
 
-Changing capture/encoder/audio-format settings restarts the session (new epoch). Volume, mute,
-gain, mono and noise suppression are applied live; buffer length/size limits too.
+Changing capture/encoder/audio-format settings or the set of ticked audio devices (or a ticked
+track's name) restarts the session (new epoch). Volume, mute, gain, mono and noise suppression
+are applied live; buffer length/size limits too. Unticked devices keep their track settings
+(disabled) so ticking them again restores them.
 
 ### Timing model
 
@@ -123,7 +128,8 @@ bindings`). `src/lib/tauri/commands.ts` wraps every command with typed arguments
 - Lost window/display → session stops, buffered material stays saveable, the supervisor retries
   every 3 s and resumes automatically when the source returns.
 - Lost audio device → that track records silence and reconnects when the device returns (or when
-  the Windows default changes, for tracks that follow the default).
+  the Windows default changes, for tracks that follow the default). Each source has its own
+  thread and retry loop, so one failing device never stops the other tracks or the buffer.
 - Black-frame detector (3×3 patch sampling every 2 s) warns after 6 s of black.
 - Encoder fallback chain: chosen vendor → CPU; D3D11 input → system-memory input.
 - Settings: validated on every update (field-level errors), repaired per section on load,

@@ -163,19 +163,14 @@ pub fn restart_required(old: &Settings, new: &Settings) -> bool {
         || oc.custom_bitrate_kbps != nc.custom_bitrate_kbps
         || oc.keyframe_interval_sec != nc.keyframe_interval_sec;
     let (oa, na) = (&old.audio, &new.audio);
+    // Enabled tracks define the session's audio streams (count, order, titles);
+    // unchecked devices kept in the list only remember their settings.
     let track_identity = |s: &Settings| {
         s.audio
             .tracks
             .iter()
-            .map(|t| {
-                (
-                    t.id.clone(),
-                    t.kind,
-                    t.device_id.clone(),
-                    t.enabled,
-                    t.name.clone(),
-                )
-            })
+            .filter(|t| t.enabled)
+            .map(|t| (t.id.clone(), t.kind, t.device_id.clone(), t.name.clone()))
             .collect::<Vec<_>>()
     };
     let audio_changed = oa.sample_rate != na.sample_rate
@@ -995,6 +990,14 @@ mod tests {
         let mut d = a.clone();
         d.audio.tracks[1].enabled = true;
         assert!(restart_required(&a, &d));
+        // Settings of an unchecked device are only remembered.
+        let mut f = a.clone();
+        f.audio.tracks[1].name = "Headset".into();
+        f.audio.tracks[1].device_id = Some("{headset}".into());
+        assert!(!restart_required(&a, &f));
+        let mut g = a.clone();
+        g.audio.tracks[0].name = "Game".into();
+        assert!(restart_required(&a, &g), "stream titles changed");
         let mut e = a.clone();
         e.advanced.encoder_options = "spatial_aq=1".into();
         assert!(restart_required(&a, &e));
