@@ -1,0 +1,9 @@
+# Build environment for the FFmpeg bindings (ffmpeg-sys-next uses bindgen + the BtbN shared dev build).
+# Run `pnpm fetch:ffmpeg` once to populate third_party/ffmpeg.
+# Lives at the repo root so it applies whether cargo runs here or in src-tauri.
+# Both values can be overridden from the shell environment.
+[env]
+FFMPEG_DIR = { value = "third_party/ffmpeg", relative = true, force = false }
+LIBCLANG_PATH = { value = "C:\\Program Files\\LLVM\\bin", force = false }
+# ts-rs writes the generated TypeScript bindings for IPC payloads here (`pnpm bindings`).
+TS_RS_EXPORT_DIR = { value = "src/lib/tauri/bindings", relative = true, force = false }

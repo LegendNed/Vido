@@ -1,0 +1,22 @@
+# Frontend
+node_modules/
+dist/
+*.local
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# FFmpeg dev build (fetched by scripts/fetch-ffmpeg.ps1)
+third_party/
+
+# Packaging output
+release/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.log

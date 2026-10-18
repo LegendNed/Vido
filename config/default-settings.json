@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "firstRunCompleted": false,
+  "general": {
+    "startMinimized": true,
+    "closeToTray": true,
+    "startWithWindows": false,
+    "startBufferOnLaunch": true,
+    "soundOnSave": true,
+    "hud": {
+      "enabled": true,
+      "position": "topRight",
+      "showDetails": true
+    }
+  },
+  "capture": {
+    "mode": "monitor",
+    "monitorId": null,
+    "window": null,
+    "region": null,
+    "fps": 60,
+    "scale": "native",
+    "captureCursor": true,
+    "bufferSeconds": 30,
+    "bufferStorage": "auto",
+    "bufferMaxMb": 4096,
+    "videoCodec": "h264",
+    "encoder": "auto",
+    "quality": "high",
+    "customBitrateKbps": 30000,
+    "keyframeIntervalSec": 1
+  },
+  "audio": {
+    "sampleRate": 48000,
+    "codec": "aac",
+    "bitrateKbps": 192,
+    "tracks": [
+      {
+        "id": "desktop",
+        "kind": "desktop",
+        "name": "Desktop audio",
+        "deviceId": null,
+        "enabled": true,
+        "muted": false,
+        "volume": 1.0,
+        "gainDb": 0.0,
+        "mono": false,
+        "noiseSuppression": false
+      },
+      {
+        "id": "mic",
+        "kind": "microphone",
+        "name": "Microphone",
+        "deviceId": null,
+        "enabled": false,
+        "muted": false,
+        "volume": 1.0,
+        "gainDb": 0.0,
+        "mono": false,
+        "noiseSuppression": false
+      }
+    ],
+    "mixedTrack": true,
+    "separateTracks": true
+  },
+  "hotkeys": {
+    "save15": "Ctrl+Shift+F5",
+    "save30": "Ctrl+Shift+F6",
+    "save60": "Ctrl+Shift+F7",
+    "saveCustom": "Ctrl+Shift+F8",
+    "customSeconds": 0,
+    "toggleRecording": "Ctrl+Shift+F9",
+    "togglePause": "Ctrl+Shift+F10",
+    "openLastClip": "Ctrl+Shift+F11",
+    "openEditor": "Ctrl+Shift+F12"
+  },
+  "saving": {
+    "outputDir": null,
+    "filenameTemplate": "ClipDeck_{date}_{time}",
+    "container": "mp4",
+    "saveMode": "remux",
+    "postSave": {
+      "openEditor": false,
+      "openFolder": false,
+      "copyPath": false,
+      "runCommand": null
+    }
+  },
+  "export": {
+    "container": "mp4",
+    "videoCodec": "h264",
+    "encoder": "auto",
+    "preset": "balanced",
+    "rateMode": "quality",
+    "quality": 23,
+    "bitrateKbps": 8000,
+    "maxBitrateKbps": 0,
+    "targetSizeMb": 25.0,
+    "audioCodec": "aac",
+    "audioBitrateKbps": 160,
+    "scale": "native",
+    "fps": 0,
+    "mixAudio": true
+  },
+  "advanced": {
+    "logLevel": "info",
+    "cacheDir": null,
+    "cpuEncoderThreads": 0,
+    "hwQueueDepth": 3,
+    "encoderOptions": "",
+    "preferDesktopDuplication": false,
+    "detectBlackFrames": true
+  }
+}

@@ -1,0 +1,438 @@
+import { useEffect, useState } from "react";
+
+import {
+  Badge,
+  Banner,
+  Button,
+  Field,
+  NumberInput,
+  Section,
+  Segmented,
+  Select,
+  Slider,
+  Toggle,
+} from "../../components/ui";
+import { formatBitrate } from "../../lib/format";
+import {
+  codecOptions,
+  encoderOptions,
+  FPS_OPTIONS,
+  HUD_POSITIONS,
+  QUALITY_OPTIONS,
+  SCALE_OPTIONS,
+  STORAGE_OPTIONS,
+} from "../../lib/options";
+import { commands } from "../../lib/tauri/commands";
+import {
+  errorMessage,
+  type CaptureMode,
+  type DisplayInfo,
+  type WindowInfo,
+} from "../../lib/tauri/types";
+import { useApp } from "../../stores/app";
+
+const BUFFER_PRESETS = [15, 30, 60, 120, 300, 600];
+
+export function CapturePage() {
+  const settings = useApp((s) => s.settings);
+  const update = useApp((s) => s.update);
+  const caps = useApp((s) => s.caps);
+  const status = useApp((s) => s.status);
+  const notify = useApp((s) => s.notify);
+  const fieldError = useApp((s) => s.fieldError);
+  const [displays, setDisplays] = useState<DisplayInfo[]>([]);
+  const [windows, setWindows] = useState<WindowInfo[]>([]);
+  const [windowsReload, setWindowsReload] = useState(0);
+
+  useEffect(() => {
+    commands.listDisplays().then(setDisplays, (e: unknown) => {
+      notify("error", "Could not list displays", errorMessage(e));
+    });
+  }, [notify]);
+  useEffect(() => {
+    commands.listWindows().then(setWindows, (e: unknown) => {
+      notify("error", "Could not list windows", errorMessage(e));
+    });
+  }, [windowsReload, notify]);
+  const loadWindows = () => {
+    setWindowsReload((n) => n + 1);
+  };
+
+  if (!settings) return null;
+  const c = settings.capture;
+  const err = (f: string) => fieldError?.field?.startsWith(f) ?? false;
+  const primary = displays.find((d) => d.primary);
+  const selectedDisplay = displays.find((d) => d.id === c.monitorId) ?? primary;
+  const savedWindowFound =
+    c.window !== null && windows.some((w) => w.exe.toLowerCase() === c.window?.exe.toLowerCase());
+
+  const setMode = (mode: CaptureMode) => {
+    if (mode === "window" && !c.window) {
+      const first = windows[0];
+      if (!first) {
+        notify("warning", "No windows to capture", "Open the game or app first, then refresh.");
+        return;
+      }
+      update((d) => {
+        d.capture.mode = mode;
+        d.capture.window = { exe: first.exe, title: first.title };
+      });
+      return;
+    }
+    if (mode === "region" && !c.region) {
+      void commands.openRegionPicker(c.monitorId ?? undefined);
+      return;
+    }
+    update((d) => {
+      d.capture.mode = mode;
+    });
+  };
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <h1>Capture</h1>
+      </div>
+
+      <Section title="Source" description="What the replay buffer records.">
+        <Field label="Capture" error={err("capture.window") || err("capture.region")}>
+          <Segmented<CaptureMode>
+            value={c.mode}
+            options={[
+              { value: "monitor", label: "Display" },
+              { value: "window", label: "Window" },
+              { value: "region", label: "Region" },
+            ]}
+            onChange={setMode}
+          />
+        </Field>
+
+        {c.mode !== "window" && (
+          <Field
+            label="Display"
+            description={
+              selectedDisplay
+                ? `${selectedDisplay.width}×${selectedDisplay.height} · ${Math.round(selectedDisplay.refreshHz)} Hz${selectedDisplay.adapter ? ` · ${selectedDisplay.adapter}` : ""}`
+                : undefined
+            }
+          >
+            {selectedDisplay?.hdr && <Badge tone="warn">HDR → SDR</Badge>}
+            <Select<string>
+              value={c.monitorId ?? "__primary"}
+              options={[
+                {
+                  value: "__primary",
+                  label: `Primary display${primary ? ` (${primary.name})` : ""}`,
+                },
+                ...displays.map((d) => ({
+                  value: d.id,
+                  label: `${d.name} — ${d.width}×${d.height}${d.primary ? " (primary)" : ""}`,
+                })),
+              ]}
+              onChange={(v) => {
+                update((d) => {
+                  d.capture.monitorId = v === "__primary" ? null : v;
+                });
+              }}
+            />
+          </Field>
+        )}
+
+        {c.mode === "window" && (
+          <Field
+            label="Window"
+            description={
+              c.window && !savedWindowFound
+                ? `"${c.window.title}" is not running — capture starts when it appears.`
+                : "Matched by program name, so it is found again after restarts."
+            }
+          >
+            <Select<string>
+              value={c.window ? `${c.window.exe}\u0000${c.window.title}` : ""}
+              width={320}
+              options={[
+                ...(c.window &&
+                !windows.some((w) => w.exe === c.window?.exe && w.title === c.window.title)
+                  ? [
+                      {
+                        value: `${c.window.exe}\u0000${c.window.title}`,
+                        label: `${c.window.title} (${c.window.exe})`,
+                      },
+                    ]
+                  : []),
+                ...windows.map((w) => ({
+                  value: `${w.exe}\u0000${w.title}`,
+                  label: `${w.title} (${w.exe})${w.fullscreen ? " · fullscreen" : ""}`,
+                })),
+              ]}
+              onChange={(v) => {
+                const [exe = "", title = ""] = v.split("\u0000");
+                update((d) => {
+                  d.capture.window = { exe, title };
+                });
+              }}
+            />
+            <Button
+              small
+              icon="refresh"
+              variant="ghost"
+              title="Refresh window list"
+              onClick={loadWindows}
+            />
+          </Field>
+        )}
+
+        {c.mode === "region" && (
+          <Field
+            label="Region"
+            description={
+              c.region
+                ? `${c.region.width}×${c.region.height} at ${c.region.x}, ${c.region.y}`
+                : "No region selected"
+            }
+          >
+            <Button
+              icon="region"
+              onClick={() =>
+                void commands.openRegionPicker(c.region?.monitorId ?? c.monitorId ?? undefined)
+              }
+            >
+              Select region…
+            </Button>
+          </Field>
+        )}
+
+        <Field label="Capture mouse cursor">
+          <Toggle
+            value={c.captureCursor}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.captureCursor = v;
+              });
+            }}
+          />
+        </Field>
+      </Section>
+
+      <Section title="Video" description="Hardware encoders keep CPU and GPU overhead minimal.">
+        <Field label="Frame rate" error={err("capture.fps")}>
+          <Select
+            value={c.fps}
+            options={FPS_OPTIONS}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.fps = v;
+              });
+            }}
+          />
+        </Field>
+        <Field label="Resolution" description="Downscaling never upscales smaller sources.">
+          <Select
+            value={c.scale}
+            options={SCALE_OPTIONS}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.scale = v;
+              });
+            }}
+          />
+        </Field>
+        <Field
+          label="Codec"
+          description="H.264 plays everywhere; HEVC/AV1 are smaller but less compatible."
+        >
+          <Select
+            value={c.videoCodec}
+            options={codecOptions(caps)}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.videoCodec = v;
+              });
+            }}
+          />
+        </Field>
+        <Field label="Encoder">
+          <Select
+            value={c.encoder}
+            options={encoderOptions(caps, c.videoCodec)}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.encoder = v;
+              });
+            }}
+          />
+        </Field>
+        <Field
+          label="Quality"
+          description={
+            status?.videoBitrateKbps
+              ? `Currently ${formatBitrate(status.videoBitrateKbps)}`
+              : undefined
+          }
+        >
+          {c.quality === "custom" && (
+            <NumberInput
+              value={c.customBitrateKbps}
+              min={1000}
+              max={200000}
+              step={500}
+              suffix="kbps"
+              onChange={(v) => {
+                update((d) => {
+                  d.capture.customBitrateKbps = v;
+                });
+              }}
+            />
+          )}
+          <Select
+            value={c.quality}
+            options={QUALITY_OPTIONS}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.quality = v;
+              });
+            }}
+          />
+        </Field>
+      </Section>
+
+      <Section
+        title="Replay buffer"
+        description="Only the most recent material is kept; older footage is discarded continuously."
+      >
+        <Field
+          label="Buffer length"
+          description="5 seconds to 10 minutes."
+          error={err("capture.bufferSeconds")}
+        >
+          <Slider
+            value={c.bufferSeconds}
+            min={5}
+            max={600}
+            step={5}
+            width={180}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.bufferSeconds = v;
+              });
+            }}
+          />
+          <NumberInput
+            value={c.bufferSeconds}
+            min={5}
+            max={600}
+            suffix="s"
+            width={64}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.bufferSeconds = v;
+              });
+            }}
+          />
+        </Field>
+        <Field label="Presets">
+          <div className="row wrap">
+            {BUFFER_PRESETS.map((s) => (
+              <Button
+                key={s}
+                small
+                variant={c.bufferSeconds === s ? "primary" : undefined}
+                onClick={() => {
+                  update((d) => {
+                    d.capture.bufferSeconds = s;
+                  });
+                }}
+              >
+                {s < 60 ? `${s} s` : `${s / 60} min`}
+              </Button>
+            ))}
+          </div>
+        </Field>
+        <Field label="Storage" description="Auto keeps short buffers in RAM and long ones on disk.">
+          <Select
+            value={c.bufferStorage}
+            options={STORAGE_OPTIONS}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.bufferStorage = v;
+              });
+            }}
+          />
+        </Field>
+        <Field
+          label="Size limit"
+          description="Oldest footage is dropped when the limit is reached."
+          error={err("capture.bufferMaxMb")}
+        >
+          {c.bufferMaxMb !== null && (
+            <NumberInput
+              value={c.bufferMaxMb / 1024}
+              min={1}
+              max={20}
+              suffix="GB"
+              width={56}
+              onChange={(v) => {
+                update((d) => {
+                  d.capture.bufferMaxMb = Math.round(v) * 1024;
+                });
+              }}
+            />
+          )}
+          <Toggle
+            value={c.bufferMaxMb !== null}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.bufferMaxMb = v ? 4096 : null;
+              });
+            }}
+          />
+        </Field>
+      </Section>
+
+      <Section
+        title="Recording indicator"
+        description="A small overlay that is hidden from your recordings."
+      >
+        <Field label="Show overlay">
+          <Toggle
+            value={settings.general.hud.enabled}
+            onChange={(v) => {
+              update((d) => {
+                d.general.hud.enabled = v;
+              });
+            }}
+          />
+        </Field>
+        <Field label="Position">
+          <Select
+            value={settings.general.hud.position}
+            options={HUD_POSITIONS}
+            onChange={(v) => {
+              update((d) => {
+                d.general.hud.position = v;
+              });
+            }}
+          />
+        </Field>
+        <Field label="Show buffer details">
+          <Toggle
+            value={settings.general.hud.showDetails}
+            onChange={(v) => {
+              update((d) => {
+                d.general.hud.showDetails = v;
+              });
+            }}
+          />
+        </Field>
+      </Section>
+
+      {status?.captureApi && (
+        <Banner tone="info">
+          Capturing with <b>{status.captureApi}</b> using <b>{status.encoder}</b>
+          {status.zeroCopy ? " — frames stay on the GPU (zero-copy)." : "."} Exclusive-fullscreen
+          games may show black frames; use borderless/windowed mode for those.
+        </Banner>
+      )}
+    </div>
+  );
+}

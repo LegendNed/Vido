@@ -1,0 +1,87 @@
+// Typed wrappers around every Rust command. The frontend never calls `invoke`
+// directly; argument names are camelCase and converted to snake_case by Tauri.
+
+import { invoke } from "@tauri-apps/api/core";
+
+import type {
+  AppInfo,
+  AudioDeviceInfo,
+  BufferStatus,
+  ClipDetails,
+  ClipInfo,
+  Container,
+  CropRect,
+  DisplayInfo,
+  EncoderCapabilities,
+  ExportEstimate,
+  ExportRequest,
+  FolderKind,
+  HotkeyStatus,
+  RegionRect,
+  Settings,
+  WindowInfo,
+} from "./types";
+
+export const commands = {
+  // App & settings
+  getAppInfo: () => invoke<AppInfo>("get_app_info"),
+  getSettings: () => invoke<Settings>("get_settings"),
+  getDefaultSettings: () => invoke<Settings>("get_default_settings"),
+  updateSettings: (settings: Settings) => invoke<Settings>("update_settings", { settings }),
+  resetSettings: () => invoke<Settings>("reset_settings"),
+  completeFirstRun: (settings: Settings) =>
+    invoke<BufferStatus>("complete_first_run", { settings }),
+
+  // Devices & encoders
+  listDisplays: () => invoke<DisplayInfo[]>("list_displays"),
+  listWindows: () => invoke<WindowInfo[]>("list_windows"),
+  listAudioDevices: () => invoke<AudioDeviceInfo[]>("list_audio_devices"),
+  getEncoderCapabilities: (refresh = false) =>
+    invoke<EncoderCapabilities>("get_encoder_capabilities", { refresh }),
+
+  // Replay buffer
+  startBuffer: () => invoke<BufferStatus>("start_buffer"),
+  stopBuffer: () => invoke<BufferStatus>("stop_buffer"),
+  pauseBuffer: () => invoke<BufferStatus>("pause_buffer"),
+  resumeBuffer: () => invoke<BufferStatus>("resume_buffer"),
+  getBufferStatus: () => invoke<BufferStatus>("get_buffer_status"),
+  /** `seconds` omitted or 0 = everything in the buffer. */
+  saveLastClip: (seconds?: number) => invoke<ClipInfo>("save_last_clip", { seconds }),
+  toggleRecording: () => invoke<BufferStatus>("toggle_recording"),
+  setMetersEnabled: (enabled: boolean) => invoke<undefined>("set_meters_enabled", { enabled }),
+
+  // Clips
+  listClips: () => invoke<ClipInfo[]>("list_clips"),
+  getClipDetails: (path: string) => invoke<ClipDetails>("get_clip_details", { path }),
+  deleteClip: (path: string) => invoke<undefined>("delete_clip", { path }),
+  revealClip: (path: string) => invoke<undefined>("reveal_clip", { path }),
+  openClipExternal: (path: string) => invoke<undefined>("open_clip_external", { path }),
+  copyClipPath: (path: string) => invoke<undefined>("copy_clip_path", { path }),
+  getWaveform: (path: string, track: number, buckets: number) =>
+    invoke<number[]>("get_waveform", { path, track, buckets }),
+  takeScreenshot: (path: string, timeSec: number, crop?: CropRect) =>
+    invoke<string>("take_screenshot", { path, timeSec, crop }),
+
+  // Export
+  estimateExport: (request: ExportRequest) =>
+    invoke<ExportEstimate>("estimate_export", { request }),
+  /** Returns the job id; progress arrives via `export-progress` events. */
+  exportClip: (request: ExportRequest) => invoke<string>("export_clip", { request }),
+  cancelExport: (jobId: string) => invoke<boolean>("cancel_export", { jobId }),
+
+  // Windows & dialogs
+  openEditor: (path?: string) => invoke<undefined>("open_editor", { path }),
+  showMainWindow: (page?: string) => invoke<undefined>("show_main_window", { page }),
+  pickFolder: (initial?: string) => invoke<string | null>("pick_folder", { initial }),
+  pickExportPath: (suggested: string, container: Container) =>
+    invoke<string | null>("pick_export_path", { suggested, container }),
+  openFolder: (which: FolderKind) => invoke<undefined>("open_folder", { which }),
+
+  // Hotkeys & region
+  getHotkeyStatus: () => invoke<HotkeyStatus[]>("get_hotkey_status"),
+  setHotkeysSuspended: (suspended: boolean) =>
+    invoke<undefined>("set_hotkeys_suspended", { suspended }),
+  openRegionPicker: (monitorId?: string) => invoke<undefined>("open_region_picker", { monitorId }),
+  closeRegionPicker: () => invoke<undefined>("close_region_picker"),
+  setCaptureRegion: (region: RegionRect) => invoke<Settings>("set_capture_region", { region }),
+} as const;

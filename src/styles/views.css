@@ -1,0 +1,339 @@
+/* ---------------------------------------------------------------- editor */
+
+.editor {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+.editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.editor-main {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  min-height: 0;
+}
+.editor-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  min-width: 0;
+  min-height: 0;
+}
+.video-box {
+  position: relative;
+  flex: 1;
+  min-height: 200px;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.video-box video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: pointer;
+}
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.editor-side {
+  border-left: 1px solid var(--border);
+  background: var(--bg-elev);
+  overflow-y: auto;
+  padding: 12px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.editor-side .field {
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 8px 0;
+}
+.editor-side .card > .field:first-child {
+  border-top: none;
+}
+.side-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tl-track {
+  position: relative;
+  height: 74px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  touch-action: none;
+}
+.tl-wave {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tl-dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(8, 9, 12, 0.62);
+  pointer-events: none;
+}
+.tl-sel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-top: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  pointer-events: none;
+}
+.tl-handle {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 10px;
+  margin-left: -5px;
+  background: var(--accent);
+  border-radius: 3px;
+  cursor: ew-resize;
+  z-index: 2;
+}
+.tl-handle::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 30%;
+  bottom: 30%;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 1px;
+}
+.tl-playhead {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  pointer-events: none;
+  z-index: 3;
+}
+.tl-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.crop-layer {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+.crop-shade {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+.crop-rect {
+  position: absolute;
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  cursor: move;
+}
+.crop-size {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  font-size: 11px;
+  padding: 1px 5px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.crop-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 2px;
+  margin: -6px 0 0 -6px;
+}
+.crop-handle.nw {
+  left: 0;
+  top: 0;
+  cursor: nwse-resize;
+}
+.crop-handle.n {
+  left: 50%;
+  top: 0;
+  cursor: ns-resize;
+}
+.crop-handle.ne {
+  left: 100%;
+  top: 0;
+  cursor: nesw-resize;
+}
+.crop-handle.e {
+  left: 100%;
+  top: 50%;
+  cursor: ew-resize;
+}
+.crop-handle.se {
+  left: 100%;
+  top: 100%;
+  cursor: nwse-resize;
+}
+.crop-handle.s {
+  left: 50%;
+  top: 100%;
+  cursor: ns-resize;
+}
+.crop-handle.sw {
+  left: 0;
+  top: 100%;
+  cursor: nesw-resize;
+}
+.crop-handle.w {
+  left: 0;
+  top: 50%;
+  cursor: ew-resize;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.preset {
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 12px;
+}
+.preset:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.estimate {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.estimate .big {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- HUD (transparent window) */
+
+html.win-hud,
+html.win-hud body,
+html.win-hud #root {
+  background: transparent;
+}
+.hud {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px;
+}
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 20px;
+  background: rgba(16, 18, 23, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: slide-in 0.15s ease-out;
+}
+.hud-pill.toast.saved {
+  border-color: rgba(60, 207, 145, 0.5);
+}
+.hud-pill.toast.error {
+  border-color: rgba(255, 92, 92, 0.6);
+}
+
+/* ---------------------------------------------------------------- region picker */
+
+html.win-region,
+html.win-region body,
+html.win-region #root {
+  background: transparent;
+}
+.region {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  cursor: crosshair;
+}
+.region-rect {
+  position: absolute;
+  border: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.25);
+}
+.region-size {
+  position: absolute;
+  right: 0;
+  bottom: -26px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.region-bar {
+  position: fixed;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 16px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  cursor: default;
+}

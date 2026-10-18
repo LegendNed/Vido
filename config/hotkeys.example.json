@@ -1,0 +1,45 @@
+{
+  "$comment": "Example hotkey layouts. Copy ONE \"hotkeys\" block into the \"hotkeys\" section of your settings.json (Settings → Advanced → About shows its location), or set keys in Settings → Hotkeys. Accelerators: Ctrl/Alt/Shift/Win + A–Z, 0–9, F1–F24, Numpad0–9, Space, Insert, Delete, Home, End, PageUp, PageDown, Up/Down/Left/Right, Pause, ScrollLock, PrintScreen. A key without modifiers is only allowed for F-keys, Pause, ScrollLock and PrintScreen. null = unbound. customSeconds: 0 = save the whole buffer.",
+
+  "default": {
+    "hotkeys": {
+      "save15": "Ctrl+Shift+F5",
+      "save30": "Ctrl+Shift+F6",
+      "save60": "Ctrl+Shift+F7",
+      "saveCustom": "Ctrl+Shift+F8",
+      "customSeconds": 0,
+      "toggleRecording": "Ctrl+Shift+F9",
+      "togglePause": "Ctrl+Shift+F10",
+      "openLastClip": "Ctrl+Shift+F11",
+      "openEditor": "Ctrl+Shift+F12"
+    }
+  },
+
+  "singleKeyF8": {
+    "hotkeys": {
+      "save15": "Shift+F8",
+      "save30": "F8",
+      "save60": "Ctrl+F8",
+      "saveCustom": "Alt+F8",
+      "customSeconds": 120,
+      "toggleRecording": "F9",
+      "togglePause": "Shift+F9",
+      "openLastClip": "Ctrl+F9",
+      "openEditor": "Ctrl+Shift+F9"
+    }
+  },
+
+  "minimal": {
+    "hotkeys": {
+      "save15": null,
+      "save30": "Ctrl+Shift+F6",
+      "save60": null,
+      "saveCustom": null,
+      "customSeconds": 0,
+      "toggleRecording": null,
+      "togglePause": null,
+      "openLastClip": null,
+      "openEditor": null
+    }
+  }
+}

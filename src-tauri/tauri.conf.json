@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ClipDeck",
+  "version": "0.1.0",
+  "identifier": "com.clipdeck.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' asset: http://asset.localhost data: blob:",
+        "media-src": "'self' asset: http://asset.localhost blob:",
+        "connect-src": "ipc: http://ipc.localhost",
+        "font-src": "'self'",
+        "object-src": "'none'",
+        "base-uri": "'none'"
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "ClipDeck contributors",
+    "copyright": "Copyright (C) 2026 ClipDeck contributors. Licensed under GPL-3.0-or-later.",
+    "category": "Video",
+    "shortDescription": "Local-first replay buffer and clip editor",
+    "longDescription": "ClipDeck keeps a rolling replay buffer of your screen and audio and saves the last N seconds as a clip with one hotkey. No accounts, no cloud, no telemetry.",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../LICENSE",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "resources": {
+      "../third_party/ffmpeg/bin/avcodec-62.dll": "avcodec-62.dll",
+      "../third_party/ffmpeg/bin/avfilter-11.dll": "avfilter-11.dll",
+      "../third_party/ffmpeg/bin/avformat-62.dll": "avformat-62.dll",
+      "../third_party/ffmpeg/bin/avutil-60.dll": "avutil-60.dll",
+      "../third_party/ffmpeg/bin/swresample-6.dll": "swresample-6.dll",
+      "../third_party/ffmpeg/bin/swscale-9.dll": "swscale-9.dll",
+      "../third_party/ffmpeg/LICENSE.txt": "licenses/FFmpeg-LICENSE.txt",
+      "../THIRD_PARTY_NOTICES.md": "licenses/THIRD_PARTY_NOTICES.md"
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "compression": "lzma"
+      }
+    }
+  }
+}
