@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 
 import { HotkeyRecorder } from "../../components/HotkeyRecorder";
 import { Icon } from "../../components/Icon";
-import { Button, Field, Select, Toggle } from "../../components/ui";
+import { Badge, Button, Field, Select } from "../../components/ui";
 import { QUALITY_OPTIONS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
+import { useEvent } from "../../lib/tauri/events";
 import {
   errorMessage,
   type AudioDeviceInfo,
@@ -12,6 +13,8 @@ import {
   type Settings,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import { AudioDeviceChecklist } from "../audio/AudioDeviceChecklist";
+import { trackSummary } from "../audio/devices";
 
 const STEPS = ["Display", "Audio", "Buffer", "Hotkey"] as const;
 const LENGTHS = [15, 30, 60, 120, 300];
@@ -23,13 +26,16 @@ export function FirstRun() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Settings | null>(current);
   const [displays, setDisplays] = useState<DisplayInfo[]>([]);
-  const [devices, setDevices] = useState<AudioDeviceInfo[]>([]);
+  const [devices, setDevices] = useState<AudioDeviceInfo[] | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     void commands.listDisplays().then(setDisplays);
-    void commands.listAudioDevices().then(setDevices);
+    commands.listAudioDevices().then(setDevices, () => {
+      setDevices([]);
+    });
   }, []);
+  useEvent("audio-devices-changed", setDevices);
 
   if (!draft) return null;
   const edit = (fn: (d: Settings) => void) => {
@@ -37,10 +43,6 @@ export function FirstRun() {
     fn(next);
     setDraft(next);
   };
-  const desktop = draft.audio.tracks.find((t) => t.kind === "desktop");
-  const mic = draft.audio.tracks.find((t) => t.kind === "microphone");
-  const outputs = devices.filter((d) => d.kind === "output");
-  const inputs = devices.filter((d) => d.kind === "input");
 
   const finish = async () => {
     setBusy(true);
@@ -107,59 +109,21 @@ export function FirstRun() {
           <>
             <h2>Audio</h2>
             <p className="muted">
-              Each source is recorded on its own track, so you can rebalance them later.
+              Tick every device you want in your clips. Each one is recorded on its own track, so
+              you can rebalance them later. Microphones stay off unless you tick them.
             </p>
-            <div className="card" style={{ padding: "0 14px", margin: "14px 0" }}>
-              <Field label="Desktop audio" description="Game and app sound.">
-                <Select<string>
-                  value={desktop?.deviceId ?? "__default"}
-                  width={260}
-                  options={[
-                    { value: "__default", label: "Windows default output" },
-                    ...outputs.map((d) => ({ value: d.id, label: d.name })),
-                  ]}
-                  onChange={(v) => {
-                    edit((s) => {
-                      const t = s.audio.tracks.find((x) => x.kind === "desktop");
-                      if (t) t.deviceId = v === "__default" ? null : v;
-                    });
-                  }}
-                />
-                <Toggle
-                  value={desktop?.enabled ?? false}
-                  onChange={(v) => {
-                    edit((s) => {
-                      const t = s.audio.tracks.find((x) => x.kind === "desktop");
-                      if (t) t.enabled = v;
-                    });
-                  }}
-                />
-              </Field>
-              <Field label="Microphone" description="Off unless you turn it on.">
-                <Select<string>
-                  value={mic?.deviceId ?? "__default"}
-                  width={260}
-                  options={[
-                    { value: "__default", label: "Windows default microphone" },
-                    ...inputs.map((d) => ({ value: d.id, label: d.name })),
-                  ]}
-                  onChange={(v) => {
-                    edit((s) => {
-                      const t = s.audio.tracks.find((x) => x.kind === "microphone");
-                      if (t) t.deviceId = v === "__default" ? null : v;
-                    });
-                  }}
-                />
-                <Toggle
-                  value={mic?.enabled ?? false}
-                  onChange={(v) => {
-                    edit((s) => {
-                      const t = s.audio.tracks.find((x) => x.kind === "microphone");
-                      if (t) t.enabled = v;
-                    });
-                  }}
-                />
-              </Field>
+            <AudioDeviceChecklist
+              audio={draft.audio}
+              devices={devices}
+              onEdit={(fn) => {
+                edit((s) => {
+                  fn(s.audio);
+                });
+              }}
+            />
+            <div className="row">
+              <span className="muted small">Saved clips get</span>
+              <Badge tone="accent">{trackSummary(draft.audio)}</Badge>
             </div>
           </>
         )}
