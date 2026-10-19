@@ -74,7 +74,11 @@ fn export_events(app: tauri::AppHandle) -> crate::export::manager::EventSink {
             events::emit(&app, events::EXPORT_COMPLETED, r);
             events::emit(&app, events::CLIPS_CHANGED, ());
         }
-        ExportEvent::Failed(f) => events::emit(&app, events::EXPORT_FAILED, f),
+        ExportEvent::Failed(f) => {
+            events::emit(&app, events::EXPORT_FAILED, f);
+            // A failed "Save & override" may already have recycled the original.
+            events::emit(&app, events::CLIPS_CHANGED, ());
+        }
     })
 }
 
@@ -270,6 +274,7 @@ pub fn run() {
             commands::estimate_export,
             commands::export_clip,
             commands::cancel_export,
+            commands::save_edit,
             commands::open_editor,
             commands::show_main_window,
             commands::pick_folder,

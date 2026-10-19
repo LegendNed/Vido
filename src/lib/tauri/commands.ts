@@ -18,6 +18,7 @@ import type {
   FolderKind,
   HotkeyStatus,
   RegionRect,
+  SaveEditMode,
   Settings,
   WindowInfo,
 } from "./types";
@@ -68,6 +69,12 @@ export const commands = {
   /** Returns the job id; progress arrives via `export-progress` events. */
   exportClip: (request: ExportRequest) => invoke<string>("export_clip", { request }),
   cancelExport: (jobId: string) => invoke<boolean>("cancel_export", { jobId }),
+  /**
+   * Editor Save (`new`: `<name>_edit.<ext>`) or Save & override (`override`: replaces
+   * the clip, the original goes to the Recycle Bin). Returns the export job id.
+   */
+  saveEdit: (request: ExportRequest, mode: SaveEditMode) =>
+    invoke<string>("save_edit", { request, mode }),
 
   // Windows & dialogs
   openEditor: (path?: string) => invoke<undefined>("open_editor", { path }),

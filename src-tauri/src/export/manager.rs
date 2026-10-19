@@ -11,7 +11,7 @@ use crossbeam_channel::{unbounded, Sender};
 use parking_lot::Mutex;
 
 use super::bitrate::corrected_bitrate;
-use super::transcode;
+use super::{edit, transcode};
 use super::{ExportFailed, ExportProgress, ExportResult, ExportStage, Plan, VideoPlan};
 use crate::encode::video::Rate;
 use crate::encode::CapabilityCache;
@@ -25,12 +25,23 @@ pub enum ExportEvent {
 
 pub type EventSink = Arc<dyn Fn(ExportEvent) + Send + Sync>;
 
+/// What happens to the output file once the export succeeded.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Finish {
+    /// Leave it at the planned output path.
+    Keep,
+    /// Re-encode-on-save: replace the input file with the result.
+    ReplaceInput,
+    /// Editor "Save & override": the output is a temporary file next to the
+    /// input; it takes the input's name and the input goes to the Recycle Bin.
+    Override,
+}
+
 struct Job {
     id: String,
     plan: Plan,
     cancel: Arc<AtomicBool>,
-    /// Re-encode-on-save: replace the input file with the result.
-    replace_input: bool,
+    finish: Finish,
 }
 
 pub struct ExportManager {
@@ -69,6 +80,15 @@ impl ExportManager {
     }
 
     pub fn submit(&self, plan: Plan, replace_input: bool) -> String {
+        let finish = if replace_input {
+            Finish::ReplaceInput
+        } else {
+            Finish::Keep
+        };
+        self.submit_with(plan, finish)
+    }
+
+    pub fn submit_with(&self, plan: Plan, finish: Finish) -> String {
         let id = uuid::Uuid::new_v4().simple().to_string();
         let cancel = Arc::new(AtomicBool::new(false));
         self.cancels.lock().insert(id.clone(), cancel.clone());
@@ -76,7 +96,7 @@ impl ExportManager {
             id: id.clone(),
             plan,
             cancel,
-            replace_input,
+            finish,
         });
         id
     }
@@ -103,7 +123,7 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
         id,
         mut plan,
         cancel,
-        replace_input,
+        finish,
     } = job;
     if cancel.load(Ordering::SeqCst) {
         sink(ExportEvent::Failed(ExportFailed {
@@ -184,12 +204,39 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
                     }
                 }
                 let mut output: PathBuf = plan.output.clone();
-                if replace_input {
-                    let target = plan.input.with_extension(plan.container.extension());
-                    if (std::fs::remove_file(&plan.input).is_ok() || !plan.input.exists())
-                        && std::fs::rename(&plan.output, &target).is_ok()
-                    {
-                        output = target;
+                match finish {
+                    Finish::Keep => {}
+                    Finish::ReplaceInput => {
+                        let target = plan.input.with_extension(plan.container.extension());
+                        if (std::fs::remove_file(&plan.input).is_ok() || !plan.input.exists())
+                            && std::fs::rename(&plan.output, &target).is_ok()
+                        {
+                            output = target;
+                        }
+                    }
+                    Finish::Override => {
+                        sink(ExportEvent::Progress(ExportProgress {
+                            job_id: id.clone(),
+                            stage: ExportStage::Finalizing,
+                            percent: 100.0,
+                            fps: 0.0,
+                            eta_seconds: 0.0,
+                            attempt,
+                        }));
+                        if let Err(e) = edit::replace_original(
+                            &plan.input,
+                            &plan.output,
+                            &crate::util::move_to_recycle_bin,
+                            edit::RETRY_DELAY,
+                        ) {
+                            tracing::error!("export {id}: override failed: {}", e.message);
+                            sink(ExportEvent::Failed(ExportFailed {
+                                job_id: id,
+                                error: e,
+                            }));
+                            return;
+                        }
+                        output = plan.input.clone();
                     }
                 }
                 let over_target = plan.target_bytes.is_some_and(|t| stats.bytes > t + t / 100);

@@ -12,6 +12,7 @@ use serde::Serialize;
 use ts_rs::TS;
 
 use crate::error::{AppError, AppResult, ErrorCode};
+use crate::export::edit::is_override_temp;
 use crate::export::{frames, probe};
 use crate::util::is_media_file;
 
@@ -157,7 +158,11 @@ impl ClipLibrary {
         for entry in rd.flatten() {
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().to_lowercase();
-            if !is_media_file(&path) || name.ends_with(".partial") || name.contains(".recording.") {
+            if !is_media_file(&path)
+                || name.ends_with(".partial")
+                || name.contains(".recording.")
+                || is_override_temp(&name)
+            {
                 continue;
             }
             let Ok(meta) = entry.metadata() else { continue };
@@ -210,9 +215,17 @@ impl ClipLibrary {
             .ok();
     }
 
-    /// Drops cached info so the next listing re-probes (e.g. after a thumbnail was written).
+    /// Drops cached info so the next listing re-probes (e.g. after a thumbnail
+    /// was written). If the file was replaced (same path, new contents), the old
+    /// contents' thumbnail is deleted too.
     pub fn invalidate(&self, path: &Path) {
-        self.cache.lock().remove(path);
+        let Some((key, _)) = self.cache.lock().remove(path) else {
+            return;
+        };
+        let current = std::fs::metadata(path).ok().map(|m| file_key(&m));
+        if current != Some(key) {
+            let _ = std::fs::remove_file(self.thumb_path(path, key));
+        }
     }
 
     pub fn set_last_saved(&self, p: &Path) {
@@ -230,7 +243,8 @@ impl ClipLibrary {
             .ok()?
             .flatten()
             .filter(|e| {
-                is_media_file(&e.path()) && !e.file_name().to_string_lossy().ends_with(".partial")
+                let name = e.file_name().to_string_lossy().to_lowercase();
+                is_media_file(&e.path()) && !name.ends_with(".partial") && !is_override_temp(&name)
             })
             .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
             .max_by_key(|(t, _)| *t)
