@@ -12,11 +12,17 @@ import {
   type Severity,
 } from "../lib/tauri/types";
 
+export interface NoticeAction {
+  label: string;
+  run: () => void;
+}
+
 export interface Notice {
   id: number;
   severity: Severity;
   title: string;
   hint?: string;
+  actions?: NoticeAction[];
   at: number;
 }
 
@@ -35,7 +41,7 @@ interface AppStore {
   /** Optimistically applies a change; persisted (validated by Rust) after a short debounce. */
   update: (mutate: (draft: Settings) => void, opts?: { immediate?: boolean }) => void;
   flush: () => Promise<boolean>;
-  notify: (severity: Severity, title: string, hint?: string) => void;
+  notify: (severity: Severity, title: string, hint?: string, actions?: NoticeAction[]) => void;
   dismiss: (id: number) => void;
   loadCaps: (refresh?: boolean) => Promise<void>;
 }
@@ -105,19 +111,23 @@ export const useApp = create<AppStore>((set, get) => ({
     }
   },
 
-  notify: (severity, title, hint) => {
+  notify: (severity, title, hint, actions) => {
     const n: Notice = {
       id: nextNoticeId++,
       severity,
       title,
       at: Date.now(),
       ...(hint ? { hint } : {}),
+      ...(actions?.length ? { actions } : {}),
     };
     set({ notices: [...get().notices.slice(-4), n] });
     if (severity !== "error") {
-      setTimeout(() => {
-        get().dismiss(n.id);
-      }, 6000);
+      setTimeout(
+        () => {
+          get().dismiss(n.id);
+        },
+        n.actions ? 12000 : 6000,
+      );
     }
   },
 

@@ -1,4 +1,3 @@
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -27,10 +26,12 @@ import {
 } from "../../lib/tauri/types";
 import { useBackendSync } from "../../lib/useBackendSync";
 import { useApp } from "../../stores/app";
+import { clipSrc, unloadVideo } from "../clips/media";
 import { ExportPanel } from "../export/ExportPanel";
 import { CropOverlay } from "./CropOverlay";
 import { aspectCrop } from "./cropMath";
-import { initialState, type AudioMode, type EditState, type ExportOpts } from "./model";
+import { hasEdits, initialState, type AudioMode, type EditState, type ExportOpts } from "./model";
+import { SaveActions } from "./SaveEdit";
 import { Timeline } from "./Timeline";
 import { useHistory } from "./useHistory";
 
@@ -80,7 +81,9 @@ export function EditorWindow() {
 }
 
 function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults }) {
-  const [details, setDetails] = useState<ClipDetails | null>(null);
+  // `version` counts in-place replacements ("Save & override") of this file.
+  const [version, setVersion] = useState(0);
+  const [loaded, setLoaded] = useState<{ details: ClipDetails; version: number } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -88,7 +91,7 @@ function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults
     commands.getClipDetails(path).then(
       (d) => {
         if (cancelled) return;
-        setDetails(d);
+        setLoaded({ details: d, version });
         void getCurrentWindow().setTitle(`${d.info.fileName} — Vido Editor`);
       },
       (e: unknown) => {
@@ -98,7 +101,7 @@ function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults
     return () => {
       cancelled = true;
     };
-  }, [path]);
+  }, [path, version]);
 
   if (loadError) {
     return (
@@ -108,20 +111,39 @@ function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults
       </div>
     );
   }
-  if (!details) {
+  if (!loaded) {
     return (
       <div className="empty">
         <Spinner />
       </div>
     );
   }
-  return <ClipEditor details={details} initial={initialState(details, defaults)} />;
+  // A replaced file gets a fresh editor (full-length trim, empty history).
+  return (
+    <ClipEditor
+      key={loaded.version}
+      details={loaded.details}
+      initial={initialState(loaded.details, defaults)}
+      onReplaced={() => {
+        setVersion((v) => v + 1);
+      }}
+    />
+  );
 }
 
-function ClipEditor({ details, initial }: { details: ClipDetails; initial: EditState }) {
+function ClipEditor({
+  details,
+  initial,
+  onReplaced,
+}: {
+  details: ClipDetails;
+  initial: EditState;
+  onReplaced: () => void;
+}) {
   const notify = useApp((s) => s.notify);
   const info = details.info;
   const path = info.path;
+  const src = clipSrc(info);
   const [waveform, setWaveform] = useState<number[] | null>(null);
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -230,6 +252,17 @@ function ClipEditor({ details, initial }: { details: ClipDetails; initial: EditS
     edit((d) => ({ ...d, trimEnd: Math.max(Math.round(current * fps) / fps, d.trimStart + 0.1) }));
   }, [edit, current, fps]);
 
+  // Save & override: the preview must not hold the file while it is replaced.
+  const releaseVideo = useCallback(() => {
+    if (video.current) unloadVideo(video.current);
+  }, []);
+  const restoreVideo = useCallback(() => {
+    const v = video.current;
+    if (!v) return;
+    v.src = src;
+    v.load();
+  }, [src]);
+
   const screenshot = useCallback(async () => {
     try {
       const out = await commands.takeScreenshot(path, current, s.crop ?? undefined);
@@ -324,6 +357,15 @@ function ClipEditor({ details, initial }: { details: ClipDetails; initial: EditS
           title="Show in folder"
           onClick={() => void commands.revealClip(info.path)}
         />
+        <span className="editor-head-sep" />
+        <SaveActions
+          path={info.path}
+          state={s}
+          dirty={hasEdits(s, initial)}
+          release={releaseVideo}
+          restore={restoreVideo}
+          onReplaced={onReplaced}
+        />
       </header>
 
       <div className="editor-main">
@@ -331,7 +373,7 @@ function ClipEditor({ details, initial }: { details: ClipDetails; initial: EditS
           <div className="video-box">
             <video
               ref={video}
-              src={convertFileSrc(info.path)}
+              src={src}
               preload="auto"
               onPlay={() => {
                 setPlaying(true);

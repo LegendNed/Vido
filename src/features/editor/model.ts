@@ -140,6 +140,41 @@ export function buildRequest(path: string, s: EditState): ExportRequest {
   };
 }
 
+/**
+ * Request for the editor's Save / Save & override. Same edits as an export (Rust
+ * then matches the output format to the original), except that in "Recorded mix"
+ * mode the per-source tracks are carried along untouched, so the clip keeps its
+ * track layout.
+ */
+export function buildSaveRequest(path: string, s: EditState): ExportRequest {
+  const req = buildRequest(path, s);
+  if (s.audioMode !== "mix") return req;
+  return {
+    ...req,
+    audioTracks: s.tracks.map((t, i) =>
+      i === 0 ? t : { index: t.index, include: true, muted: false, volume: 1 },
+    ),
+    mixAudio: false,
+  };
+}
+
+/** Whether `s` changes the clip itself (export-only options don't count). */
+export function hasEdits(s: EditState, initial: EditState): boolean {
+  const key = (e: EditState) =>
+    JSON.stringify([
+      e.trimStart,
+      e.trimEnd,
+      e.crop,
+      e.speed,
+      e.fadeIn,
+      e.fadeOut,
+      e.audioMode,
+      e.tracks,
+      e.mixAudio,
+    ]);
+  return key(s) !== key(initial);
+}
+
 export interface Preset {
   id: string;
   label: string;
