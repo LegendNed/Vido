@@ -8,10 +8,15 @@ import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import { errorMessage, type ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import { ClipsHero } from "./ClipsHero";
+import { ClipViewer } from "./ClipViewer";
+import { clipSrc } from "./media";
 
 export function ClipsPage() {
   const [clips, setClips] = useState<ClipInfo[] | null>(null);
   const [reload, setReload] = useState(0);
+  /** Path of the clip open in the viewer. */
+  const [viewing, setViewing] = useState<string | null>(null);
   const notify = useApp((s) => s.notify);
   const status = useApp((s) => s.status);
   const info = useApp((s) => s.info);
@@ -20,7 +25,10 @@ export function ClipsPage() {
     let alive = true;
     commands.listClips().then(
       (c) => {
-        if (alive) setClips(c);
+        if (!alive) return;
+        setClips(c);
+        // Close the viewer if its clip is gone (deleted or renamed elsewhere).
+        setViewing((v) => (v !== null && c.some((x) => x.path === v) ? v : null));
       },
       (e: unknown) => {
         if (!alive) return;
@@ -46,6 +54,8 @@ export function ClipsPage() {
   };
 
   const canSave = status?.state === "buffering" || status?.state === "paused";
+  const latest = clips?.[0];
+  const viewIndex = viewing && clips ? clips.findIndex((c) => c.path === viewing) : -1;
 
   return (
     <div className="page" style={{ maxWidth: 1200 }}>
@@ -76,7 +86,7 @@ export function ClipsPage() {
         <div className="empty">
           <Spinner />
         </div>
-      ) : clips.length === 0 ? (
+      ) : clips.length === 0 || !latest ? (
         <div className="card empty">
           <Icon name="film" size={32} />
           <h3>No clips yet</h3>
@@ -86,96 +96,119 @@ export function ClipsPage() {
           </p>
         </div>
       ) : (
-        <div className="clip-grid">
-          {clips.map((c) => (
-            <div key={c.path} className="card clip-card">
-              <div
-                className="clip-thumb"
-                role="button"
-                tabIndex={0}
-                title="Open in editor"
-                style={
-                  c.thumbnail
-                    ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }
-                    : undefined
-                }
-                onClick={() => void act(() => commands.openEditor(c.path))}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void act(() => commands.openEditor(c.path));
-                }}
-              >
-                <div className="play">
-                  <Icon name="scissors" size={26} />
-                </div>
-                <span className="duration">{formatDuration(c.durationSec)}</span>
-              </div>
-              <div className="clip-meta">
-                <div className="ellipsis" title={c.fileName}>
-                  {c.fileName}
-                </div>
-                <div className="row small muted">
-                  <span>{formatDate(c.modifiedMs)}</span>
-                  <span className="spacer" />
-                  <span>{formatBytes(c.sizeBytes)}</span>
-                </div>
-                <div className="row" style={{ gap: 4, marginTop: 2 }}>
-                  <Badge>
-                    {c.height}p{Math.round(c.fps)}
-                  </Badge>
-                  <Badge>{c.videoCodec.toUpperCase()}</Badge>
-                  {c.audioTracks.length > 0 && (
-                    <Badge>
-                      {c.audioTracks.length} audio track{c.audioTracks.length > 1 ? "s" : ""}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="clip-actions">
-                <Button
-                  small
-                  variant="ghost"
-                  icon="scissors"
-                  onClick={() => void act(() => commands.openEditor(c.path))}
-                >
-                  Edit
-                </Button>
-                <span className="spacer" />
-                <Button
-                  small
-                  variant="ghost"
-                  icon="external"
-                  title="Open in default player"
-                  onClick={() => void act(() => commands.openClipExternal(c.path))}
-                />
-                <Button
-                  small
-                  variant="ghost"
-                  icon="folder"
-                  title="Show in folder"
-                  onClick={() => void act(() => commands.revealClip(c.path))}
-                />
-                <Button
-                  small
-                  variant="ghost"
-                  icon="copy"
-                  title="Copy file path"
-                  onClick={() =>
-                    void act(async () => {
-                      await commands.copyClipPath(c.path);
-                      notify("info", "Path copied");
-                    })
+        <>
+          <ClipsHero
+            key={clipSrc(latest)}
+            clip={latest}
+            onPlay={() => {
+              setViewing(latest.path);
+            }}
+            onEdit={() => void act(() => commands.openEditor(latest.path))}
+          />
+          <div className="clip-grid">
+            {clips.map((c) => (
+              <div key={c.path} className="card clip-card">
+                <div
+                  className="clip-thumb"
+                  role="button"
+                  tabIndex={0}
+                  title="Play"
+                  style={
+                    c.thumbnail
+                      ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }
+                      : undefined
                   }
-                />
-                <ConfirmButton
-                  small
-                  icon="trash"
-                  title="Delete clip"
-                  onConfirm={() => void act(() => commands.deleteClip(c.path))}
-                />
+                  onClick={() => {
+                    setViewing(c.path);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setViewing(c.path);
+                  }}
+                >
+                  <div className="play">
+                    <Icon name="play" size={26} />
+                  </div>
+                  <span className="duration">{formatDuration(c.durationSec)}</span>
+                </div>
+                <div className="clip-meta">
+                  <div className="ellipsis" title={c.fileName}>
+                    {c.fileName}
+                  </div>
+                  <div className="row small muted">
+                    <span>{formatDate(c.modifiedMs)}</span>
+                    <span className="spacer" />
+                    <span>{formatBytes(c.sizeBytes)}</span>
+                  </div>
+                  <div className="row" style={{ gap: 4, marginTop: 2 }}>
+                    <Badge>
+                      {c.height}p{Math.round(c.fps)}
+                    </Badge>
+                    <Badge>{c.videoCodec.toUpperCase()}</Badge>
+                    {c.audioTracks.length > 0 && (
+                      <Badge>
+                        {c.audioTracks.length} audio track{c.audioTracks.length > 1 ? "s" : ""}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="clip-actions">
+                  <Button
+                    small
+                    variant="ghost"
+                    icon="scissors"
+                    onClick={() => void act(() => commands.openEditor(c.path))}
+                  >
+                    Edit
+                  </Button>
+                  <span className="spacer" />
+                  <Button
+                    small
+                    variant="ghost"
+                    icon="external"
+                    title="Open in default player"
+                    onClick={() => void act(() => commands.openClipExternal(c.path))}
+                  />
+                  <Button
+                    small
+                    variant="ghost"
+                    icon="folder"
+                    title="Show in folder"
+                    onClick={() => void act(() => commands.revealClip(c.path))}
+                  />
+                  <Button
+                    small
+                    variant="ghost"
+                    icon="copy"
+                    title="Copy file path"
+                    onClick={() =>
+                      void act(async () => {
+                        await commands.copyClipPath(c.path);
+                        notify("info", "Path copied");
+                      })
+                    }
+                  />
+                  <ConfirmButton
+                    small
+                    icon="trash"
+                    title="Delete clip"
+                    onConfirm={() => void act(() => commands.deleteClip(c.path))}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {clips && viewIndex >= 0 && (
+        <ClipViewer
+          clips={clips}
+          index={viewIndex}
+          onNavigate={setViewing}
+          onClose={() => {
+            setViewing(null);
+          }}
+        />
       )}
     </div>
   );

@@ -53,6 +53,7 @@ export type { QualityPreset } from "./bindings/QualityPreset";
 export type { RateMode } from "./bindings/RateMode";
 export type { RecordingStatus } from "./bindings/RecordingStatus";
 export type { RegionRect } from "./bindings/RegionRect";
+export type { SaveEditMode } from "./bindings/SaveEditMode";
 export type { SaveMode } from "./bindings/SaveMode";
 export type { SavedClip } from "./bindings/SavedClip";
 export type { SavingSettings } from "./bindings/SavingSettings";

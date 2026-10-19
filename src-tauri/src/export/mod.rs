@@ -6,6 +6,7 @@
 //! container) or the user asks for it; audio likewise.
 
 pub mod bitrate;
+pub mod edit;
 pub mod frames;
 pub mod manager;
 pub mod probe;

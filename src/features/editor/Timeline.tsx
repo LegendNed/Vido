@@ -57,16 +57,18 @@ export function Timeline({
       if (!g) return;
       g.scale(dpr, dpr);
       g.clearRect(0, 0, w, h);
+      // Theme colors (light/dark follows Windows).
+      const css = getComputedStyle(c);
       if (waveform && waveform.length > 0) {
         const mid = h / 2;
-        g.fillStyle = "rgba(170, 180, 200, 0.55)";
+        g.fillStyle = css.getPropertyValue("--muted").trim() || "rgba(170, 180, 200, 0.55)";
         const step = w / waveform.length;
         waveform.forEach((v, i) => {
           const a = Math.max(1, Math.sqrt(Math.min(1, v)) * (h / 2 - 6));
           g.fillRect(i * step, mid - a, Math.max(1, step - 0.5), a * 2);
         });
       }
-      g.fillStyle = "rgba(90, 169, 255, 0.9)";
+      g.fillStyle = css.getPropertyValue("--info").trim() || "rgba(90, 169, 255, 0.9)";
       for (const k of keyframes) {
         const x = duration > 0 ? (k / duration) * w : 0;
         g.fillRect(Math.round(x) - 1, h - 9, 2, 9);
@@ -75,8 +77,11 @@ export function Timeline({
     draw();
     const ro = new ResizeObserver(draw);
     ro.observe(c);
+    const scheme = window.matchMedia("(prefers-color-scheme: light)");
+    scheme.addEventListener("change", draw);
     return () => {
       ro.disconnect();
+      scheme.removeEventListener("change", draw);
     };
   }, [waveform, keyframes, duration]);
 

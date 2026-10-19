@@ -73,6 +73,22 @@ pub fn unique_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
     dir.join(format!("{stem}-{}.{ext}", uuid::Uuid::new_v4().simple()))
 }
 
+/// Moves a file to the Recycle Bin (a recoverable delete).
+pub fn move_to_recycle_bin(path: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        crate::win::recycle_file(path)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "the Recycle Bin is only available on Windows",
+        ))
+    }
+}
+
 pub const MEDIA_EXTENSIONS: [&str; 4] = ["mp4", "mkv", "webm", "mov"];
 
 pub fn is_media_file(p: &Path) -> bool {

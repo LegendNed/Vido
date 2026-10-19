@@ -20,6 +20,8 @@ use crate::encode::EncoderCapabilities;
 use crate::engine::BufferStatus;
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::events;
+use crate::export::edit::SaveEditMode;
+use crate::export::manager::Finish;
 use crate::export::{self, CropRect, ExportEstimate, ExportRequest};
 use crate::hotkeys::{HotkeyManager, HotkeyStatus};
 use crate::settings::{Container, RegionRect, Settings};
@@ -396,6 +398,33 @@ pub fn cancel_export(state: AppStateRef<'_>, job_id: String) -> AppResult<bool> 
         return Err(AppError::invalid("jobId", "invalid job id"));
     }
     Ok(state.exports.cancel(&job_id))
+}
+
+/// Editor "Save" (`<name>_edit.<ext>` next to the clip) or "Save & override"
+/// (replaces the clip; the original goes to the Recycle Bin). Uses the edits
+/// from `request` with keep-the-original output settings; returns the export
+/// job id (progress arrives as export events).
+#[tauri::command]
+pub async fn save_edit(
+    app: AppHandle,
+    request: ExportRequest,
+    mode: SaveEditMode,
+) -> AppResult<String> {
+    blocking(move || {
+        let input = ensure_media_file(&request.input_path)?;
+        let (info, kf) = load_for_export(&request)?;
+        let req = export::edit::save_request(&input, &request, &info, mode)?;
+        let plan = export::plan(&req, &info, &kf)?;
+        let finish = match mode {
+            SaveEditMode::New => {
+                let _ = app.asset_protocol_scope().allow_file(&plan.output);
+                Finish::Keep
+            }
+            SaveEditMode::Override => Finish::Override,
+        };
+        Ok(app.state::<AppState>().exports.submit_with(plan, finish))
+    })
+    .await
 }
 
 // ---------------------------------------------------------------------------

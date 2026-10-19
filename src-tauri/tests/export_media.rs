@@ -6,6 +6,7 @@ use std::sync::atomic::AtomicBool;
 use vido_lib::av::{self, Demuxer, Frame, Muxer, StreamSpec};
 use vido_lib::encode::audio::AudioEncoder;
 use vido_lib::encode::video::{Rate, VideoEncoder, VideoEncoderConfig};
+use vido_lib::export::edit::{self, SaveEditMode};
 use vido_lib::export::{
     self, frames, probe, transcode, AudioOut, CropRect, ExportAudioTrack, ExportRequest, VideoPlan,
 };
@@ -274,6 +275,64 @@ fn target_size_export_fits() {
     req.audio_bitrate_kbps = 64;
     let (_, _, bytes) = run_export(&req);
     assert!(bytes <= 1_000_000 + 10_000, "{bytes} bytes");
+}
+
+#[test]
+fn editor_save_writes_an_edit_file_next_to_the_clip() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = make_clip(dir.path());
+    let info = probe::probe(&src).unwrap();
+    let req = edit::save_request(&src, &base_request(&src), &info, SaveEditMode::New).unwrap();
+    let (plan, out, _) = run_export(&req);
+    assert_eq!(out, dir.path().join("source_edit.mp4"));
+    assert_eq!(plan.video, VideoPlan::Copy, "trim only: lossless");
+    let o = probe::probe(&out).unwrap();
+    assert_eq!(o.audio.len(), 2);
+    assert_eq!(o.video.unwrap().codec_name, "h264");
+    assert!(src.exists(), "the original stays");
+}
+
+#[test]
+fn editor_save_and_override_replaces_the_clip() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = make_clip(dir.path());
+    let bin = dir.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let info = probe::probe(&src).unwrap();
+    let mut editor = base_request(&src);
+    editor.crop = Some(CropRect {
+        x: 0,
+        y: 0,
+        width: 160,
+        height: 120,
+    });
+    let req = edit::save_request(&src, &editor, &info, SaveEditMode::Override).unwrap();
+    let (plan, tmp, _) = run_export(&req);
+    assert!(matches!(
+        plan.video,
+        VideoPlan::Encode {
+            codec: VideoCodec::H264,
+            fps: (30, 1),
+            ..
+        }
+    ));
+    assert!(edit::is_override_temp(
+        &tmp.file_name().unwrap().to_string_lossy()
+    ));
+    // Stand-in for the Recycle Bin: tests never touch the real one.
+    let recycle = |p: &Path| std::fs::rename(p, bin.join(p.file_name().unwrap()));
+    edit::replace_original(&src, &tmp, &recycle, std::time::Duration::ZERO).unwrap();
+    assert!(!tmp.exists());
+    let replaced = probe::probe(&src).unwrap();
+    let v = replaced.video.unwrap();
+    assert_eq!((v.width, v.height), (160, 120));
+    assert_eq!(replaced.audio.len(), 2);
+    let recycled = probe::probe(&bin.join("source.mp4")).unwrap();
+    assert_eq!(
+        recycled.video.unwrap().width,
+        W,
+        "the original is recoverable"
+    );
 }
 
 #[test]

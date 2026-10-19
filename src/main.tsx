@@ -7,6 +7,7 @@ import { initAppearance } from "./lib/theme";
 import "./styles/global.css";
 import "./styles/views.css";
 import "./styles/audio.css";
+import "./styles/viewer.css";
 
 // Lets CSS style per-window (e.g. transparent HUD / region overlay).
 document.documentElement.classList.add(`win-${getCurrentWindow().label}`);

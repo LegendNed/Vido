@@ -9,7 +9,9 @@
  * everything on top is a translucent "layer"/"card". Elsewhere `--bg` is solid.
  */
 
-:root {
+:root,
+/* Always-dark islands drawn over video and thumbnails (clip viewer, Clips hero). */
+.theme-dark {
   /* Solid surfaces */
   --bg: #202020; /* window base; solid fallback when Mica is off */
   --bg-elev: #2c2c2c; /* opaque raised surface: toasts, dialogs, popups */
@@ -104,10 +106,13 @@
   --mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
 
   color-scheme: dark;
+  color: var(--text);
+}
+
+:root {
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.43;
-  color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
