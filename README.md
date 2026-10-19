@@ -60,12 +60,28 @@ editor trims, crops, mutes tracks and compresses clips to a target size.
 - MP4 or MKV; instant copy or re-encode-on-save.
 - Post-save actions: open editor, open folder, copy path, run a command.
 
+**Clips**
+
+- Hero banner with the latest clip, then a grid of thumbnails with resolution, codec and tracks.
+- Click a clip to watch it in the built-in viewer: play/pause, seek, volume, fullscreen,
+  ←/→ for the previous/next clip, Edit, Show in folder, Delete; Esc closes.
+
 **Editor**
 
+- **Save** writes the edit next to the original as `<name>_edit.mp4`; **Save & override** gives
+  the edit the original's name (and date) and moves the original to the Recycle Bin. Both keep
+  the source resolution, frame rate and codec, and stream-copy when only trimming.
 - Frame-accurate scrubbing and stepping, draggable trim handles + numeric fields, waveform, keyframe ticks.
 - Crop (free, 16:9, 9:16, 1:1, 4:3), speed 0.25×–4×, audio fade in/out.
 - Per-track keep/remove/mute/volume ("recorded mix" or "per track" mixing).
 - PNG screenshot of the current frame, undo/redo (Ctrl+Z / Ctrl+Y).
+
+**Look**
+
+- Windows 11 Fluent design: Mica window, light and dark following the Windows app mode, and the
+  Windows accent color (both update live).
+- Store-style navigation rail; Advanced → Appearance switches it between Full (icons + names),
+  Small (icons) and None (tabs above the page).
 
 **Export & compression**
 
@@ -237,6 +253,8 @@ Vido runs as a normal user — **no administrator rights and no drivers**.
 | Global hotkeys             | `RegisterHotKey` (via tauri-plugin-global-shortcut) | games running **as administrator** only see hotkeys from elevated apps — run Vido elevated in that case       |
 | HUD hidden from recordings | `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`  | Windows 10 2004+                                                                                              |
 | UI                         | WebView2                                            | evergreen runtime                                                                                             |
+| Mica, accent color         | DWM system backdrop, `UISettings` (WinRT)           | Mica on Windows 11; Windows 10 gets a solid background                                                        |
+| Save & override            | `SHFileOperationW` (Recycle Bin)                    | drives without a Recycle Bin ask before deleting the original                                                 |
 
 Window capture shows a yellow border on Windows 10 (a Windows privacy indicator; it is not recorded).
 
@@ -254,6 +272,11 @@ Window capture shows a yellow border on Windows 10 (a Windows privacy indicator;
 All defaults: [`config/default-settings.json`](config/default-settings.json) (generated from the
 Rust defaults; a test keeps it in sync). Invalid or partially broken settings files are repaired
 section by section on startup; a corrupt file is kept as `settings.json.corrupt-<timestamp>`.
+
+**Upgrading from ClipDeck** (Vido's earlier name): on first launch the old `ClipDeck` folders in
+`%APPDATA%`, `%LOCALAPPDATA%` and `Videos` are renamed to `Vido` (never overwriting an existing
+`Vido` folder), and settings that still use the old filename template or folders are updated.
+Existing clip file names are kept.
 
 ---
 
@@ -290,12 +313,12 @@ src-tauri/src/            Rust capture engine
   audio/                  WASAPI sources, mixer, RNNoise, audio engine
   buffer/                 session clock + segmented packet ring buffer
   encode/                 encoder catalog/probe, video & audio encoders
-  export/                 remux (instant save), planner, transcoder, frames, export queue
+  export/                 remux (instant save), planner, transcoder, frames, export queue, edit saves
   engine/                 session lifecycle, saving, manual recording, supervisor
   hotkeys/ settings/      validated accelerators, settings model + JSON store
   av/                     RAII wrappers over FFmpeg (ffmpeg-sys-next) + D3D11 hw contexts
   commands.rs events.rs   the IPC surface
-  tray.rs ui.rs           tray menu, windows (main, editor, HUD, region picker)
+  tray.rs ui.rs theme.rs  tray menu, windows (main, editor, HUD, region picker), Mica + accent
 ```
 
 The webview never captures, encodes, writes files or registers hotkeys; it calls typed commands

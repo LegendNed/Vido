@@ -494,6 +494,19 @@ textarea {
   background: var(--panel-2);
   color: var(--accent-text);
 }
+/* Tabs: the pill lies under the label (Fluent SelectorBar). */
+.pivot-item::before {
+  left: 50%;
+  top: auto;
+  bottom: 0;
+  width: 16px;
+  height: 3px;
+  margin: 0 0 0 -8px;
+  transform: scaleX(0);
+}
+.pivot-item.active::before {
+  transform: scaleX(1);
+}
 
 /* Content layer: rounded top-left corner against the rail, like the Store. */
 .content {

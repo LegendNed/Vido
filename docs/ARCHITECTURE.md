@@ -17,6 +17,7 @@ flowchart LR
     mix[vido-mixer<br/>align, mix, RNNoise, AAC/Opus]
     exp[vido-export<br/>job queue]
     dev[vido-devices<br/>IMMNotificationClient]
+    acc[vido-accent<br/>UISettings accent watcher]
   end
   vid -- packets --> buf[(ReplayBuffer)]
   aud1 -- chunks --> mix
@@ -30,6 +31,8 @@ flowchart LR
 - The **main thread stays STA** (the window library initializes OLE there). Every worker that uses
   COM/WinRT joins the MTA via `win::enter_mta()`, which also pins the MTA for the process lifetime
   (`CoIncrementMTAUsage`) because windows-rs caches activation factories in statics.
+- The Recycle Bin call (`win::recycle_file`, `SHFileOperationW`) runs on its own short-lived STA
+  thread, so it neither depends on nor changes the caller's apartment.
 - Long work never runs on the UI thread: commands use `spawn_blocking`, saves/exports run on their
   own threads, and all results are reported through events.
 
@@ -96,6 +99,23 @@ decoder → libavfilter graph (`trim`, `crop`, `scale`, `setpts` for speed, `fps
 Target-size mode computes the video bitrate from the duration and audio bitrates
 (`export::bitrate`), and `export::manager` re-encodes once or twice with a corrected bitrate if the
 result overshoots by more than 1 %.
+
+The editor's **Save** / **Save & override** (`export::edit`) reuse the same planner and job queue.
+`save_request` pins the output to the source (native size, source fps and codec, quality mode,
+stream copy when the planner allows it). Save writes `<stem>_edit.<ext>`. Override exports to a
+hidden `<stem>.vido-tmp.<ext>` next to the original and only after success: recycles the original
+(retrying while the file is busy), renames the temp to the original name, and restores the
+original's modification time. Any failure before the rename leaves the original untouched and
+removes the temp; a failed final rename keeps the temp and reports its path.
+
+## Appearance
+
+`theme.rs` decides Mica support (Windows build ≥ 22000) and watches the Windows accent palette
+(`UISettings.ColorValuesChanged`, on an MTA worker). Each window's init script carries `mica` and
+the palette, so the first paint already has the right colors; `accent-changed` updates them live.
+Windows have no fixed theme: the title bar, Mica tint and the webview's `prefers-color-scheme`
+follow the Windows app mode. CSS defines dark tokens in `:root` and light ones under
+`prefers-color-scheme: light`; `.theme-dark` re-applies the dark set to surfaces drawn over video.
 
 ## IPC contract
 
