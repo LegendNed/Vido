@@ -7,11 +7,12 @@ import {
   Field,
   NumberInput,
   Section,
+  Segmented,
   Select,
   TextInput,
   Toggle,
 } from "../../components/ui";
-import { LOG_LEVELS } from "../../lib/options";
+import { LOG_LEVELS, SIDEBAR_OPTIONS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
@@ -48,6 +49,29 @@ export function AdvancedPage() {
       <div className="page-head">
         <h1>Advanced</h1>
       </div>
+
+      <Section
+        title="Appearance"
+        description="Light or dark mode and the accent color follow Windows (Settings → Personalization → Colors)."
+      >
+        <Field
+          label="Sidebar"
+          description="Full shows names under the icons, Small only icons, None moves the pages into tabs above the content."
+        >
+          <Segmented
+            value={g.sidebar}
+            options={SIDEBAR_OPTIONS}
+            onChange={(v) => {
+              update(
+                (d) => {
+                  d.general.sidebar = v;
+                },
+                { immediate: true },
+              );
+            }}
+          />
+        </Field>
+      </Section>
 
       <Section title="Startup & tray">
         <Field

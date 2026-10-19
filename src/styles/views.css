@@ -1,5 +1,6 @@
 /* ---------------------------------------------------------------- editor */
 
+/* Header row sits on Mica; the work area below is a content layer. */
 .editor {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -9,21 +10,25 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  background: var(--bg-elev);
-  border-bottom: 1px solid var(--border);
+  min-height: 52px;
+  padding: 8px 14px 8px 18px;
   min-width: 0;
+}
+.editor-head > svg {
+  color: var(--accent-text);
 }
 .editor-main {
   display: grid;
   grid-template-columns: 1fr 380px;
   min-height: 0;
+  background: var(--layer);
+  border-top: 1px solid var(--stroke);
 }
 .editor-stage {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 12px;
+  padding: 16px;
   min-width: 0;
   min-height: 0;
 }
@@ -32,6 +37,7 @@
   flex: 1;
   min-height: 200px;
   background: #000;
+  border: 1px solid var(--stroke);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -50,9 +56,9 @@
 }
 .editor-side {
   border-left: 1px solid var(--border);
-  background: var(--bg-elev);
+  background: var(--card-2);
   overflow-y: auto;
-  padding: 12px 14px 24px;
+  padding: 12px 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -60,17 +66,15 @@
 .editor-side .field {
   grid-template-columns: 1fr auto;
   gap: 10px;
+  min-height: 48px;
   padding: 8px 0;
 }
 .editor-side .card > .field:first-child {
   border-top: none;
 }
 .side-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-top: 6px;
+  font-weight: 600;
+  margin-top: 8px;
 }
 
 .timeline {
@@ -81,9 +85,9 @@
 .tl-track {
   position: relative;
   height: 74px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-md);
   cursor: pointer;
   touch-action: none;
 }
@@ -97,7 +101,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  background: rgba(8, 9, 12, 0.62);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
   pointer-events: none;
 }
 .tl-sel {
@@ -115,7 +119,7 @@
   width: 10px;
   margin-left: -5px;
   background: var(--accent);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: ew-resize;
   z-index: 2;
 }
@@ -126,7 +130,8 @@
   top: 30%;
   bottom: 30%;
   width: 2px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--on-accent);
+  opacity: 0.7;
   border-radius: 1px;
 }
 .tl-playhead {
@@ -135,7 +140,8 @@
   bottom: -4px;
   width: 2px;
   margin-left: -1px;
-  background: #fff;
+  background: var(--text);
+  border-radius: 1px;
   pointer-events: none;
   z-index: 3;
 }
@@ -143,10 +149,11 @@
   display: flex;
   justify-content: space-between;
   color: var(--faint);
-  font-size: 11px;
+  font: 11px/14px var(--font-small);
   font-variant-numeric: tabular-nums;
 }
 
+/* Crop handles sit on the (always dark) video. */
 .crop-layer {
   position: absolute;
   inset: 0;
@@ -169,6 +176,7 @@
   top: 4px;
   font-size: 11px;
   padding: 1px 5px;
+  color: #fff;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 3px;
   pointer-events: none;
@@ -222,42 +230,49 @@
   cursor: ew-resize;
 }
 
+/* Export presets: pill-shaped toggle-button chips. */
 .preset-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 .preset {
-  padding: 5px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--border-strong);
-  background: var(--panel);
-  color: var(--text-2);
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--control-stroke);
+  border-bottom-color: var(--control-stroke-bottom);
+  background: var(--control);
+  color: var(--text);
   cursor: pointer;
-  font-size: 12px;
+  font: 12px/16px var(--font-small);
+  transition: background 0.083s;
 }
 .preset:hover {
-  color: var(--text);
-  border-color: var(--accent);
+  background: var(--control-hover);
+}
+.preset:active {
+  background: var(--control-pressed);
+  color: var(--text-2);
 }
 
 .estimate {
   display: flex;
   gap: 16px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: var(--radius);
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: 1px solid var(--stroke);
 }
 .estimate .big {
-  font-size: 20px;
-  font-weight: 600;
+  font: 600 20px/28px var(--font-display);
   font-variant-numeric: tabular-nums;
 }
 
 /* ---------------------------------------------------------------- HUD (transparent window) */
 
+/* Always dark (global.css keeps the dark tokens for .win-hud): it floats over games. */
 html.win-hud,
 html.win-hud body,
 html.win-hud #root {
@@ -274,22 +289,23 @@ html.win-hud #root {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
-  border-radius: 20px;
-  background: rgba(16, 18, 23, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 32px;
+  padding: 0 14px 0 12px;
+  border-radius: 16px;
+  background: rgba(32, 32, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   font-weight: 600;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  animation: slide-in 0.15s ease-out;
+  animation: slide-in 0.2s var(--ease);
 }
 .hud-pill.toast.saved {
-  border-color: rgba(60, 207, 145, 0.5);
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
 }
 .hud-pill.toast.error {
-  border-color: rgba(255, 92, 92, 0.6);
+  border-color: color-mix(in srgb, var(--rec) 65%, transparent);
 }
 
 /* ---------------------------------------------------------------- region picker */
@@ -314,11 +330,11 @@ html.win-region #root {
 .region-size {
   position: absolute;
   right: 0;
-  bottom: -26px;
+  bottom: -28px;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -330,10 +346,10 @@ html.win-region #root {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px 8px 16px;
-  border-radius: 10px;
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
+  padding: 8px 8px 8px 16px;
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  border: 1px solid var(--surface-stroke);
   box-shadow: var(--shadow);
   cursor: default;
 }

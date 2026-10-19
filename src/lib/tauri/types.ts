@@ -1,6 +1,7 @@
 // Shared IPC types. Everything here mirrors a Rust type; the definitions in
 // ./bindings are generated from Rust with ts-rs (`pnpm bindings`) — do not edit them.
 
+export type { AccentColors } from "./bindings/AccentColors";
 export type { AdvancedSettings } from "./bindings/AdvancedSettings";
 export type { AppError } from "./bindings/AppError";
 export type { AppInfo } from "./bindings/AppInfo";
@@ -58,6 +59,7 @@ export type { SavingSettings } from "./bindings/SavingSettings";
 export type { ScalePreset } from "./bindings/ScalePreset";
 export type { Settings } from "./bindings/Settings";
 export type { Severity } from "./bindings/Severity";
+export type { SidebarMode } from "./bindings/SidebarMode";
 export type { SourceState } from "./bindings/SourceState";
 export type { ToastKind } from "./bindings/ToastKind";
 export type { TrackKind } from "./bindings/TrackKind";
