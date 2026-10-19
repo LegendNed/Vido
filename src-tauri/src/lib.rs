@@ -19,6 +19,8 @@ pub mod logging;
 pub mod paths;
 pub mod settings;
 pub mod state;
+#[cfg(windows)]
+pub mod theme;
 pub mod tray;
 pub mod ui;
 pub mod util;
@@ -164,6 +166,10 @@ fn setup(
             }
         })?;
 
+    // Accent color + light/dark mode, read before the first window so it starts
+    // with the right colors.
+    theme::start_watcher(&handle);
+
     let show_window =
         !settings.first_run_completed || !(settings.general.start_minimized || start_hidden);
     if show_window {
@@ -242,6 +248,7 @@ pub fn run() {
         .manage(HotkeyManager::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_app_info,
+            commands::get_accent_colors,
             commands::get_settings,
             commands::get_default_settings,
             commands::update_settings,

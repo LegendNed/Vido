@@ -74,6 +74,13 @@ pub fn get_app_info(state: AppStateRef<'_>) -> AppInfo {
     }
 }
 
+/// The Windows accent palette (also injected at window creation and pushed as
+/// `accent-changed`).
+#[tauri::command]
+pub async fn get_accent_colors() -> AppResult<crate::theme::AccentColors> {
+    blocking(crate::theme::accent_colors_or_read).await
+}
+
 #[tauri::command]
 pub fn get_settings(state: AppStateRef<'_>) -> Settings {
     state.settings.get()
