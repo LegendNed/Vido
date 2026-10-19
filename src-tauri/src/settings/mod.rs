@@ -231,6 +231,20 @@ pub enum HudPosition {
     BottomRight,
 }
 
+/// Main-window navigation style.
+#[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum SidebarMode {
+    /// Rail with each page's icon above its name.
+    #[default]
+    Full,
+    /// Narrow rail with icons only.
+    Small,
+    /// No rail; pages are tabs above the content.
+    None,
+}
+
 // ---------------------------------------------------------------------------
 // Sections
 // ---------------------------------------------------------------------------
@@ -263,6 +277,7 @@ pub struct GeneralSettings {
     /// Play a short system sound when a clip is saved.
     pub sound_on_save: bool,
     pub hud: HudSettings,
+    pub sidebar: SidebarMode,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
@@ -473,6 +488,7 @@ impl Default for GeneralSettings {
             start_buffer_on_launch: true,
             sound_on_save: true,
             hud: HudSettings::default(),
+            sidebar: SidebarMode::Full,
         }
     }
 }
@@ -1179,6 +1195,21 @@ mod tests {
         assert_eq!(s.capture.fps, 30);
         assert_eq!(s.capture.buffer_seconds, 30);
         assert_eq!(s.audio, AudioSettings::default());
+    }
+
+    #[test]
+    fn sidebar_mode_is_lowercase_and_optional() {
+        // Settings files written before the option existed keep the full rail.
+        let s: Settings =
+            serde_json::from_str(r#"{ "general": { "closeToTray": false } }"#).unwrap();
+        assert_eq!(s.general.sidebar, SidebarMode::Full);
+        assert!(!s.general.close_to_tray);
+        let s: Settings = serde_json::from_str(r#"{ "general": { "sidebar": "none" } }"#).unwrap();
+        assert_eq!(s.general.sidebar, SidebarMode::None);
+        assert_eq!(
+            serde_json::to_string(&SidebarMode::Small).unwrap(),
+            "\"small\""
+        );
     }
 
     #[test]

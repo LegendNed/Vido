@@ -22,6 +22,8 @@ pub const SETTINGS_CHANGED: &str = "settings-changed";
 pub const EDITOR_OPEN: &str = "editor-open";
 pub const HUD_TOAST: &str = "hud-toast";
 pub const NAVIGATE: &str = "navigate";
+/// Payload: [`crate::theme::AccentColors`].
+pub const ACCENT_CHANGED: &str = "accent-changed";
 
 #[derive(Serialize, TS, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

@@ -450,6 +450,23 @@ export function Progress({ value }: { value: number }) {
   );
 }
 
+const SEVERITY_GLYPH = {
+  info: "glyphInfo",
+  warning: "glyphWarning",
+  error: "glyphError",
+  success: "glyphSuccess",
+} as const satisfies Record<string, IconName>;
+
+/** Filled round status icon, as in Fluent InfoBars. */
+export function SeverityIcon({ severity }: { severity: keyof typeof SEVERITY_GLYPH }) {
+  return (
+    <span className={`sev ${severity}`}>
+      <Icon name={SEVERITY_GLYPH[severity]} size={10} />
+    </span>
+  );
+}
+
+/** Inline InfoBar. */
 export function Banner({
   tone = "warn",
   children,
@@ -459,7 +476,7 @@ export function Banner({
 }) {
   return (
     <div className={`banner${tone === "warn" ? "" : ` ${tone}`}`}>
-      <Icon name={tone === "info" ? "info" : "alert"} size={16} />
+      <SeverityIcon severity={tone === "warn" ? "warning" : tone} />
       <div>{children}</div>
     </div>
   );

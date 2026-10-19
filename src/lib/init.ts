@@ -1,10 +1,14 @@
-import type { DisplayInfo } from "./tauri/types";
+import type { AccentColors, DisplayInfo } from "./tauri/types";
 
 /** Data injected by Rust into each window (`window.__VIDO_INIT__`). */
 export interface WindowInit {
   page?: string | null;
   clip?: string;
   display?: DisplayInfo;
+  /** The window sits on a Mica backdrop (Windows 11): keep the page background transparent. */
+  mica?: boolean;
+  /** Windows accent palette at window creation; `null` if it could not be read. */
+  accent?: AccentColors | null;
 }
 
 declare global {

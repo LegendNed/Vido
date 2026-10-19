@@ -35,6 +35,11 @@ const PATHS = {
   info: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v6M12 7.5h.01",
   bolt: "M13 2 4 14h7l-1 8 9-12h-7z",
   download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  // Bare glyphs for filled status icons (InfoBar style, see `SeverityIcon`).
+  glyphInfo: "M12 11v6M12 7h.01",
+  glyphWarning: "M12 6v7M12 17.5h.01",
+  glyphError: "M8 8l8 8M16 8l-8 8",
+  glyphSuccess: "M7 12.5l3.5 3.5L17 9",
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 
 import type {
+  AccentColors,
   AudioDeviceInfo,
   BufferStatus,
   CaptureIssue,
@@ -34,6 +35,7 @@ export interface EventMap {
   "editor-open": EditorOpen;
   "hud-toast": HudToast;
   navigate: Navigate;
+  "accent-changed": AccentColors;
 }
 
 export type EventName = keyof EventMap;

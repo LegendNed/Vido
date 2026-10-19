@@ -29,8 +29,8 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-elev);
+  border: 1px solid var(--control-strong);
+  background: var(--control-alt);
   color: transparent;
   transition:
     background 0.12s,
@@ -40,19 +40,19 @@
   stroke-width: 3;
 }
 .checkbox:not(.disabled):hover > .box {
-  border-color: var(--muted);
+  background: var(--control-alt-hover);
 }
 .checkbox > input:checked + .box {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg);
+  color: var(--on-accent);
 }
 .checkbox:not(.disabled):hover > input:checked + .box {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }
 .checkbox > input:focus-visible + .box {
-  outline: 2px solid var(--info);
+  outline: 2px solid var(--focus-outer);
   outline-offset: 1px;
 }
 
@@ -126,8 +126,8 @@
   margin: 0 16px 12px 44px;
   padding: 2px 14px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-elev);
+  border: 1px solid var(--stroke);
+  background: var(--card-2);
 }
 .device-settings > .field:first-child {
   border-top: none;

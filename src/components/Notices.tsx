@@ -1,5 +1,6 @@
 import { useApp } from "../stores/app";
 import { Icon } from "./Icon";
+import { SeverityIcon } from "./ui";
 
 export function Notices() {
   const notices = useApp((s) => s.notices);
@@ -8,7 +9,8 @@ export function Notices() {
     <div className="notices" aria-live="polite">
       {notices.map((n) => (
         <div key={n.id} className={`notice ${n.severity}`}>
-          <div style={{ flex: 1 }}>
+          <SeverityIcon severity={n.severity} />
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div className="title">{n.title}</div>
             {n.hint && <div className="hint">{n.hint}</div>}
           </div>

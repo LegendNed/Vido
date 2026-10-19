@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 import type {
+  AccentColors,
   AppInfo,
   AudioDeviceInfo,
   BufferStatus,
@@ -25,6 +26,8 @@ import type {
 export const commands = {
   // App & settings
   getAppInfo: () => invoke<AppInfo>("get_app_info"),
+  /** Windows accent palette; also pushed as `accent-changed`. */
+  getAccentColors: () => invoke<AccentColors>("get_accent_colors"),
   getSettings: () => invoke<Settings>("get_settings"),
   getDefaultSettings: () => invoke<Settings>("get_default_settings"),
   updateSettings: (settings: Settings) => invoke<Settings>("update_settings", { settings }),

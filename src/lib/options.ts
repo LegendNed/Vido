@@ -11,6 +11,7 @@ import type {
   QualityPreset,
   RateMode,
   ScalePreset,
+  SidebarMode,
   Vendor,
   VideoCodec,
 } from "./tauri/types";
@@ -73,6 +74,12 @@ export const HUD_POSITIONS: Option<HudPosition>[] = [
   { value: "topRight", label: "Top right" },
   { value: "bottomLeft", label: "Bottom left" },
   { value: "bottomRight", label: "Bottom right" },
+];
+
+export const SIDEBAR_OPTIONS: Option<SidebarMode>[] = [
+  { value: "full", label: "Full" },
+  { value: "small", label: "Small" },
+  { value: "none", label: "None" },
 ];
 
 export const LOG_LEVELS: Option<LogLevel>[] = [

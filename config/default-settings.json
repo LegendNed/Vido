@@ -11,7 +11,8 @@
       "enabled": true,
       "position": "topRight",
       "showDetails": true
-    }
+    },
+    "sidebar": "full"
   },
   "capture": {
     "mode": "monitor",
