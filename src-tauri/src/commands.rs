@@ -565,6 +565,14 @@ pub fn set_hotkeys_suspended(hk: State<'_, HotkeyManager>, suspended: bool) {
     hk.set_suspended(suspended);
 }
 
+/// Shows a sample "Clip saved" popup in the overlay's position for a few seconds,
+/// even with the overlay and the popup turned off.
+#[tauri::command]
+pub fn preview_hud() {
+    #[cfg(windows)]
+    crate::hud::preview();
+}
+
 #[tauri::command]
 pub async fn open_region_picker(app: AppHandle, monitor_id: Option<String>) -> AppResult<()> {
     blocking(move || {

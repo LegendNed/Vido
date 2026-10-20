@@ -110,7 +110,7 @@ pub fn emit<T: Serialize + Clone>(app: &AppHandle, name: &str, payload: T) {
     }
 }
 
-/// Shows a short message in the HUD pill (if the HUD is on).
+/// Pops up a short message in the overlay's position (if the clip popup is on).
 pub fn toast(_app: &AppHandle, kind: ToastKind, text: impl Into<String>) {
     #[cfg(windows)]
     crate::hud::toast(kind, &text.into());

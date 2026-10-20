@@ -67,6 +67,18 @@ milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips 
   into Discord or a folder. Other post-save actions: open editor, open folder, copy path, run a
   command.
 
+**Overlay**
+
+- A native, click-through pill that floats over games and is hidden from every recording and
+  screenshot; nothing runs while both options below are off.
+- Six positions (corners and top/bottom centre of the main display), picked on a small screen
+  diagram on the Overlay page.
+- **Show the overlay:** the always-visible pill (red dot while buffering), optionally with the
+  buffered seconds / REC timer.
+- **Clip saved popup** (on by default): "✓ Clip saved (0:30) · ready to paste" for 3 s in the same
+  spot, even with the overlay hidden; recording and error messages pop up the same way.
+  **Preview** shows it on demand.
+
 **Clips**
 
 - Hero banner with the latest clip, then a grid of thumbnails with resolution, codec and tracks.
@@ -304,7 +316,8 @@ Existing clip file names are kept.
 - **HDR:** recorded as SDR; colours of HDR content can look different.
 - **Desktop Duplication fallback** does not include the mouse cursor.
 - **Region capture** is limited to one display.
-- **Overlay HUD** can't appear over exclusive-fullscreen games (the save sound still plays).
+- **Overlay and clip saved popup** can't appear over exclusive-fullscreen games (borderless and
+  windowed work; the save sound still plays).
 - **Preview:** the editor previews H.264 everywhere; HEVC/AV1 preview needs the corresponding
   Windows video extensions. Trimming/exporting works regardless.
 - **Audio clock drift** between devices is corrected by small resyncs; on multi-hour sessions a
@@ -322,7 +335,7 @@ Existing clip file names are kept.
 ```
 src/                      React + TypeScript UI (control panel only)
   lib/tauri/              typed IPC: commands.ts, events.ts, types.ts (+ generated bindings/)
-  features/               clips, capture, audio, hotkeys, settings, editor, export, hud
+  features/               clips, recording (capture + audio), hotkeys, overlay, settings, editor, export
   stores/                 Zustand store (settings, status, notices)
 src-tauri/src/            Rust capture engine
   capture/                WGC + DXGI sources, D3D11 conversion, video pipeline thread
@@ -335,7 +348,7 @@ src-tauri/src/            Rust capture engine
   av/                     RAII wrappers over FFmpeg (ffmpeg-sys-next) + D3D11 hw contexts
   commands.rs events.rs   the IPC surface
   tray.rs ui.rs theme.rs  tray menu, windows (main, editor, region picker), Mica + accent
-  hud.rs                  the HUD pill, drawn natively (GDI layered window)
+  hud.rs                  overlay pill + popups, drawn natively (GDI layered window)
 ```
 
 The webview never captures, encodes, writes files or registers hotkeys; it calls typed commands
