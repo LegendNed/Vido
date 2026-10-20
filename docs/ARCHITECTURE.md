@@ -76,7 +76,8 @@ Packets are grouped into segments that start at a video keyframe (target ≈2 s,
   (+ one keyframe interval), or while total bytes exceed the cap.
 - **Snapshot:** seals the open segment and clones the segment list (`Arc`s). Disk segment files are
   deleted on `Drop` of the last `Arc`, so eviction never pulls data out from under a save.
-- **Start selection:** the latest keyframe at/before `end − N`, else the earliest keyframe.
+- **Start selection:** the latest keyframe at/before `end − N`, else the earliest keyframe. Save clip
+  uses N = the buffer length, so a clip is the whole buffer without the eviction margin.
 - **Taps:** manual recording registers a channel that receives every new packet; the initial
   snapshot and the tap are created under the same lock, so nothing is duplicated or lost.
 
@@ -129,7 +130,7 @@ bindings`). `src/lib/tauri/commands.ts` wraps every command with typed arguments
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | App/settings | `get_app_info`, `get_settings`, `get_default_settings`, `update_settings`, `reset_settings`, `complete_first_run`                                      |
 | Devices      | `list_displays`, `list_windows`, `list_audio_devices`, `get_encoder_capabilities`                                                                      |
-| Buffer       | `start_buffer`, `stop_buffer`, `pause_buffer`, `resume_buffer`, `get_buffer_status`, `save_last_clip`, `toggle_recording`, `set_meters_enabled`        |
+| Buffer       | `start_buffer`, `stop_buffer`, `pause_buffer`, `resume_buffer`, `get_buffer_status`, `save_clip`, `toggle_recording`, `set_meters_enabled`             |
 | Clips        | `list_clips`, `get_clip_details`, `delete_clip`, `reveal_clip`, `open_clip_external`, `copy_clip_path`, `get_waveform`, `take_screenshot`              |
 | Export       | `estimate_export`, `export_clip`, `cancel_export`                                                                                                      |
 | Windows      | `open_editor`, `show_main_window`, `pick_folder`, `pick_export_path`, `open_folder`, `open_region_picker`, `close_region_picker`, `set_capture_region` |

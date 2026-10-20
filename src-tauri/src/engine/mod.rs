@@ -661,8 +661,9 @@ impl Engine {
             .unwrap_or_else(|| paths.default_output_dir.clone())
     }
 
-    /// Saves the last `seconds` (None/0 = everything buffered). Blocks up to ~1 s.
-    pub fn save_clip(&self, seconds: Option<u32>) -> AppResult<SavedClip> {
+    /// Saves everything in the buffer: the last `capture.bufferSeconds` (from the keyframe
+    /// at or before that point), or all of it if less is buffered. Blocks up to ~1 s.
+    pub fn save_clip(&self) -> AppResult<SavedClip> {
         let (settings, end_us, source) = {
             let st = self.inner.state.lock();
             if self.inner.buffer.epoch().is_none() {
@@ -678,10 +679,9 @@ impl Engine {
             };
             (st.settings.clone(), end, st.last_source_name.clone())
         };
-        let dur_us = match seconds {
-            None | Some(0) => i64::MAX / 4,
-            Some(s) => i64::from(s) * 1_000_000,
-        };
+        // The buffer holds a little extra (keyframe margin, whole segments); the clip is
+        // the configured length.
+        let dur_us = i64::from(settings.capture.buffer_seconds) * 1_000_000;
         let end = self
             .inner
             .buffer
@@ -981,7 +981,7 @@ mod tests {
         b.capture.buffer_seconds = 120;
         b.capture.buffer_max_mb = Some(8192);
         b.general.sound_on_save = false;
-        b.hotkeys.save30 = None;
+        b.hotkeys.save_clip = None;
         assert!(!restart_required(&a, &b), "live-updatable changes");
 
         let mut c = a.clone();

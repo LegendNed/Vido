@@ -65,11 +65,7 @@
     "separateTracks": true
   },
   "hotkeys": {
-    "save15": "Ctrl+Shift+F5",
-    "save30": "Ctrl+Shift+F6",
-    "save60": "Ctrl+Shift+F7",
-    "saveCustom": "Ctrl+Shift+F8",
-    "customSeconds": 0,
+    "saveClip": "Ctrl+Shift+F6",
     "toggleRecording": "Ctrl+Shift+F9",
     "togglePause": "Ctrl+Shift+F10",
     "openLastClip": "Ctrl+Shift+F11",

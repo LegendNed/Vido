@@ -230,15 +230,10 @@ pub fn get_buffer_status(state: AppStateRef<'_>) -> BufferStatus {
     state.engine.status()
 }
 
-/// Saves the last `seconds` seconds (omit or 0 for the whole buffer).
+/// Saves a clip of everything in the buffer (up to `capture.bufferSeconds`).
 #[tauri::command]
-pub async fn save_last_clip(app: AppHandle, seconds: Option<u32>) -> AppResult<ClipInfo> {
-    if let Some(s) = seconds {
-        if s != 0 && !(1..=crate::settings::BUFFER_SECONDS_MAX).contains(&s) {
-            return Err(AppError::invalid("seconds", "must be between 1 and 600"));
-        }
-    }
-    blocking(move || crate::actions::save_blocking(&app, seconds)).await
+pub async fn save_clip(app: AppHandle) -> AppResult<ClipInfo> {
+    blocking(move || crate::actions::save_blocking(&app)).await
 }
 
 #[tauri::command]

@@ -2,8 +2,8 @@
 
 A lightweight, **local-first** replay-buffer clipper for Windows — like Medal.tv, minus the account,
 cloud, ads, watermark and telemetry. Vido keeps the last moments of your screen and audio in a
-rolling buffer; press a hotkey and the last 15/30/60 s are saved as an MP4 in milliseconds. A built-in
-editor trims, crops, mutes tracks and compresses clips to a target size.
+rolling buffer; press **Save clip** and the buffer (5 s – 10 min, your choice) is saved as an MP4 in
+milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips to a target size.
 
 - **Private by design:** no accounts, uploads, telemetry, ads, watermarks or auto-updates. Nothing leaves your PC.
 - **Low overhead:** Windows.Graphics.Capture → GPU colour conversion → NVENC/AMF with **zero CPU copies**.
@@ -38,7 +38,8 @@ editor trims, crops, mutes tracks and compresses clips to a target size.
 - Display, window (re-found by program name after restarts) or rectangular region.
 - 24/30/48/60/120 fps or native refresh rate (59.94 handled exactly, capped at 144).
 - Source resolution or 1440p/1080p/720p downscale (never upscales), cursor on/off.
-- Buffer 5 s – 10 min, in RAM or disk segments ("Auto" picks), optional 1–20 GB size cap.
+- Buffer 5 s – 10 min (this is the clip length), in RAM or disk segments ("Auto" picks), optional
+  1–20 GB size cap.
 - Exclusive-fullscreen detection: warns when the captured image stays black.
 - HDR displays are detected and recorded as SDR (with a warning).
 
@@ -55,7 +56,8 @@ editor trims, crops, mutes tracks and compresses clips to a target size.
 
 **Saving**
 
-- Hotkeys for 15/30/60 s, custom length (or whole buffer), manual recording, pause, open last clip, open editor.
+- **Save clip** (hotkey, tray, status bar) saves everything in the buffer; more hotkeys for manual
+  recording, pause, open last clip, open editor.
 - Configurable folder and filename template (`Vido_{date}_{time}`, `{source}`, `{duration}`).
 - MP4 or MKV; instant copy or re-encode-on-save.
 - Post-save actions: open editor, open folder, copy path, run a command.
@@ -174,8 +176,8 @@ On first launch a short setup appears in the main window:
 
 1. **Display** — pick the monitor to record (window/region capture can be chosen later).
 2. **Audio** — desktop output device; microphone is _off_ unless you enable it.
-3. **Buffer** — how much to keep (15 s – 5 min presets) and quality.
-4. **Save hotkey** — defaults to **Ctrl+Shift+F6** (save last 30 s).
+3. **Buffer** — how much to keep (15 s – 5 min presets), which is the length of your clips, and quality.
+4. **Save clip hotkey** — defaults to **Ctrl+Shift+F6** (saves the whole buffer).
 
 “Start buffering” saves the choices and starts the buffer. Afterwards Vido starts minimized in
 the tray (configurable). The red tray dot means “buffering”; left-click opens the window.
@@ -219,16 +221,17 @@ the tray (configurable). The red tray dot means “buffering”; left-click open
 
 Defaults (change in Settings → Hotkeys or see [`config/hotkeys.example.json`](config/hotkeys.example.json)):
 
-| Action                                     | Default        |
-| ------------------------------------------ | -------------- |
-| Save last 15 seconds                       | Ctrl+Shift+F5  |
-| Save last 30 seconds                       | Ctrl+Shift+F6  |
-| Save last 60 seconds                       | Ctrl+Shift+F7  |
-| Save custom length (default: whole buffer) | Ctrl+Shift+F8  |
-| Start / stop manual recording              | Ctrl+Shift+F9  |
-| Pause / resume buffer                      | Ctrl+Shift+F10 |
-| Open last clip (default player)            | Ctrl+Shift+F11 |
-| Open editor (last clip)                    | Ctrl+Shift+F12 |
+| Action                               | Default        |
+| ------------------------------------ | -------------- |
+| Save clip (everything in the buffer) | Ctrl+Shift+F6  |
+| Start / stop manual recording        | Ctrl+Shift+F9  |
+| Pause / resume buffer                | Ctrl+Shift+F10 |
+| Open last clip (default player)      | Ctrl+Shift+F11 |
+| Open editor (last clip)              | Ctrl+Shift+F12 |
+
+The clip length is the buffer length (Settings → Capture). Settings from earlier versions, which had
+"save last 15/30/60 s" and "save custom length" hotkeys, are migrated: Save clip gets the 30 s key
+(else the 60 s, 15 s or custom-length one; none if all were unbound).
 
 Defaults avoid NVIDIA ShadowPlay (Alt+F9/F10/Z), Xbox Game Bar (Win+Alt+…) and AMD Adrenalin
 (Ctrl+Shift+letters). Shortcuts are validated in Rust: a modifier is required except for F-keys,

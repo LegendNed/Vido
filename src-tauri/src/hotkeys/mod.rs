@@ -17,10 +17,7 @@ use crate::settings::HotkeySettings;
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum HotkeyAction {
-    Save15,
-    Save30,
-    Save60,
-    SaveCustom,
+    SaveClip,
     ToggleRecording,
     TogglePause,
     OpenLastClip,
@@ -31,10 +28,7 @@ impl HotkeyAction {
     /// Matching field name in [`HotkeySettings`] (camelCase).
     pub fn field_name(self) -> &'static str {
         match self {
-            Self::Save15 => "save15",
-            Self::Save30 => "save30",
-            Self::Save60 => "save60",
-            Self::SaveCustom => "saveCustom",
+            Self::SaveClip => "saveClip",
             Self::ToggleRecording => "toggleRecording",
             Self::TogglePause => "togglePause",
             Self::OpenLastClip => "openLastClip",
@@ -44,10 +38,7 @@ impl HotkeyAction {
 
     pub fn label(self) -> &'static str {
         match self {
-            Self::Save15 => "Save last 15 seconds",
-            Self::Save30 => "Save last 30 seconds",
-            Self::Save60 => "Save last 60 seconds",
-            Self::SaveCustom => "Save custom length",
+            Self::SaveClip => "Save clip",
             Self::ToggleRecording => "Start/stop recording",
             Self::TogglePause => "Pause/resume buffer",
             Self::OpenLastClip => "Open last clip",

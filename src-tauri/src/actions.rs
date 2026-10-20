@@ -19,15 +19,7 @@ use crate::ui;
 pub fn on_hotkey(app: &AppHandle, action: HotkeyAction) {
     events::emit(app, events::HOTKEY_TRIGGERED, HotkeyTriggered { action });
     match action {
-        HotkeyAction::Save15 => save(app, Some(15)),
-        HotkeyAction::Save30 => save(app, Some(30)),
-        HotkeyAction::Save60 => save(app, Some(60)),
-        HotkeyAction::SaveCustom => {
-            let secs = app
-                .try_state::<AppState>()
-                .map_or(0, |s| s.settings.get().hotkeys.custom_seconds);
-            save(app, Some(secs));
-        }
+        HotkeyAction::SaveClip => save(app),
         HotkeyAction::ToggleRecording => toggle_recording(app),
         HotkeyAction::TogglePause => toggle_pause(app),
         HotkeyAction::OpenLastClip => open_last_clip(app),
@@ -57,8 +49,8 @@ fn report_error(app: &AppHandle, kind: &str, e: &AppError) {
     events::issue(app, CaptureIssue::from_error(kind, e));
 }
 
-/// Saves the last `seconds` (0/None = whole buffer) in the background.
-pub fn save(app: &AppHandle, seconds: Option<u32>) {
+/// Saves the clip (the whole buffer) in the background.
+pub fn save(app: &AppHandle) {
     let app = app.clone();
     std::thread::Builder::new()
         .name("vido-save".into())
@@ -66,7 +58,7 @@ pub fn save(app: &AppHandle, seconds: Option<u32>) {
             let Some(state) = app.try_state::<AppState>() else {
                 return;
             };
-            match state.engine.save_clip(seconds) {
+            match state.engine.save_clip() {
                 Ok(clip) => after_save(&app, &state, &clip),
                 Err(e) => report_error(&app, "save-failed", &e),
             }
@@ -74,10 +66,10 @@ pub fn save(app: &AppHandle, seconds: Option<u32>) {
         .ok();
 }
 
-/// Synchronous save for the `save_last_clip` command.
-pub fn save_blocking(app: &AppHandle, seconds: Option<u32>) -> AppResult<crate::clips::ClipInfo> {
+/// Synchronous save for the `save_clip` command.
+pub fn save_blocking(app: &AppHandle) -> AppResult<crate::clips::ClipInfo> {
     let state = app.state::<AppState>();
-    let clip = state.engine.save_clip(seconds)?;
+    let clip = state.engine.save_clip()?;
     after_save(app, &state, &clip);
     state.clips.info(Path::new(&clip.path))
 }
@@ -92,7 +84,10 @@ fn after_save(app: &AppHandle, state: &AppState, clip: &SavedClip) {
     events::toast(
         app,
         ToastKind::Saved,
-        format!("Saved {:.0} s clip", clip.duration_sec),
+        format!(
+            "Clip saved ({})",
+            crate::util::fmt_duration(clip.duration_sec)
+        ),
     );
     if let Ok(info) = state.clips.info(path) {
         events::emit(app, events::CLIP_SAVED, info);

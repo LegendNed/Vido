@@ -267,7 +267,7 @@ pub fn run() {
             commands::pause_buffer,
             commands::resume_buffer,
             commands::get_buffer_status,
-            commands::save_last_clip,
+            commands::save_clip,
             commands::toggle_recording,
             commands::set_meters_enabled,
             commands::list_clips,

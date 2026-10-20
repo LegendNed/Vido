@@ -19,6 +19,12 @@ import { trackSummary } from "../audio/devices";
 const STEPS = ["Display", "Audio", "Buffer", "Hotkey"] as const;
 const LENGTHS = [15, 30, 60, 120, 300];
 
+/** 30 → "30 seconds", 120 → "2 minutes", 90 → "90 seconds". */
+function formatLength(s: number): string {
+  if (s < 60 || s % 60 !== 0) return `${s} seconds`;
+  return `${s / 60} minute${s > 60 ? "s" : ""}`;
+}
+
 export function FirstRun() {
   const current = useApp((s) => s.settings);
   const setSettings = useApp((s) => s.setSettingsFromBackend);
@@ -132,7 +138,7 @@ export function FirstRun() {
           <>
             <h2>How much to keep</h2>
             <p className="muted">
-              Pressing the save hotkey keeps up to this much of what just happened.
+              Save clip keeps this much of what just happened — it is the length of your clips.
             </p>
             <div className="row wrap" style={{ margin: "16px 0" }}>
               {LENGTHS.map((s) => (
@@ -145,7 +151,7 @@ export function FirstRun() {
                     });
                   }}
                 >
-                  {s < 60 ? `${s} seconds` : `${s / 60} minute${s > 60 ? "s" : ""}`}
+                  {formatLength(s)}
                 </Button>
               ))}
             </div>
@@ -167,24 +173,25 @@ export function FirstRun() {
 
         {step === 3 && (
           <>
-            <h2>Save hotkey</h2>
+            <h2>Save clip</h2>
             <p className="muted">
-              Press this anytime — even in a game — to save the last 30 seconds.
+              Press this anytime — even in a game — to save everything in the buffer as a clip (the
+              last {formatLength(draft.capture.bufferSeconds)}, chosen in the previous step).
             </p>
             <div className="card" style={{ padding: "0 14px", margin: "14px 0" }}>
-              <Field label="Save last 30 seconds">
+              <Field label="Save clip">
                 <HotkeyRecorder
-                  value={draft.hotkeys.save30}
+                  value={draft.hotkeys.saveClip}
                   onChange={(a) => {
                     edit((d) => {
-                      d.hotkeys.save30 = a;
+                      d.hotkeys.saveClip = a;
                     });
                   }}
                 />
               </Field>
             </div>
             <p className="muted small">
-              More shortcuts (15 s, 60 s, recording, pause) are in Settings → Hotkeys.
+              More shortcuts (recording, pause, …) are in Settings → Hotkeys.
             </p>
           </>
         )}

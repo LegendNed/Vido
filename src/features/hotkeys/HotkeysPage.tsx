@@ -1,44 +1,48 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { HotkeyRecorder } from "../../components/HotkeyRecorder";
-import { Badge, Banner, Button, Field, NumberInput, Section, Toggle } from "../../components/ui";
+import { Badge, Banner, Button, Field, Section } from "../../components/ui";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import type { HotkeyAction, HotkeySettings, HotkeyStatus } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 
-type ShortcutKey = Exclude<keyof HotkeySettings, "customSeconds">;
+const ACTIONS: { action: HotkeyAction; key: keyof HotkeySettings; label: string; desc?: string }[] =
+  [
+    {
+      action: "saveClip",
+      key: "saveClip",
+      label: "Save clip",
+      desc: "Saves everything in the buffer — set its length in Capture.",
+    },
+    {
+      action: "toggleRecording",
+      key: "toggleRecording",
+      label: "Start / stop recording",
+      desc: "Manual recording to a file.",
+    },
+    { action: "togglePause", key: "togglePause", label: "Pause / resume buffer" },
+    {
+      action: "openLastClip",
+      key: "openLastClip",
+      label: "Open last clip",
+      desc: "In your default video player.",
+    },
+    {
+      action: "openEditor",
+      key: "openEditor",
+      label: "Open editor",
+      desc: "Edits the most recent clip.",
+    },
+  ];
 
-const ACTIONS: { action: HotkeyAction; key: ShortcutKey; label: string; desc?: string }[] = [
-  { action: "save15", key: "save15", label: "Save last 15 seconds" },
-  { action: "save30", key: "save30", label: "Save last 30 seconds" },
-  { action: "save60", key: "save60", label: "Save last 60 seconds" },
-  {
-    action: "saveCustom",
-    key: "saveCustom",
-    label: "Save custom length",
-    desc: "Length is set below.",
-  },
-  {
-    action: "toggleRecording",
-    key: "toggleRecording",
-    label: "Start / stop recording",
-    desc: "Manual recording to a file.",
-  },
-  { action: "togglePause", key: "togglePause", label: "Pause / resume buffer" },
-  {
-    action: "openLastClip",
-    key: "openLastClip",
-    label: "Open last clip",
-    desc: "In your default video player.",
-  },
-  {
-    action: "openEditor",
-    key: "openEditor",
-    label: "Open editor",
-    desc: "Edits the most recent clip.",
-  },
-];
+const DEFAULTS: HotkeySettings = {
+  saveClip: "Ctrl+Shift+F6",
+  toggleRecording: "Ctrl+Shift+F9",
+  togglePause: "Ctrl+Shift+F10",
+  openLastClip: "Ctrl+Shift+F11",
+  openEditor: "Ctrl+Shift+F12",
+};
 
 export function HotkeysPage() {
   const settings = useApp((s) => s.settings);
@@ -54,17 +58,6 @@ export function HotkeysPage() {
 
   if (!settings) return null;
   const h = settings.hotkeys;
-  const defaults: HotkeySettings = {
-    save15: "Ctrl+Shift+F5",
-    save30: "Ctrl+Shift+F6",
-    save60: "Ctrl+Shift+F7",
-    saveCustom: "Ctrl+Shift+F8",
-    customSeconds: h.customSeconds,
-    toggleRecording: "Ctrl+Shift+F9",
-    togglePause: "Ctrl+Shift+F10",
-    openLastClip: "Ctrl+Shift+F11",
-    openEditor: "Ctrl+Shift+F12",
-  };
 
   return (
     <div className="page">
@@ -75,7 +68,7 @@ export function HotkeysPage() {
           onClick={() => {
             update(
               (d) => {
-                d.hotkeys = defaults;
+                d.hotkeys = { ...DEFAULTS };
               },
               { immediate: true },
             );
@@ -124,36 +117,6 @@ export function HotkeysPage() {
             </Field>
           );
         })}
-      </Section>
-      <Section title="Custom length">
-        <Field
-          label="Save the whole buffer"
-          description="Otherwise save a fixed number of seconds."
-        >
-          <Toggle
-            value={h.customSeconds === 0}
-            onChange={(v) => {
-              update((d) => {
-                d.hotkeys.customSeconds = v ? 0 : 90;
-              });
-            }}
-          />
-        </Field>
-        {h.customSeconds !== 0 && (
-          <Field label="Seconds" description="5–600. Limited by the buffer length.">
-            <NumberInput
-              value={h.customSeconds}
-              min={5}
-              max={600}
-              suffix="s"
-              onChange={(v) => {
-                update((d) => {
-                  d.hotkeys.customSeconds = v;
-                });
-              }}
-            />
-          </Field>
-        )}
       </Section>
     </div>
   );
