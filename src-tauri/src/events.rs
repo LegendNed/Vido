@@ -20,7 +20,6 @@ pub const CLIP_SAVED: &str = "clip-saved";
 pub const CLIPS_CHANGED: &str = "clips-changed";
 pub const SETTINGS_CHANGED: &str = "settings-changed";
 pub const EDITOR_OPEN: &str = "editor-open";
-pub const HUD_TOAST: &str = "hud-toast";
 pub const NAVIGATE: &str = "navigate";
 /// Payload: [`crate::theme::AccentColors`].
 pub const ACCENT_CHANGED: &str = "accent-changed";
@@ -80,22 +79,12 @@ pub struct HotkeyTriggered {
     pub action: HotkeyAction,
 }
 
-#[derive(Serialize, TS, Clone, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ToastKind {
     Saved,
     Recording,
     Info,
     Error,
-}
-
-#[derive(Serialize, TS, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub struct HudToast {
-    pub kind: ToastKind,
-    pub text: String,
 }
 
 #[derive(Serialize, TS, Clone, Debug)]
@@ -119,15 +108,12 @@ pub fn emit<T: Serialize + Clone>(app: &AppHandle, name: &str, payload: T) {
     }
 }
 
-pub fn toast(app: &AppHandle, kind: ToastKind, text: impl Into<String>) {
-    emit(
-        app,
-        HUD_TOAST,
-        HudToast {
-            kind,
-            text: text.into(),
-        },
-    );
+/// Shows a short message in the HUD pill (if the HUD is on).
+pub fn toast(_app: &AppHandle, kind: ToastKind, text: impl Into<String>) {
+    #[cfg(windows)]
+    crate::hud::toast(kind, &text.into());
+    #[cfg(not(windows))]
+    let _ = (kind, text.into());
 }
 
 pub fn issue(app: &AppHandle, issue: CaptureIssue) {

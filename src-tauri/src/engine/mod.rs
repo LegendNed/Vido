@@ -821,6 +821,8 @@ impl Engine {
     pub fn emit_status(&self) {
         let s = self.status();
         crate::tray::update(&self.inner.app, &s);
+        #[cfg(windows)]
+        crate::hud::set_status(&s);
         events::emit(&self.inner.app, events::BUFFER_STATUS, s);
     }
 

@@ -155,6 +155,32 @@ pub fn texture_desc(tex: &ID3D11Texture2D) -> D3D11_TEXTURE2D_DESC {
 }
 
 /// Lists hardware adapter names (for diagnostics / encoder capabilities).
+/// Identifies the installed GPUs and their driver versions (changes when either
+/// does), without creating a device. Used to know when encoder probes are stale.
+pub fn adapter_fingerprint() -> String {
+    use windows::Win32::Graphics::Dxgi::IDXGIDevice;
+    use windows_core::Interface;
+    let mut out = Vec::new();
+    unsafe {
+        let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory1>() else {
+            return String::new();
+        };
+        let mut i = 0;
+        while let Ok(a) = factory.EnumAdapters1(i) {
+            if let Ok(d) = a.GetDesc1() {
+                if d.VendorId != 0x1414 {
+                    let driver = a.CheckInterfaceSupport(&IDXGIDevice::IID).unwrap_or(0);
+                    out.push(format!("{:04x}:{:04x}:{driver}", d.VendorId, d.DeviceId));
+                }
+            }
+            i += 1;
+        }
+    }
+    out.sort();
+    out.dedup();
+    out.join(",")
+}
+
 pub fn adapter_names() -> Vec<String> {
     let mut out = Vec::new();
     unsafe {

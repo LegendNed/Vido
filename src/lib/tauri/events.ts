@@ -14,7 +14,6 @@ import type {
   ExportProgress,
   ExportResult,
   HotkeyTriggered,
-  HudToast,
   Navigate,
   Settings,
   TrackLevel,
@@ -33,7 +32,6 @@ export interface EventMap {
   "clips-changed": null;
   "settings-changed": Settings;
   "editor-open": EditorOpen;
-  "hud-toast": HudToast;
   navigate: Navigate;
   "accent-changed": AccentColors;
 }

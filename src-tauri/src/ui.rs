@@ -1,4 +1,4 @@
-//! Webview windows: main window, editor, HUD overlay and region picker.
+//! Webview windows: main window, editor and region picker (the HUD is native, see `hud`).
 //! All windows load the same frontend bundle and pick their view by label.
 
 use std::path::Path;
@@ -12,12 +12,11 @@ use tauri::{
 
 use crate::capture::DisplayInfo;
 use crate::events::{self, EditorOpen, Navigate};
-use crate::settings::{HudPosition, Settings};
+use crate::settings::Settings;
 use crate::state::AppState;
 
 pub const MAIN: &str = "main";
 pub const EDITOR: &str = "editor";
-pub const HUD: &str = "hud";
 pub const REGION: &str = "region";
 
 /// Solid window backgrounds where Mica is unavailable (Windows 10); they match
@@ -94,6 +93,7 @@ pub fn show_main(app: &AppHandle, page: Option<&str>) {
                         api.prevent_close();
                         if to_tray {
                             let _ = w2.hide();
+                            unload_later(&w2);
                         } else {
                             crate::actions::quit(&app2);
                         }
@@ -113,6 +113,20 @@ pub fn show_main(app: &AppHandle, page: Option<&str>) {
             },
         );
     }
+}
+
+/// Closing to the tray frees the window's webview (~240 MB of WebView2 processes,
+/// which exit once no window uses them); `show_main` rebuilds it on demand. The
+/// delay lets the page finish a pending settings save, and a window shown again
+/// in the meantime is kept.
+fn unload_later(w: &WebviewWindow) {
+    let w = w.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        if !w.is_visible().unwrap_or(true) {
+            let _ = w.destroy();
+        }
+    });
 }
 
 pub fn open_editor(app: &AppHandle, path: &Path) {
@@ -147,67 +161,13 @@ fn exclude_from_capture(w: &WebviewWindow) {
     }
 }
 
-const HUD_W: f64 = 300.0;
-const HUD_H: f64 = 72.0;
-const HUD_MARGIN: f64 = 16.0;
-
-fn place_hud(app: &AppHandle, w: &WebviewWindow, pos: HudPosition) {
-    let Ok(Some(mon)) = app.primary_monitor() else {
-        return;
-    };
-    let scale = mon.scale_factor();
-    let (mx, my) = (mon.position().x as f64, mon.position().y as f64);
-    let (mw, mh) = (mon.size().width as f64, mon.size().height as f64);
-    let (ww, wh) = (HUD_W * scale, HUD_H * scale);
-    let m = HUD_MARGIN * scale;
-    let (x, y) = match pos {
-        HudPosition::TopLeft => (mx + m, my + m),
-        HudPosition::TopRight => (mx + mw - ww - m, my + m),
-        HudPosition::BottomLeft => (mx + m, my + mh - wh - m * 3.0),
-        HudPosition::BottomRight => (mx + mw - ww - m, my + mh - wh - m * 3.0),
-    };
-    let _ = w.set_size(PhysicalSize::new(ww as u32, wh as u32));
-    let _ = w.set_position(PhysicalPosition::new(x as i32, y as i32));
-}
-
-/// Shows/hides/repositions the HUD according to settings.
-pub fn sync_hud(app: &AppHandle, s: &Settings) {
-    let existing = app.get_webview_window(HUD);
-    if !s.general.hud.enabled {
-        if let Some(w) = existing {
-            let _ = w.close();
-        }
-        return;
-    }
-    let w = match existing {
-        Some(w) => w,
-        None => {
-            let built = builder(app, HUD, json!({}))
-                .title("Vido HUD")
-                .inner_size(HUD_W, HUD_H)
-                .decorations(false)
-                .transparent(true)
-                .shadow(false)
-                .always_on_top(true)
-                .skip_taskbar(true)
-                .resizable(false)
-                .focused(false)
-                .visible(false)
-                .build();
-            match built {
-                Ok(w) => w,
-                Err(e) => {
-                    tracing::warn!("could not create HUD: {e}");
-                    return;
-                }
-            }
-        }
-    };
-    let _ = w.set_ignore_cursor_events(true);
+/// Shows/hides/repositions the HUD according to settings (drawn natively, see `hud`).
+pub fn sync_hud(_app: &AppHandle, s: &Settings) {
+    let h = &s.general.hud;
     #[cfg(windows)]
-    exclude_from_capture(&w);
-    place_hud(app, &w, s.general.hud.position);
-    let _ = w.show();
+    crate::hud::configure(h.enabled, h.position, h.show_details);
+    #[cfg(not(windows))]
+    let _ = h;
 }
 
 /// Full-screen transparent overlay on one display for dragging a capture region.

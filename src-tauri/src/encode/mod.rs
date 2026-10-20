@@ -6,13 +6,13 @@ pub mod audio;
 pub mod video;
 
 use parking_lot::Mutex;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::av;
 use crate::settings::{EncoderPreference, VideoCodec};
 
-#[derive(Serialize, TS, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum Vendor {
@@ -171,7 +171,7 @@ pub fn candidates(
     list
 }
 
-#[derive(Serialize, TS, Clone, Debug)]
+#[derive(Serialize, Deserialize, TS, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct EncoderInfo {
@@ -186,7 +186,7 @@ pub struct EncoderInfo {
     pub reason: Option<String>,
 }
 
-#[derive(Serialize, TS, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, TS, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct EncoderCapabilities {
@@ -251,14 +251,39 @@ pub fn probe() -> EncoderCapabilities {
     }
 }
 
-/// Cached probe results (probing is slow and the answer rarely changes).
+/// What the probe results depend on; a saved probe with another key is stale.
+fn probe_key() -> String {
+    #[cfg(windows)]
+    let gpus = crate::capture::d3d::adapter_fingerprint();
+    #[cfg(not(windows))]
+    let gpus = String::new();
+    format!("{}|{}|{gpus}", env!("CARGO_PKG_VERSION"), av::version())
+}
+
+#[derive(Serialize, Deserialize)]
+struct SavedProbe {
+    key: String,
+    caps: EncoderCapabilities,
+}
+
+/// Probe results, kept in memory and on disk (`file`): probing opens every encoder,
+/// which loads the GPU's encode/CUDA libraries and takes a second or two, so it
+/// only runs again when the GPU, its driver, FFmpeg or Vido changes, or on request.
 #[derive(Default)]
 pub struct CapabilityCache {
     caps: Mutex<Option<EncoderCapabilities>>,
     probing: parking_lot::Mutex<()>,
+    file: Option<std::path::PathBuf>,
 }
 
 impl CapabilityCache {
+    pub fn new(file: std::path::PathBuf) -> Self {
+        Self {
+            file: Some(file),
+            ..Self::default()
+        }
+    }
+
     pub fn get_or_probe(&self, refresh: bool) -> EncoderCapabilities {
         let _guard = self.probing.lock();
         if !refresh {
@@ -266,9 +291,36 @@ impl CapabilityCache {
                 return c;
             }
         }
+        let key = probe_key();
+        if !refresh {
+            if let Some(c) = self.load(&key) {
+                *self.caps.lock() = Some(c.clone());
+                return c;
+            }
+        }
         let c = probe();
+        self.save(&key, &c);
         *self.caps.lock() = Some(c.clone());
         c
+    }
+
+    fn load(&self, key: &str) -> Option<EncoderCapabilities> {
+        let text = std::fs::read_to_string(self.file.as_ref()?).ok()?;
+        let saved: SavedProbe = serde_json::from_str(&text).ok()?;
+        (saved.key == key).then_some(saved.caps)
+    }
+
+    fn save(&self, key: &str, caps: &EncoderCapabilities) {
+        let Some(file) = &self.file else { return };
+        let saved = SavedProbe {
+            key: key.to_owned(),
+            caps: caps.clone(),
+        };
+        if let Ok(json) = serde_json::to_vec_pretty(&saved) {
+            if let Err(e) = crate::settings::store::write_atomic(file, &json) {
+                tracing::warn!("could not save encoder probe: {e}");
+            }
+        }
     }
 
     pub fn cached(&self) -> Option<EncoderCapabilities> {
@@ -310,5 +362,21 @@ mod tests {
         };
         let c = candidates(VideoCodec::Av1, EncoderPreference::Auto, Some(&caps));
         assert_eq!(c.first().unwrap().name, "av1_amf");
+    }
+
+    #[test]
+    fn saved_probe_is_reused_only_for_the_same_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = CapabilityCache::new(dir.path().join("encoders.json"));
+        let caps = EncoderCapabilities {
+            best_h264: Some("h264_nvenc".into()),
+            ..Default::default()
+        };
+        cache.save("k1", &caps);
+        assert_eq!(
+            cache.load("k1").unwrap().best_h264.as_deref(),
+            Some("h264_nvenc")
+        );
+        assert!(cache.load("k2").is_none(), "driver/GPU/app changed");
     }
 }

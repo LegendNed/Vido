@@ -5,6 +5,8 @@ cloud, ads, watermark and telemetry. Vido keeps the last moments of your screen 
 rolling buffer; press **Save clip** and the buffer (5 s – 10 min, your choice) is saved as an MP4 in
 milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips to a target size.
 
+- **Light in the tray:** closing the window frees the UI (WebView2) entirely; Vido idles at
+  ~30 MB plus the replay buffer.
 - **Private by design:** no accounts, uploads, telemetry, ads, watermarks or auto-updates. Nothing leaves your PC.
 - **Low overhead:** Windows.Graphics.Capture → GPU colour conversion → NVENC/AMF with **zero CPU copies**.
 - **Instant saves:** the buffer stores _encoded_ packets, so saving is a remux (no re-encode).
@@ -332,7 +334,8 @@ src-tauri/src/            Rust capture engine
   hotkeys/ settings/      validated accelerators, settings model + JSON store
   av/                     RAII wrappers over FFmpeg (ffmpeg-sys-next) + D3D11 hw contexts
   commands.rs events.rs   the IPC surface
-  tray.rs ui.rs theme.rs  tray menu, windows (main, editor, HUD, region picker), Mica + accent
+  tray.rs ui.rs theme.rs  tray menu, windows (main, editor, region picker), Mica + accent
+  hud.rs                  the HUD pill, drawn natively (GDI layered window)
 ```
 
 The webview never captures, encodes, writes files or registers hotkeys; it calls typed commands

@@ -15,6 +15,8 @@ pub mod error;
 pub mod events;
 pub mod export;
 pub mod hotkeys;
+#[cfg(windows)]
+pub mod hud;
 pub mod logging;
 pub mod paths;
 pub mod settings;
@@ -92,7 +94,7 @@ fn setup(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let handle = app.handle().clone();
     let settings = store.get();
-    let caps = Arc::new(CapabilityCache::default());
+    let caps = Arc::new(CapabilityCache::new(paths.data_dir.join("encoders.json")));
 
     let engine = Engine::new(
         handle.clone(),
@@ -206,6 +208,18 @@ fn setup(
 }
 
 pub fn run() {
+    // Tauri's async runtime only routes IPC (slow commands run on the blocking pool),
+    // so a couple of workers suffice instead of one per CPU thread.
+    if let Ok(rt) = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .thread_name("vido-async")
+        .enable_all()
+        .build()
+    {
+        tauri::async_runtime::set(rt.handle().clone());
+        // Lives for the whole process.
+        std::mem::forget(rt);
+    }
     let paths = match AppPaths::resolve() {
         Ok(p) => p,
         Err(e) => {

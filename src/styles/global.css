@@ -118,8 +118,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  /* The HUD floats over games: it keeps the dark tokens. */
-  :root:not(.win-hud) {
+  :root {
     --bg: #f3f3f3;
     --bg-elev: #fbfbfb;
     --surface-stroke: rgba(117, 117, 117, 0.4);

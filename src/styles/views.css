@@ -461,44 +461,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------------------------------------------------------------- HUD (transparent window) */
-
-/* Always dark (global.css keeps the dark tokens for .win-hud): it floats over games. */
-html.win-hud,
-html.win-hud body,
-html.win-hud #root {
-  background: transparent;
-}
-.hud {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 8px;
-}
-.hud-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 32px;
-  padding: 0 14px 0 12px;
-  border-radius: 16px;
-  background: rgba(32, 32, 32, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-weight: 600;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  animation: slide-in 0.2s var(--ease);
-}
-.hud-pill.toast.saved {
-  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
-}
-.hud-pill.toast.error {
-  border-color: color-mix(in srgb, var(--rec) 65%, transparent);
-}
-
 /* ---------------------------------------------------------------- region picker */
 
 html.win-region,
