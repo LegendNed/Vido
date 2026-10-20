@@ -12,11 +12,12 @@ import { ClipsHero } from "./ClipsHero";
 import { ClipViewer } from "./ClipViewer";
 import { clipSrc } from "./media";
 
-export function ClipsPage() {
+/** `open`: a clip to show in the viewer right away (e.g. picked on the Overview page). */
+export function ClipsPage({ open }: { open?: string | null }) {
   const [clips, setClips] = useState<ClipInfo[] | null>(null);
   const [reload, setReload] = useState(0);
   /** Path of the clip open in the viewer. */
-  const [viewing, setViewing] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<string | null>(open ?? null);
   const notify = useApp((s) => s.notify);
   const status = useApp((s) => s.status);
   const info = useApp((s) => s.info);
@@ -59,7 +60,7 @@ export function ClipsPage() {
   const viewIndex = viewing && clips ? clips.findIndex((c) => c.path === viewing) : -1;
 
   return (
-    <div className="page" style={{ maxWidth: 1200 }}>
+    <div className="page page-wide">
       <div className="page-head">
         <h1>Clips</h1>
         <Button

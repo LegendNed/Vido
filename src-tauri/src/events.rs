@@ -98,9 +98,9 @@ pub struct EditorOpen {
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Navigate {
-    /// Main-window page: `overview`, `clips`, `settings`, or a Settings group (`recording`,
-    /// `hotkeys`, `overlay`, `saving`, `export`, `general`, `advanced`: Settings scrolled to it).
-    /// The old ids `capture` and `audio` open the Recording group.
+    /// Main-window page: `overview`, `clips`, `settings`, or a Settings page (`video`, `audio`,
+    /// `hotkeys`, `overlay`, `saving`, `export`, `general`, `advanced`). The old ids `recording`
+    /// and `capture` open Video.
     pub page: String,
 }
 

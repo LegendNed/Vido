@@ -168,6 +168,22 @@ mark.search-hit {
 .settings-nav-item.active::before {
   transform: scaleY(1);
 }
+/* Category headings (Recording / Clips / App), like Medal's settings list. */
+.settings-nav-heading {
+  flex: none;
+  padding: 14px 12px 4px;
+  color: var(--muted);
+  font: 600 11px/16px var(--font-small);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.settings-nav-heading:first-child {
+  padding-top: 2px;
+}
+/* While searching, pages without matches fade. */
+.settings-nav-item.dim {
+  opacity: 0.45;
+}
 
 .settings-scroll {
   position: relative;
@@ -271,6 +287,9 @@ mark.search-hit {
     color: var(--accent-text);
   }
   .settings-nav-item::before {
+    display: none;
+  }
+  .settings-nav-heading {
     display: none;
   }
   .settings-scroll {

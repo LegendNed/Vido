@@ -13,7 +13,7 @@ import { useDeviceSync } from "../audio/useDeviceSync";
 import { ClipsPage } from "../clips/ClipsPage";
 import { OverviewPage } from "../overview/OverviewPage";
 import { FirstRun } from "../settings/FirstRun";
-import { isSettingsGroup, type SettingsGroupId, type SettingsTarget } from "../settings/groups";
+import { settingsGroupOf, type SettingsGroupId, type SettingsTarget } from "../settings/groups";
 import { SettingsPage } from "../settings/SettingsPage";
 
 const PAGES = [
@@ -28,22 +28,16 @@ function isPage(p: string | null | undefined): p is PageId {
   return PAGES.some((x) => x.id === p);
 }
 
-/** Old page ids that are now Settings groups. */
-const OLD_PAGES: Partial<Record<string, SettingsGroupId>> = {
-  capture: "recording",
-  audio: "recording",
-};
-
 /**
  * Resolves a page id from `navigate` / window init: a page, a Settings group
- * (`recording`, `hotkeys`, `overlay`, `saving`, …: Settings scrolled to it) or an old id.
+ * (`video`, `audio`, `hotkeys`, `overlay`, `saving`, …: Settings opened on it) or an old id.
  */
 function resolvePage(
   p: string | null | undefined,
 ): { page: PageId; group?: SettingsGroupId } | null {
   if (!p) return null;
   if (isPage(p)) return { page: p };
-  const group = OLD_PAGES[p] ?? (isSettingsGroup(p) ? p : undefined);
+  const group = settingsGroupOf(p);
   return group ? { page: "settings", group } : null;
 }
 
@@ -127,6 +121,8 @@ export function MainWindow() {
     return group ? { group, seq: 1 } : null;
   });
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** A clip to open in the Clips page viewer (picked on Overview). */
+  const [openPath, setOpenPath] = useState<string | null>(null);
 
   useEffect(() => {
     init().catch((e: unknown) => {
@@ -143,12 +139,19 @@ export function MainWindow() {
     if (group) setTarget((t) => ({ group, seq: (t?.seq ?? 0) + 1 }));
   });
   const select = (p: PageId) => {
+    setOpenPath(null);
     setPage(p);
+    setTarget(null);
+  };
+  const openClip = (path: string) => {
+    setOpenPath(path);
+    setPage("clips");
     setTarget(null);
   };
   const go = (id: string) => {
     const r = resolvePage(id);
     if (!r) return;
+    setOpenPath(null);
     setPage(r.page);
     const group = r.group;
     setTarget(group ? (t) => ({ group, seq: (t?.seq ?? 0) + 1 }) : null);
@@ -182,9 +185,9 @@ export function MainWindow() {
             <Banner>{w}</Banner>
           </div>
         ))}
-        {page === "overview" && <OverviewPage go={go} />}
-        {page === "clips" && <ClipsPage />}
-        {page === "settings" && <SettingsPage target={target} />}
+        {page === "overview" && <OverviewPage go={go} openClip={openClip} />}
+        {page === "clips" && <ClipsPage key={openPath ?? ""} open={openPath} />}
+        {page === "settings" && <SettingsPage key={target?.seq ?? 0} target={target} />}
       </main>
       {(!settings.firstRunCompleted || redoSetup) && <FirstRun />}
       <Notices />

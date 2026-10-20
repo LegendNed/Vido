@@ -272,185 +272,193 @@ export function ClipViewer({
   };
 
   // Portal: a fixed overlay must not be clipped by a transformed/filtered ancestor.
+  // A floating dialog over a dimmed backdrop (click outside to close); fullscreen fills.
   return createPortal(
     <div
-      className={`viewer theme-dark${hidden ? " idle" : ""}`}
-      role="dialog"
-      aria-modal="true"
-      aria-label={clip.fileName}
-      onMouseMove={wake}
-      onPointerUp={() => {
-        setScrub(null);
-        // Mouse clicks should not leave focus on a control: keys stay shortcuts.
-        const el = document.activeElement;
-        if (el instanceof HTMLElement) el.blur();
+      className={`viewer-backdrop${fullscreen ? " full" : ""}`}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
       }}
     >
-      <video
-        ref={video}
-        className="viewer-video"
-        playsInline
-        onClick={togglePlay}
-        onDoubleClick={() => {
-          setFullscreen(!fullscreen);
+      <div
+        className={`viewer theme-dark${hidden ? " idle" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={clip.fileName}
+        onMouseMove={wake}
+        onPointerUp={() => {
+          setScrub(null);
+          // Mouse clicks should not leave focus on a control: keys stay shortcuts.
+          const el = document.activeElement;
+          if (el instanceof HTMLElement) el.blur();
         }}
-        onLoadStart={() => {
-          setFailed(false);
-          setCurrent(0);
-          setDuration(clip.durationSec);
-        }}
-        onDurationChange={(e) => {
-          const d = e.currentTarget.duration;
-          if (Number.isFinite(d) && d > 0) setDuration(d);
-        }}
-        onTimeUpdate={(e) => {
-          if (!playing) setCurrent(e.currentTarget.currentTime);
-        }}
-        onSeeked={(e) => {
-          setCurrent(e.currentTarget.currentTime);
-        }}
-        onPlay={() => {
-          setPlaying(true);
-        }}
-        onPause={() => {
-          setPlaying(false);
-        }}
-        onEnded={() => {
-          setPlaying(false);
-        }}
-        onError={(e) => {
-          // Unloading (no src) is not a failure.
-          if (e.currentTarget.getAttribute("src")) setFailed(true);
-        }}
-      />
-
-      {failed && (
-        <div className="viewer-message">
-          <Icon name="alert" size={28} />
-          <div>
-            This clip can't be played here ({clip.videoCodec.toUpperCase()}).
-            <br />
-            Your default player may support it.
-          </div>
-          <Button
-            icon="external"
-            onClick={() => void commands.openClipExternal(clip.path).catch(() => undefined)}
-          >
-            Open in default player
-          </Button>
-        </div>
-      )}
-
-      <header className="viewer-top" {...chrome}>
-        <div className="viewer-title">
-          <div className="name ellipsis" title={clip.fileName}>
-            {clip.fileName}
-          </div>
-          <div className="meta">
-            <span>{formatDate(clip.modifiedMs)}</span>
-            <span>{formatDuration(clip.durationSec)}</span>
-            <span>{formatBytes(clip.sizeBytes)}</span>
-            <span>
-              {clip.height}p{Math.round(clip.fps)} · {clip.videoCodec.toUpperCase()}
-            </span>
-            <span>
-              {index + 1} / {clips.length}
-            </span>
-          </div>
-        </div>
-        <Button icon="scissors" onClick={edit}>
-          Edit
-        </Button>
-        <Button
-          variant="ghost"
-          icon="folder"
-          title="Show in folder"
-          onClick={() => void commands.revealClip(clip.path).catch(() => undefined)}
+      >
+        <video
+          ref={video}
+          className="viewer-video"
+          playsInline
+          onClick={togglePlay}
+          onDoubleClick={() => {
+            setFullscreen(!fullscreen);
+          }}
+          onLoadStart={() => {
+            setFailed(false);
+            setCurrent(0);
+            setDuration(clip.durationSec);
+          }}
+          onDurationChange={(e) => {
+            const d = e.currentTarget.duration;
+            if (Number.isFinite(d) && d > 0) setDuration(d);
+          }}
+          onTimeUpdate={(e) => {
+            if (!playing) setCurrent(e.currentTarget.currentTime);
+          }}
+          onSeeked={(e) => {
+            setCurrent(e.currentTarget.currentTime);
+          }}
+          onPlay={() => {
+            setPlaying(true);
+          }}
+          onPause={() => {
+            setPlaying(false);
+          }}
+          onEnded={() => {
+            setPlaying(false);
+          }}
+          onError={(e) => {
+            // Unloading (no src) is not a failure.
+            if (e.currentTarget.getAttribute("src")) setFailed(true);
+          }}
         />
-        <ConfirmButton icon="trash" title="Delete clip" onConfirm={() => void remove()} />
-        <Button variant="ghost" icon="x" title="Close (Esc)" onClick={onClose} />
-      </header>
 
-      {prev && (
-        <button
-          type="button"
-          className="viewer-nav prev"
-          title="Previous clip (←)"
-          aria-label="Previous clip"
-          onClick={() => {
-            go(prev);
-          }}
-        >
-          <Icon name="chevronLeft" size={26} />
-        </button>
-      )}
-      {next && (
-        <button
-          type="button"
-          className="viewer-nav next"
-          title="Next clip (→)"
-          aria-label="Next clip"
-          onClick={() => {
-            go(next);
-          }}
-        >
-          <Icon name="chevronRight" size={26} />
-        </button>
-      )}
+        {failed && (
+          <div className="viewer-message">
+            <Icon name="alert" size={28} />
+            <div>
+              This clip can't be played here ({clip.videoCodec.toUpperCase()}).
+              <br />
+              Your default player may support it.
+            </div>
+            <Button
+              icon="external"
+              onClick={() => void commands.openClipExternal(clip.path).catch(() => undefined)}
+            >
+              Open in default player
+            </Button>
+          </div>
+        )}
 
-      <footer className="viewer-bottom" {...chrome}>
-        <div className="viewer-seek">
-          <Slider
-            value={shown}
-            min={0}
-            max={Math.max(duration, 0.01)}
-            step={0.01}
-            onChange={(t) => {
-              setScrub(t);
-              seekTo(t);
-            }}
-            onCommit={() => {
-              setScrub(null);
-            }}
-          />
-        </div>
-        <div className="viewer-controls">
-          <Button
-            icon={playing ? "pause" : "play"}
-            title={playing ? "Pause (Space)" : "Play (Space)"}
-            disabled={failed}
-            onClick={togglePlay}
-          />
-          <span className="viewer-time">
-            {formatTime(shown, 0)} / {formatTime(duration, 0)}
-          </span>
-          <span className="spacer" />
+        <header className="viewer-top" {...chrome}>
+          <div className="viewer-title">
+            <div className="name ellipsis" title={clip.fileName}>
+              {clip.fileName}
+            </div>
+            <div className="meta">
+              <span>{formatDate(clip.modifiedMs)}</span>
+              <span>{formatDuration(clip.durationSec)}</span>
+              <span>{formatBytes(clip.sizeBytes)}</span>
+              <span>
+                {clip.height}p{Math.round(clip.fps)} · {clip.videoCodec.toUpperCase()}
+              </span>
+              <span>
+                {index + 1} / {clips.length}
+              </span>
+            </div>
+          </div>
+          <Button icon="scissors" onClick={edit}>
+            Edit
+          </Button>
           <Button
             variant="ghost"
-            icon={muted || volume === 0 ? "mute" : "speaker"}
-            title={muted ? "Unmute (M)" : "Mute (M)"}
-            onClick={toggleMute}
+            icon="folder"
+            title="Show in folder"
+            onClick={() => void commands.revealClip(clip.path).catch(() => undefined)}
           />
-          <div className="viewer-volume">
+          <ConfirmButton icon="trash" title="Delete clip" onConfirm={() => void remove()} />
+          <Button variant="ghost" icon="x" title="Close (Esc)" onClick={onClose} />
+        </header>
+
+        {prev && (
+          <button
+            type="button"
+            className="viewer-nav prev"
+            title="Previous clip (←)"
+            aria-label="Previous clip"
+            onClick={() => {
+              go(prev);
+            }}
+          >
+            <Icon name="chevronLeft" size={26} />
+          </button>
+        )}
+        {next && (
+          <button
+            type="button"
+            className="viewer-nav next"
+            title="Next clip (→)"
+            aria-label="Next clip"
+            onClick={() => {
+              go(next);
+            }}
+          >
+            <Icon name="chevronRight" size={26} />
+          </button>
+        )}
+
+        <footer className="viewer-bottom" {...chrome}>
+          <div className="viewer-seek">
             <Slider
-              value={muted ? 0 : Math.round(volume * 100)}
+              value={shown}
               min={0}
-              max={100}
-              onChange={(v) => {
-                setVolume(v / 100);
+              max={Math.max(duration, 0.01)}
+              step={0.01}
+              onChange={(t) => {
+                setScrub(t);
+                seekTo(t);
+              }}
+              onCommit={() => {
+                setScrub(null);
               }}
             />
           </div>
-          <Button
-            variant="ghost"
-            icon={fullscreen ? "fullscreenExit" : "fullscreen"}
-            title={fullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
-            onClick={() => {
-              setFullscreen(!fullscreen);
-            }}
-          />
-        </div>
-      </footer>
+          <div className="viewer-controls">
+            <Button
+              icon={playing ? "pause" : "play"}
+              title={playing ? "Pause (Space)" : "Play (Space)"}
+              disabled={failed}
+              onClick={togglePlay}
+            />
+            <span className="viewer-time">
+              {formatTime(shown, 0)} / {formatTime(duration, 0)}
+            </span>
+            <span className="spacer" />
+            <Button
+              variant="ghost"
+              icon={muted || volume === 0 ? "mute" : "speaker"}
+              title={muted ? "Unmute (M)" : "Mute (M)"}
+              onClick={toggleMute}
+            />
+            <div className="viewer-volume">
+              <Slider
+                value={muted ? 0 : Math.round(volume * 100)}
+                min={0}
+                max={100}
+                onChange={(v) => {
+                  setVolume(v / 100);
+                }}
+              />
+            </div>
+            <Button
+              variant="ghost"
+              icon={fullscreen ? "fullscreenExit" : "fullscreen"}
+              title={fullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
+              onClick={() => {
+                setFullscreen(!fullscreen);
+              }}
+            />
+          </div>
+        </footer>
+      </div>
     </div>,
     document.body,
   );

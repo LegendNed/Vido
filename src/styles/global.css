@@ -536,6 +536,10 @@ textarea {
   gap: 16px;
   animation: page-in 0.3s var(--ease);
 }
+/* Pages that grow with the window (Clips). */
+.page.page-wide {
+  max-width: none;
+}
 @keyframes page-in {
   from {
     opacity: 0;

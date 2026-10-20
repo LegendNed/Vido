@@ -29,7 +29,14 @@ function lengthLabel(s: number): string {
  * Home page: what Vido is doing right now and the handful of settings people
  * change often. Everything else is in Settings (`go` jumps to a group there).
  */
-export function OverviewPage({ go }: { go: (page: string) => void }) {
+export function OverviewPage({
+  go,
+  openClip,
+}: {
+  go: (page: string) => void;
+  /** Opens a clip in the Clips page viewer (closing it leaves you on Clips). */
+  openClip: (path: string) => void;
+}) {
   const status = useApp((s) => s.status);
   const settings = useApp((s) => s.settings);
   const update = useApp((s) => s.update);
@@ -129,6 +136,45 @@ export function OverviewPage({ go }: { go: (page: string) => void }) {
         </div>
       </section>
 
+      <section className="card overview-clips-card">
+        <div className="overview-clips-head">
+          <h3>Latest clips</h3>
+          <Button small variant="ghost" onClick={() => go("clips")}>
+            All clips
+          </Button>
+        </div>
+        {clips.length === 0 ? (
+          <p className="muted small">No clips yet — press the Save clip hotkey in a game.</p>
+        ) : (
+          <div className="overview-clips">
+            {clips.map((c) => (
+              <button
+                type="button"
+                key={c.path}
+                className="overview-clip"
+                title={c.fileName}
+                onClick={() => {
+                  openClip(c.path);
+                }}
+              >
+                <span
+                  className="thumb"
+                  style={
+                    c.thumbnail
+                      ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }
+                      : undefined
+                  }
+                >
+                  {!c.thumbnail && <Icon name="film" />}
+                  <span className="duration">{formatTime(Math.round(c.durationSec), 0)}</span>
+                </span>
+                <span className="ellipsis small">{c.fileName}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       <Section title="Quick settings" description="The rest is in Settings.">
         <Field label="Clip length" description="How much Save clip keeps.">
           <Segmented
@@ -224,8 +270,11 @@ export function OverviewPage({ go }: { go: (page: string) => void }) {
           />
         </Field>
         <div className="overview-links">
-          <Button small variant="ghost" onClick={() => go("recording")}>
-            Video & audio
+          <Button small variant="ghost" onClick={() => go("video")}>
+            Video
+          </Button>
+          <Button small variant="ghost" onClick={() => go("audio")}>
+            Audio
           </Button>
           <Button small variant="ghost" onClick={() => go("overlay")}>
             Overlay
@@ -238,43 +287,6 @@ export function OverviewPage({ go }: { go: (page: string) => void }) {
           </Button>
         </div>
       </Section>
-
-      <section className="card section">
-        <div className="overview-clips-head">
-          <h3>Latest clips</h3>
-          <Button small variant="ghost" onClick={() => go("clips")}>
-            All clips
-          </Button>
-        </div>
-        {clips.length === 0 ? (
-          <p className="muted small">No clips yet — press the Save clip hotkey in a game.</p>
-        ) : (
-          <div className="overview-clips">
-            {clips.map((c) => (
-              <button
-                type="button"
-                key={c.path}
-                className="overview-clip"
-                title={c.fileName}
-                onClick={() => go("clips")}
-              >
-                <span
-                  className="thumb"
-                  style={
-                    c.thumbnail
-                      ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }
-                      : undefined
-                  }
-                >
-                  {!c.thumbnail && <Icon name="film" />}
-                  <span className="duration">{formatTime(Math.round(c.durationSec), 0)}</span>
-                </span>
-                <span className="ellipsis small">{c.fileName}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
