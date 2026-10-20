@@ -112,7 +112,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             "open" => ui::show_main(app, None),
             "editor" => actions::open_editor_last(app),
             "folder" => actions::open_clips_folder(app),
-            "settings" => ui::show_main(app, Some("capture")),
+            "settings" => ui::show_main(app, Some("settings")),
             "quit" => actions::quit(app),
             _ => {}
         })

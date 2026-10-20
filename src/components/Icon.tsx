@@ -40,6 +40,9 @@ const PATHS = {
   info: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v6M12 7.5h.01",
   bolt: "M13 2 4 14h7l-1 8 9-12h-7z",
   download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  search: "M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM15.5 15.5 20 20",
+  // A screen with a small pill in its corner (the HUD).
+  overlay: "M3 4h18v14H3zM13 7h5v3h-5zM9 21h6",
   // Bare glyphs for filled status icons (InfoBar style, see `SeverityIcon`).
   glyphInfo: "M12 11v6M12 7h.01",
   glyphWarning: "M12 6v7M12 17.5h.01",

@@ -4,6 +4,7 @@ import {
   Badge,
   Field,
   NumberInput,
+  SearchBlock,
   Section,
   Segmented,
   Select,
@@ -19,7 +20,8 @@ import { useApp } from "../../stores/app";
 import { AudioDeviceChecklist, type Level } from "./AudioDeviceChecklist";
 import { trackSummary } from "./devices";
 
-export function AudioPage() {
+/** Audio devices and format: the audio half of the Recording page. */
+export function AudioSettings() {
   const settings = useApp((s) => s.settings);
   const update = useApp((s) => s.update);
   const notify = useApp((s) => s.notify);
@@ -143,30 +145,31 @@ export function AudioPage() {
   );
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <h1>Audio</h1>
-        <Badge tone="accent">{trackSummary(a)}</Badge>
-      </div>
-      <p className="muted small audio-intro">
-        Tick every device you want in your clips — each one is recorded on its own track. Changing
-        the selection restarts the replay buffer.
-      </p>
+    <>
+      <SearchBlock
+        title="Audio devices"
+        description="Tick every device you want in your clips — each one is recorded on its own track. Changing the selection restarts the replay buffer."
+        keywords="microphone mic speakers headphones desktop sound output input track volume mute gain mono stereo noise suppression"
+      >
+        <div className="row audio-summary">
+          <span className="muted small">Saved clips get</span>
+          <Badge tone="accent">{trackSummary(a)}</Badge>
+        </div>
+        <AudioDeviceChecklist
+          audio={a}
+          devices={devices}
+          onEdit={(fn) => {
+            update((d) => {
+              fn(d.audio);
+            });
+          }}
+          status={status?.audio}
+          levels={levels}
+          renderSettings={trackSettings}
+        />
+      </SearchBlock>
 
-      <AudioDeviceChecklist
-        audio={a}
-        devices={devices}
-        onEdit={(fn) => {
-          update((d) => {
-            fn(d.audio);
-          });
-        }}
-        status={status?.audio}
-        levels={levels}
-        renderSettings={trackSettings}
-      />
-
-      <Section title="Format" description="Applies to the replay buffer and saved clips.">
+      <Section title="Audio format" description="Applies to the replay buffer and saved clips.">
         <Field label="Sample rate" error={err("audio.sampleRate")}>
           <Segmented<44100 | 48000>
             value={a.sampleRate}
@@ -239,6 +242,6 @@ export function AudioPage() {
           />
         </Field>
       </Section>
-    </div>
+    </>
   );
 }

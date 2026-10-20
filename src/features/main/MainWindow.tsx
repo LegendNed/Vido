@@ -9,24 +9,21 @@ import { useEvent } from "../../lib/tauri/events";
 import { errorMessage } from "../../lib/tauri/types";
 import { useBackendSync } from "../../lib/useBackendSync";
 import { useApp } from "../../stores/app";
-import { AudioPage } from "../audio/AudioPage";
 import { useDeviceSync } from "../audio/useDeviceSync";
-import { CapturePage } from "../capture/CapturePage";
 import { ClipsPage } from "../clips/ClipsPage";
-import { ExportDefaultsPage } from "../export/ExportDefaultsPage";
 import { HotkeysPage } from "../hotkeys/HotkeysPage";
-import { AdvancedPage } from "../settings/AdvancedPage";
+import { OverlayPage } from "../overlay/OverlayPage";
+import { RecordingPage } from "../recording/RecordingPage";
 import { FirstRun } from "../settings/FirstRun";
-import { SavingPage } from "../settings/SavingPage";
+import { isSettingsGroup, type SettingsGroupId, type SettingsTarget } from "../settings/groups";
+import { SettingsPage } from "../settings/SettingsPage";
 
 const PAGES = [
   { id: "clips", label: "Clips", icon: "film" },
-  { id: "capture", label: "Capture", icon: "monitor" },
-  { id: "audio", label: "Audio", icon: "speaker" },
+  { id: "recording", label: "Recording", icon: "record" },
   { id: "hotkeys", label: "Hotkeys", icon: "keyboard" },
-  { id: "saving", label: "Saving", icon: "save" },
-  { id: "export", label: "Export", icon: "sliders" },
-  { id: "advanced", label: "Advanced", icon: "cog" },
+  { id: "overlay", label: "Overlay", icon: "overlay" },
+  { id: "settings", label: "Settings", icon: "cog" },
 ] as const satisfies readonly { id: string; label: string; icon: IconName }[];
 
 type PageId = (typeof PAGES)[number]["id"];
@@ -35,10 +32,30 @@ function isPage(p: string | null | undefined): p is PageId {
   return PAGES.some((x) => x.id === p);
 }
 
+/** Page ids from before the regrouping that are pages of their own again. */
+const OLD_PAGES: Partial<Record<string, PageId>> = {
+  capture: "recording",
+  audio: "recording",
+};
+
+/**
+ * Resolves a page id from `navigate` / window init: a page, a Settings group
+ * (`saving`, `export`, `general`, `advanced`, …: Settings scrolled to it) or an old id.
+ */
+function resolvePage(
+  p: string | null | undefined,
+): { page: PageId; group?: SettingsGroupId } | null {
+  if (!p) return null;
+  if (isPage(p)) return { page: p };
+  const old = OLD_PAGES[p];
+  if (old) return { page: old };
+  if (isSettingsGroup(p)) return { page: "settings", group: p };
+  return null;
+}
+
 /**
  * Store-style navigation rail: icon above a label ("full") or icons only ("small").
- * Clips stands apart at the top and Advanced sits at the bottom, like Settings in
- * Windows apps.
+ * Clips stands apart at the top and Settings sits at the bottom, like in Windows apps.
  */
 function Rail({
   page,
@@ -66,14 +83,14 @@ function Rail({
       <span className="nav-label">{p.label}</span>
     </button>
   );
-  const edge = (p: { id: PageId }) => p.id === "clips" || p.id === "advanced";
+  const edge = (p: { id: PageId }) => p.id === "clips" || p.id === "settings";
   return (
     <nav className="sidebar" aria-label="Pages">
       {PAGES.filter((p) => p.id === "clips").map(item)}
       <div className="nav-sep" />
       {PAGES.filter((p) => !edge(p)).map(item)}
       <div className="nav-fill" />
-      {PAGES.filter((p) => p.id === "advanced").map(item)}
+      {PAGES.filter((p) => p.id === "settings").map(item)}
       {!small && info && (
         <div
           className="foot"
@@ -113,9 +130,10 @@ export function MainWindow() {
   const settings = useApp((s) => s.settings);
   const status = useApp((s) => s.status);
   const redoSetup = useApp((s) => s.redoSetup);
-  const [page, setPage] = useState<PageId>(() => {
-    const p = windowInit().page;
-    return isPage(p) ? p : "clips";
+  const [page, setPage] = useState<PageId>(() => resolvePage(windowInit().page)?.page ?? "clips");
+  const [target, setTarget] = useState<SettingsTarget | null>(() => {
+    const group = resolvePage(windowInit().page)?.group;
+    return group ? { group, seq: 1 } : null;
   });
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -127,8 +145,16 @@ export function MainWindow() {
   useBackendSync();
   useDeviceSync();
   useEvent("navigate", (n) => {
-    if (isPage(n.page)) setPage(n.page);
+    const r = resolvePage(n.page);
+    if (!r) return;
+    setPage(r.page);
+    const group = r.group;
+    if (group) setTarget((t) => ({ group, seq: (t?.seq ?? 0) + 1 }));
   });
+  const select = (p: PageId) => {
+    setPage(p);
+    setTarget(null);
+  };
 
   if (loadError) {
     return (
@@ -150,21 +176,19 @@ export function MainWindow() {
   return (
     <div className="shell" data-sidebar={sidebar}>
       <StatusBar />
-      {sidebar !== "none" && <Rail page={page} small={sidebar === "small"} onSelect={setPage} />}
-      <main className="content">
-        {sidebar === "none" && <Pivot page={page} onSelect={setPage} />}
+      {sidebar !== "none" && <Rail page={page} small={sidebar === "small"} onSelect={select} />}
+      <main className={`content${page === "settings" ? " fill" : ""}`}>
+        {sidebar === "none" && <Pivot page={page} onSelect={select} />}
         {status?.warnings.map((w) => (
           <div key={w} className="content-banner">
             <Banner>{w}</Banner>
           </div>
         ))}
         {page === "clips" && <ClipsPage />}
-        {page === "capture" && <CapturePage />}
-        {page === "audio" && <AudioPage />}
+        {page === "recording" && <RecordingPage />}
         {page === "hotkeys" && <HotkeysPage />}
-        {page === "saving" && <SavingPage />}
-        {page === "export" && <ExportDefaultsPage />}
-        {page === "advanced" && <AdvancedPage />}
+        {page === "overlay" && <OverlayPage />}
+        {page === "settings" && <SettingsPage target={target} />}
       </main>
       {(!settings.firstRunCompleted || redoSetup) && <FirstRun />}
       <Notices />

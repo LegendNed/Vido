@@ -7,16 +7,16 @@ import {
   Field,
   NumberInput,
   Section,
-  Segmented,
   Select,
   TextInput,
   Toggle,
 } from "../../components/ui";
-import { LOG_LEVELS, SIDEBAR_OPTIONS } from "../../lib/options";
+import { LOG_LEVELS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 
+/** Encoder internals, capture fallbacks, cache and logs, reset, about. */
 export function AdvancedPage() {
   const settings = useApp((s) => s.settings);
   const update = useApp((s) => s.update);
@@ -26,11 +26,9 @@ export function AdvancedPage() {
   const notify = useApp((s) => s.notify);
   const setSettings = useApp((s) => s.setSettingsFromBackend);
   const fieldError = useApp((s) => s.fieldError);
-  const setRedoSetup = useApp((s) => s.setRedoSetup);
   const [probing, setProbing] = useState(false);
   if (!settings) return null;
   const adv = settings.advanced;
-  const g = settings.general;
   const err = (f: string) => fieldError?.field?.startsWith(f) ?? false;
 
   const pickCache = async () => {
@@ -50,94 +48,6 @@ export function AdvancedPage() {
       <div className="page-head">
         <h1>Advanced</h1>
       </div>
-
-      <Section
-        title="Appearance"
-        description="Light or dark mode and the accent color follow Windows (Settings → Personalization → Colors)."
-      >
-        <Field
-          label="Sidebar"
-          description="Full shows names under the icons, Small only icons, None moves the pages into tabs above the content."
-        >
-          <Segmented
-            value={g.sidebar}
-            options={SIDEBAR_OPTIONS}
-            onChange={(v) => {
-              update(
-                (d) => {
-                  d.general.sidebar = v;
-                },
-                { immediate: true },
-              );
-            }}
-          />
-        </Field>
-      </Section>
-
-      <Section title="Setup">
-        <Field
-          label="Run setup again"
-          description="Walks through display, audio, clip length and the save hotkey again. Your current settings are the starting point; Cancel keeps them."
-        >
-          <Button
-            icon="refresh"
-            onClick={() => {
-              setRedoSetup(true);
-            }}
-          >
-            Run setup
-          </Button>
-        </Field>
-      </Section>
-
-      <Section title="Startup & tray">
-        <Field
-          label="Start with Windows"
-          description="Off by default. Starts minimized to the tray."
-        >
-          <Toggle
-            value={g.startWithWindows}
-            onChange={(v) => {
-              update((d) => {
-                d.general.startWithWindows = v;
-              });
-            }}
-          />
-        </Field>
-        <Field label="Start minimized to tray">
-          <Toggle
-            value={g.startMinimized}
-            onChange={(v) => {
-              update((d) => {
-                d.general.startMinimized = v;
-              });
-            }}
-          />
-        </Field>
-        <Field label="Start the buffer on launch">
-          <Toggle
-            value={g.startBufferOnLaunch}
-            onChange={(v) => {
-              update((d) => {
-                d.general.startBufferOnLaunch = v;
-              });
-            }}
-          />
-        </Field>
-        <Field
-          label="Closing the window keeps Vido in the tray"
-          description="Otherwise closing quits the app."
-        >
-          <Toggle
-            value={g.closeToTray}
-            onChange={(v) => {
-              update((d) => {
-                d.general.closeToTray = v;
-              });
-            }}
-          />
-        </Field>
-      </Section>
 
       <Section title="Encoding">
         <Field

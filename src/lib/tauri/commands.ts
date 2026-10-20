@@ -49,7 +49,7 @@ export const commands = {
   pauseBuffer: () => invoke<BufferStatus>("pause_buffer"),
   resumeBuffer: () => invoke<BufferStatus>("resume_buffer"),
   getBufferStatus: () => invoke<BufferStatus>("get_buffer_status"),
-  /** Saves everything in the buffer (up to the buffer length set in Capture). */
+  /** Saves everything in the buffer (up to the buffer length set under Recording). */
   saveClip: () => invoke<ClipInfo>("save_clip"),
   toggleRecording: () => invoke<BufferStatus>("toggle_recording"),
   setMetersEnabled: (enabled: boolean) => invoke<undefined>("set_meters_enabled", { enabled }),

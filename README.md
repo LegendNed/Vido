@@ -232,7 +232,7 @@ the tray (configurable). The red tray dot means “buffering”; left-click open
 
 ## Hotkeys
 
-Defaults (change in Settings → Hotkeys or see [`config/hotkeys.example.json`](config/hotkeys.example.json)):
+Defaults (change on the Hotkeys page or see [`config/hotkeys.example.json`](config/hotkeys.example.json)):
 
 | Action                               | Default        |
 | ------------------------------------ | -------------- |
@@ -242,7 +242,7 @@ Defaults (change in Settings → Hotkeys or see [`config/hotkeys.example.json`](
 | Open last clip (default player)      | Ctrl+Shift+F11 |
 | Open editor (last clip)              | Ctrl+Shift+F12 |
 
-The clip length is the buffer length (Settings → Capture). Settings from earlier versions, which had
+The clip length is the buffer length (Recording page). Settings from earlier versions, which had
 "save last 15/30/60 s" and "save custom length" hotkeys, are migrated: Save clip gets the 30 s key
 (else the 60 s, 15 s or custom-length one; none if all were unbound).
 
