@@ -95,6 +95,8 @@ export function SettingsPage({ target }: { target: SettingsTarget | null }) {
   const searching = terms.length > 0;
   const root = useMemo<SettingsSearch>(() => ({ terms, inherited: "", counter: null }), [terms]);
   const shown = SETTINGS_GROUPS.filter((g) => !hidden.has(g.id));
+  // While searching the scrolled-to group may be filtered out: mark the first one shown.
+  const current = shown.some((g) => g.id === active) ? active : shown[0]?.id;
 
   const onVisible = useCallback((id: SettingsGroupId, visible: boolean) => {
     setHidden((prev) => {
@@ -218,8 +220,8 @@ export function SettingsPage({ target }: { target: SettingsTarget | null }) {
             <button
               key={g.id}
               type="button"
-              className={`settings-nav-item${active === g.id ? " active" : ""}`}
-              aria-current={active === g.id ? "true" : undefined}
+              className={`settings-nav-item${current === g.id ? " active" : ""}`}
+              aria-current={current === g.id ? "true" : undefined}
               onClick={() => {
                 jump(g.id);
               }}

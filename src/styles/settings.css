@@ -181,8 +181,8 @@ mark.search-hit {
   max-width: 860px;
   padding-top: 8px;
 }
-.settings-group + .settings-group {
-  margin-top: 28px;
+.settings-group {
+  margin-bottom: 28px;
 }
 .settings-group-title {
   margin: 0 0 12px;
