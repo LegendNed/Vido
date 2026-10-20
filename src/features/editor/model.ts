@@ -1,33 +1,19 @@
 import type {
-  AudioCodec,
   ClipDetails,
-  Container,
   CropRect,
-  EncoderPreference,
   ExportAudioTrack,
   ExportDefaults,
   ExportRequest,
-  QualityPreset,
-  RateMode,
-  ScalePreset,
-  VideoCodec,
 } from "../../lib/tauri/types";
 
-export interface ExportOpts {
-  container: Container;
-  videoCodec: VideoCodec;
-  encoder: EncoderPreference;
-  preset: QualityPreset;
-  rateMode: RateMode;
-  quality: number;
-  bitrateKbps: number;
-  maxBitrateKbps: number;
-  targetSizeMb: number;
-  audioCodec: AudioCodec;
-  audioBitrateKbps: number;
-  scale: ScalePreset;
-  fps: number;
+/**
+ * Export options: the encode settings (same shape as the export defaults, edited
+ * with `EncodeOptions`; `mixAudio` = one mixed audio track) plus per-export bits.
+ */
+export interface ExportOpts extends ExportDefaults {
+  /** Copy the video instead of re-encoding when possible. */
   streamCopy: boolean;
+  /** `null` = `<name>_export.<ext>` next to the clip. */
   outputPath: string | null;
 }
 
@@ -47,6 +33,10 @@ export interface EditState {
   fadeOut: number;
   audioMode: AudioMode;
   tracks: ExportAudioTrack[];
+  /**
+   * No longer read: whether exports mix the audio is `x.mixAudio` (Export → Advanced →
+   * Keep separate audio tracks). Remove together with the editor's old Audio section.
+   */
   mixAudio: boolean;
   x: ExportOpts;
 }
@@ -73,19 +63,7 @@ export function initialState(d: ClipDetails, defaults: ExportDefaults): EditStat
     })),
     mixAudio: defaults.mixAudio,
     x: {
-      container: defaults.container,
-      videoCodec: defaults.videoCodec,
-      encoder: defaults.encoder,
-      preset: defaults.preset,
-      rateMode: defaults.rateMode,
-      quality: defaults.quality,
-      bitrateKbps: defaults.bitrateKbps,
-      maxBitrateKbps: defaults.maxBitrateKbps,
-      targetSizeMb: defaults.targetSizeMb,
-      audioCodec: defaults.audioCodec,
-      audioBitrateKbps: defaults.audioBitrateKbps,
-      scale: defaults.scale,
-      fps: defaults.fps,
+      ...defaults,
       // Trim-only edits default to a lossless, instant export.
       streamCopy: true,
       outputPath: null,
@@ -96,7 +74,7 @@ export function initialState(d: ClipDetails, defaults: ExportDefaults): EditStat
 export function requestTracks(s: EditState): { tracks: ExportAudioTrack[]; mix: boolean } {
   switch (s.audioMode) {
     case "plain":
-      return { tracks: s.tracks, mix: s.mixAudio };
+      return { tracks: s.tracks, mix: s.x.mixAudio };
     case "mix":
       return {
         tracks: s.tracks.map((t, i) => (i === 0 ? t : { ...t, include: false })),
@@ -105,7 +83,7 @@ export function requestTracks(s: EditState): { tracks: ExportAudioTrack[]; mix: 
     case "separate":
       return {
         tracks: s.tracks.map((t, i) => (i === 0 ? { ...t, include: false } : t)),
-        mix: s.mixAudio,
+        mix: s.x.mixAudio,
       };
   }
 }
@@ -170,105 +148,6 @@ export function hasEdits(s: EditState, initial: EditState): boolean {
       e.fadeOut,
       e.audioMode,
       e.tracks,
-      e.mixAudio,
     ]);
   return key(s) !== key(initial);
 }
-
-export interface Preset {
-  id: string;
-  label: string;
-  hint: string;
-  apply: (x: ExportOpts) => ExportOpts;
-}
-
-export const PRESETS: Preset[] = [
-  {
-    id: "original",
-    label: "Original",
-    hint: "Trim only — no re-encode when possible",
-    apply: (x) => ({
-      ...x,
-      streamCopy: true,
-      rateMode: "quality",
-      quality: 20,
-      scale: "native",
-      fps: 0,
-    }),
-  },
-  {
-    id: "discord10",
-    label: "10 MB",
-    hint: "Fits small upload limits",
-    apply: (x) => ({
-      ...x,
-      streamCopy: false,
-      rateMode: "targetSize",
-      targetSizeMb: 10,
-      videoCodec: "h264",
-      container: "mp4",
-      audioCodec: "aac",
-      audioBitrateKbps: 96,
-      scale: "720p",
-    }),
-  },
-  {
-    id: "discord25",
-    label: "25 MB",
-    hint: "H.264, 1080p",
-    apply: (x) => ({
-      ...x,
-      streamCopy: false,
-      rateMode: "targetSize",
-      targetSizeMb: 25,
-      videoCodec: "h264",
-      container: "mp4",
-      audioCodec: "aac",
-      audioBitrateKbps: 128,
-      scale: "1080p",
-    }),
-  },
-  {
-    id: "discord50",
-    label: "50 MB",
-    hint: "H.264, source resolution",
-    apply: (x) => ({
-      ...x,
-      streamCopy: false,
-      rateMode: "targetSize",
-      targetSizeMb: 50,
-      videoCodec: "h264",
-      container: "mp4",
-      audioCodec: "aac",
-      audioBitrateKbps: 160,
-      scale: "native",
-    }),
-  },
-  {
-    id: "hq",
-    label: "High quality",
-    hint: "H.264 CRF 18",
-    apply: (x) => ({
-      ...x,
-      streamCopy: false,
-      rateMode: "quality",
-      quality: 18,
-      videoCodec: "h264",
-      scale: "native",
-    }),
-  },
-  {
-    id: "small",
-    label: "Small (HEVC)",
-    hint: "HEVC quality 28, 1080p",
-    apply: (x) => ({
-      ...x,
-      streamCopy: false,
-      rateMode: "quality",
-      quality: 28,
-      videoCodec: "hevc",
-      container: x.container === "webm" ? "mp4" : x.container,
-      scale: "1080p",
-    }),
-  },
-];
