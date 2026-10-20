@@ -53,7 +53,7 @@ mark.search-hit {
   min-height: 0;
   /* Centered, never wider than 16:9 of the window height (ultrawide screens). */
   width: 100%;
-  max-width: calc(100vh * 16 / 9);
+  max-width: min(calc(100vh * 16 / 9), 1100px);
   margin-inline: auto;
   display: flex;
   flex-direction: column;

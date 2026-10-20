@@ -39,6 +39,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
   const status = useApp((s) => s.status);
   const info = useApp((s) => s.info);
   const saveKey = useApp((s) => s.settings?.hotkeys.saveClip);
+  const openEditor = useApp((s) => s.openEditor);
   const [view, setViewState] = useState<ClipView>(loadView);
   const setView = (patch: Partial<ClipView>) => {
     setViewState((v) => {
@@ -181,7 +182,9 @@ export function ClipsPage({ open }: { open?: string | null }) {
                       onPlay={() => {
                         setViewing(featured.path);
                       }}
-                      onEdit={() => void act(() => commands.openEditor(featured.path))}
+                      onEdit={() => {
+                        openEditor(featured.path);
+                      }}
                     />
                   </div>
                 )}
@@ -238,7 +241,9 @@ export function ClipsPage({ open }: { open?: string | null }) {
                           small
                           variant="ghost"
                           icon="scissors"
-                          onClick={() => void act(() => commands.openEditor(c.path))}
+                          onClick={() => {
+                            openEditor(c.path);
+                          }}
                         >
                           Edit
                         </Button>

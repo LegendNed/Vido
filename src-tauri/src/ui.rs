@@ -1,4 +1,4 @@
-//! Webview windows: main window, editor and region picker (the HUD is native, see `hud`).
+//! Webview windows: main window (with the editor as a modal) and region picker (the HUD is native, see `hud`).
 //! All windows load the same frontend bundle and pick their view by label.
 
 use std::path::Path;
@@ -16,7 +16,6 @@ use crate::settings::Settings;
 use crate::state::AppState;
 
 pub const MAIN: &str = "main";
-pub const EDITOR: &str = "editor";
 pub const REGION: &str = "region";
 
 /// Solid window backgrounds where Mica is unavailable (Windows 10); they match
@@ -34,7 +33,7 @@ fn builder<'a>(
     label: &'a str,
     mut init: serde_json::Value,
 ) -> WebviewWindowBuilder<'a, tauri::Wry, AppHandle> {
-    let app_window = label == MAIN || label == EDITOR;
+    let app_window = label == MAIN;
     let mica = app_window && crate::theme::mica_supported();
     if let Some(o) = init.as_object_mut() {
         o.insert("mica".into(), mica.into());
@@ -74,7 +73,24 @@ pub fn show_main(app: &AppHandle, page: Option<&str>) {
     if let Some(w) = app.get_webview_window(MAIN) {
         focus(&w);
     } else {
-        let built = builder(app, MAIN, json!({ "page": page }))
+        build_main(app, json!({ "page": page }));
+        return;
+    }
+    if let Some(p) = page {
+        let _ = app.emit_to(
+            MAIN,
+            events::NAVIGATE,
+            Navigate {
+                page: p.to_string(),
+            },
+        );
+    }
+}
+
+/// Creates the main window; `init` reaches the page as `window.__VIDO_INIT__`.
+fn build_main(app: &AppHandle, init: serde_json::Value) {
+    {
+        let built = builder(app, MAIN, init)
             .title("Vido")
             .inner_size(1040.0, 700.0)
             .min_inner_size(860.0, 560.0)
@@ -102,16 +118,6 @@ pub fn show_main(app: &AppHandle, page: Option<&str>) {
             }
             Err(e) => tracing::error!("could not open main window: {e}"),
         }
-        return;
-    }
-    if let Some(p) = page {
-        let _ = app.emit_to(
-            MAIN,
-            events::NAVIGATE,
-            Navigate {
-                page: p.to_string(),
-            },
-        );
     }
 }
 
@@ -129,21 +135,15 @@ fn unload_later(w: &WebviewWindow) {
     });
 }
 
+/// The editor is a modal in the main window (over Clips): shows the window and
+/// opens the clip there.
 pub fn open_editor(app: &AppHandle, path: &Path) {
     let p = path.to_string_lossy().into_owned();
-    if let Some(w) = app.get_webview_window(EDITOR) {
+    if let Some(w) = app.get_webview_window(MAIN) {
         focus(&w);
-        let _ = app.emit_to(EDITOR, events::EDITOR_OPEN, EditorOpen { path: p });
-        return;
-    }
-    let r = builder(app, EDITOR, json!({ "clip": p }))
-        .title("Vido Editor")
-        .inner_size(1180.0, 780.0)
-        .min_inner_size(900.0, 600.0)
-        .center()
-        .build();
-    if let Err(e) = r {
-        tracing::error!("could not open editor: {e}");
+        let _ = app.emit_to(MAIN, events::EDITOR_OPEN, EditorOpen { path: p });
+    } else {
+        build_main(app, json!({ "page": "clips", "clip": p }));
     }
 }
 

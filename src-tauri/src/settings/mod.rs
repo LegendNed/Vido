@@ -281,6 +281,9 @@ pub struct GeneralSettings {
     pub sound_on_save: bool,
     pub hud: HudSettings,
     pub sidebar: SidebarMode,
+    /// Top bar with source, resolution, encoder, bitrate and buffer memory
+    /// (otherwise just the state and the buttons).
+    pub detailed_status_bar: bool,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
@@ -544,6 +547,7 @@ impl Default for GeneralSettings {
             sound_on_save: true,
             hud: HudSettings::default(),
             sidebar: SidebarMode::Full,
+            detailed_status_bar: false,
         }
     }
 }

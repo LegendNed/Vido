@@ -5,7 +5,7 @@
  * Accent: the Windows accent palette arrives as `--sys-accent-*` variables
  * (src/lib/theme.ts); Fluent uses AccentLight2 in dark mode and AccentDark1 in
  * light mode. Without them the accent falls back to red.
- * Mica: main/editor windows on Windows 11 get `html.mica` and a transparent page;
+ * Mica: the main window on Windows 11 gets `html.mica` and a transparent page;
  * everything on top is a translucent "layer"/"card". Elsewhere `--bg` is solid.
  */
 
@@ -306,6 +306,12 @@ textarea {
   gap: 10px;
   font-weight: 600;
   white-space: nowrap;
+}
+/* "· 28 s" right after the state in the simple top bar. */
+.status-seconds {
+  margin-left: -6px;
+  font-weight: 400;
+  color: var(--text-2);
 }
 
 .status-meta {

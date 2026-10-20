@@ -35,6 +35,10 @@ interface AppStore {
   caps: EncoderCapabilities | null;
   notices: Notice[];
   fieldError: AppError | null;
+  /** The clip open in the editor modal (main window), if any. */
+  editor: EditorRequest | null;
+  openEditor: (path: string, from?: EditorRequest["from"], at?: number) => void;
+  closeEditor: () => void;
   /** The setup wizard was reopened from Advanced (not persisted). */
   redoSetup: boolean;
   setRedoSetup: (v: boolean) => void;
@@ -49,6 +53,14 @@ interface AppStore {
   loadCaps: (refresh?: boolean) => Promise<void>;
 }
 
+export interface EditorRequest {
+  path: string;
+  /** Screen rect the editor grows from (the clip preview dialog). */
+  from?: { left: number; top: number; width: number; height: number };
+  /** Start at this time (seconds), e.g. where the preview was. */
+  at?: number;
+}
+
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 let nextNoticeId = 1;
 
@@ -61,6 +73,14 @@ export const useApp = create<AppStore>((set, get) => ({
   notices: [],
   fieldError: null,
   redoSetup: false,
+  editor: null,
+
+  openEditor: (path, from, at) => {
+    set({ editor: { path, from, at } });
+  },
+  closeEditor: () => {
+    set({ editor: null });
+  },
 
   setRedoSetup: (redoSetup) => {
     set({ redoSetup });

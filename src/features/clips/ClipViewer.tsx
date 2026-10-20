@@ -200,11 +200,13 @@ export function ClipViewer({
     [onNavigate],
   );
 
+  // The editor modal grows out of this dialog and continues at the same moment.
   const edit = () => {
+    const v = video.current;
+    const r = v?.closest(".viewer")?.getBoundingClientRect();
+    const from = r ? { left: r.left, top: r.top, width: r.width, height: r.height } : undefined;
+    useApp.getState().openEditor(clip.path, from, v?.currentTime);
     onClose();
-    commands.openEditor(clip.path).catch((e: unknown) => {
-      notify("error", "Could not open the editor", errorMessage(e));
-    });
   };
 
   const remove = async () => {

@@ -1,20 +1,15 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon } from "../../components/Icon";
-import { Notices } from "../../components/Notices";
 import { Banner, Button, Spinner, Toggle } from "../../components/ui";
 import { clamp, formatTime } from "../../lib/format";
-import { windowInit } from "../../lib/init";
 import { commands } from "../../lib/tauri/commands";
-import { useEvent } from "../../lib/tauri/events";
 import {
   errorMessage,
   type ClipDetails,
   type CropRect,
   type ExportDefaults,
 } from "../../lib/tauri/types";
-import { useBackendSync } from "../../lib/useBackendSync";
 import { useApp } from "../../stores/app";
 import { clipSrc, unloadVideo } from "../clips/media";
 import { ExportPanel } from "../export/ExportPanel";
@@ -43,43 +38,19 @@ const WAVE_BUCKETS = 1600;
 /** Waveforms decoded at the same time (each one reads the whole file). */
 const WAVE_JOBS = 3;
 
-/** Editor window shell: follows `editor-open` events; each clip gets a fresh editor. */
-export function EditorWindow() {
-  const init = useApp((s) => s.init);
-  const settings = useApp((s) => s.settings);
-  const [path, setPath] = useState<string | null>(windowInit().clip ?? null);
-
-  useEffect(() => {
-    void init();
-  }, [init]);
-  useBackendSync();
-  useEvent("editor-open", (e) => {
-    setPath(e.path);
-  });
-
-  if (!path) {
-    return (
-      <div className="empty">
-        <h3>No clip selected</h3>
-        <p>Open a clip from the Clips page.</p>
-      </div>
-    );
-  }
-  return (
-    <>
-      {settings ? (
-        <ClipLoader key={path} path={path} defaults={settings.export} />
-      ) : (
-        <div className="empty">
-          <Spinner />
-        </div>
-      )}
-      <Notices />
-    </>
-  );
-}
-
-function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults }) {
+/** Loads a clip and shows the editor for it (inside the main window's editor modal). */
+export function ClipLoader({
+  path,
+  defaults,
+  at,
+  onClose,
+}: {
+  path: string;
+  defaults: ExportDefaults;
+  /** Start at this time (seconds). */
+  at?: number;
+  onClose: () => void;
+}) {
   // `version` counts in-place replacements ("Save & override") of this file.
   const [version, setVersion] = useState(0);
   const [loaded, setLoaded] = useState<{ details: ClipDetails; version: number } | null>(null);
@@ -91,7 +62,6 @@ function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults
       (d) => {
         if (cancelled) return;
         setLoaded({ details: d, version });
-        void getCurrentWindow().setTitle(`${d.info.fileName} — Vido Editor`);
       },
       (e: unknown) => {
         if (!cancelled) setLoadError(errorMessage(e));
@@ -123,6 +93,8 @@ function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults
       key={loaded.version}
       details={loaded.details}
       initial={initialState(loaded.details, defaults)}
+      at={loaded.version === 0 ? at : undefined}
+      onClose={onClose}
       onReplaced={() => {
         setVersion((v) => v + 1);
       }}
@@ -133,10 +105,14 @@ function ClipLoader({ path, defaults }: { path: string; defaults: ExportDefaults
 function ClipEditor({
   details,
   initial,
+  at,
+  onClose,
   onReplaced,
 }: {
   details: ClipDetails;
   initial: EditState;
+  at?: number;
+  onClose: () => void;
   onReplaced: () => void;
 }) {
   const notify = useApp((s) => s.notify);
@@ -450,6 +426,8 @@ function ClipEditor({
           restore={restoreVideo}
           onReplaced={onReplaced}
         />
+        <span className="editor-head-sep" />
+        <Button variant="ghost" icon="x" title="Close editor (Esc)" onClick={onClose} />
       </header>
 
       <div className="editor-main">
@@ -459,6 +437,10 @@ function ClipEditor({
               ref={video}
               src={src}
               preload="auto"
+              onLoadedMetadata={(e) => {
+                // Continue where the clip preview was.
+                if (at) e.currentTarget.currentTime = at;
+              }}
               onPlay={() => {
                 setPlaying(true);
               }}

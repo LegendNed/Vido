@@ -14,4 +14,9 @@ closeToTray: boolean, startWithWindows: boolean, startBufferOnLaunch: boolean,
 /**
  * Play a short system sound when a clip is saved.
  */
-soundOnSave: boolean, hud: HudSettings, sidebar: SidebarMode, };
+soundOnSave: boolean, hud: HudSettings, sidebar: SidebarMode, 
+/**
+ * Top bar with source, resolution, encoder, bitrate and buffer memory
+ * (otherwise just the state and the buttons).
+ */
+detailedStatusBar: boolean, };

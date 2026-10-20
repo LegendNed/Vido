@@ -13,7 +13,8 @@
       "showDetails": true,
       "clipPopup": true
     },
-    "sidebar": "full"
+    "sidebar": "full",
+    "detailedStatusBar": false
   },
   "capture": {
     "mode": "monitor",

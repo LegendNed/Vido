@@ -49,6 +49,25 @@ export function AdvancedPage() {
         <h1>Advanced</h1>
       </div>
 
+      <Section title="Interface">
+        <Field
+          label="Detailed top bar"
+          description="Show the capture source, resolution, encoder, bitrate and buffer memory in the bar at the top."
+        >
+          <Toggle
+            value={settings.general.detailedStatusBar}
+            onChange={(v) => {
+              update(
+                (d) => {
+                  d.general.detailedStatusBar = v;
+                },
+                { immediate: true },
+              );
+            }}
+          />
+        </Field>
+      </Section>
+
       <Section title="Encoding">
         <Field
           label="Keyframe interval"

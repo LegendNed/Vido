@@ -11,6 +11,7 @@ import { useBackendSync } from "../../lib/useBackendSync";
 import { useApp } from "../../stores/app";
 import { useDeviceSync } from "../audio/useDeviceSync";
 import { ClipsPage } from "../clips/ClipsPage";
+import { EditorModal } from "../editor/EditorModal";
 import { OverviewPage } from "../overview/OverviewPage";
 import { FirstRun } from "../settings/FirstRun";
 import { settingsGroupOf, type SettingsGroupId, type SettingsTarget } from "../settings/groups";
@@ -131,6 +132,16 @@ export function MainWindow() {
   }, [init]);
   useBackendSync();
   useDeviceSync();
+  // The editor opens as a modal here (hotkey, after saving, tray, window init).
+  const openEditor = useApp((s) => s.openEditor);
+  useEffect(() => {
+    const clip = windowInit().clip;
+    if (clip) openEditor(clip);
+  }, [openEditor]);
+  useEvent("editor-open", (e) => {
+    setPage("clips");
+    openEditor(e.path);
+  });
   useEvent("navigate", (n) => {
     const r = resolvePage(n.page);
     if (!r) return;
@@ -189,6 +200,7 @@ export function MainWindow() {
         {page === "clips" && <ClipsPage key={openPath ?? ""} open={openPath} />}
         {page === "settings" && <SettingsPage key={target?.seq ?? 0} target={target} />}
       </main>
+      <EditorModal />
       {(!settings.firstRunCompleted || redoSetup) && <FirstRun />}
       <Notices />
     </div>

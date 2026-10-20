@@ -347,7 +347,7 @@ src-tauri/src/            Rust capture engine
   hotkeys/ settings/      validated accelerators, settings model + JSON store
   av/                     RAII wrappers over FFmpeg (ffmpeg-sys-next) + D3D11 hw contexts
   commands.rs events.rs   the IPC surface
-  tray.rs ui.rs theme.rs  tray menu, windows (main, editor, region picker), Mica + accent
+  tray.rs ui.rs theme.rs  tray menu, windows (main — editor is a modal in it — and region picker), Mica + accent
   hud.rs                  overlay pill + popups, drawn natively (GDI layered window)
 ```
 

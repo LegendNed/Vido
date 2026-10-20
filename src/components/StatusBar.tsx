@@ -18,6 +18,7 @@ const LABELS: Record<BufferStatus["state"], string> = {
 export function StatusBar() {
   const status = useApp((s) => s.status);
   const notify = useApp((s) => s.notify);
+  const detailed = useApp((s) => s.settings?.general.detailedStatusBar ?? false);
   const [busy, setBusy] = useState(false);
   if (!status) return <div className="statusbar" />;
 
@@ -45,35 +46,40 @@ export function StatusBar() {
         {status.recording
           ? `REC ${formatTime(status.recording.elapsedSeconds, 0)}`
           : LABELS[status.state]}
+        {!detailed && !status.recording && status.state === "buffering" && (
+          <span className="status-seconds"> · {Math.floor(status.bufferedSeconds)} s</span>
+        )}
       </span>
-      <div className="status-meta">
-        {status.source && (
-          <span className="ellipsis" style={{ maxWidth: 220 }}>
-            {status.source}
-          </span>
-        )}
-        {status.width > 0 && (
-          <span>
-            {status.width}×{status.height} @ {Math.round(status.fps)}
-          </span>
-        )}
-        {status.encoder && (
-          <span title={status.zeroCopy ? "GPU zero-copy path" : "CPU copy path"}>
-            {status.encoder}
-            {status.zeroCopy ? " ⚡" : ""}
-          </span>
-        )}
-        {status.videoBitrateKbps > 0 && <span>{formatBitrate(status.videoBitrateKbps)}</span>}
-        {status.state !== "stopped" && (
-          <span>
-            {Math.floor(status.bufferedSeconds)}/{status.targetSeconds} s ·{" "}
-            {formatBytes(status.sizeBytes)} in {status.storage}
-          </span>
-        )}
-        {status.droppedFrames > 0 && (
-          <span style={{ color: "var(--warn)" }}>{status.droppedFrames} dropped</span>
-        )}
-      </div>
+      {detailed && (
+        <div className="status-meta">
+          {status.source && (
+            <span className="ellipsis" style={{ maxWidth: 220 }}>
+              {status.source}
+            </span>
+          )}
+          {status.width > 0 && (
+            <span>
+              {status.width}×{status.height} @ {Math.round(status.fps)}
+            </span>
+          )}
+          {status.encoder && (
+            <span title={status.zeroCopy ? "GPU zero-copy path" : "CPU copy path"}>
+              {status.encoder}
+              {status.zeroCopy ? " ⚡" : ""}
+            </span>
+          )}
+          {status.videoBitrateKbps > 0 && <span>{formatBitrate(status.videoBitrateKbps)}</span>}
+          {status.state !== "stopped" && (
+            <span>
+              {Math.floor(status.bufferedSeconds)}/{status.targetSeconds} s ·{" "}
+              {formatBytes(status.sizeBytes)} in {status.storage}
+            </span>
+          )}
+          {status.droppedFrames > 0 && (
+            <span style={{ color: "var(--warn)" }}>{status.droppedFrames} dropped</span>
+          )}
+        </div>
+      )}
       <div className="grow" />
       {status.state === "stopped" || status.state === "error" ? (
         <Button icon="record" disabled={busy} onClick={() => void run(commands.startBuffer)}>
