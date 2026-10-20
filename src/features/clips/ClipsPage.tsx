@@ -20,6 +20,7 @@ export function ClipsPage() {
   const notify = useApp((s) => s.notify);
   const status = useApp((s) => s.status);
   const info = useApp((s) => s.info);
+  const saveKey = useApp((s) => s.settings?.hotkeys.saveClip);
 
   useEffect(() => {
     let alive = true;
@@ -61,16 +62,15 @@ export function ClipsPage() {
     <div className="page" style={{ maxWidth: 1200 }}>
       <div className="page-head">
         <h1>Clips</h1>
-        {[15, 30, 60].map((s) => (
-          <Button
-            key={s}
-            small
-            disabled={!canSave}
-            onClick={() => void act(() => commands.saveLastClip(s))}
-          >
-            Save {s} s
-          </Button>
-        ))}
+        <Button
+          small
+          icon="save"
+          disabled={!canSave}
+          title="Save everything in the buffer"
+          onClick={() => void act(commands.saveClip)}
+        >
+          Save clip
+        </Button>
         <Button small icon="folder" onClick={() => void act(() => commands.openFolder("output"))}>
           Open folder
         </Button>
@@ -91,8 +91,17 @@ export function ClipsPage() {
           <Icon name="film" size={32} />
           <h3>No clips yet</h3>
           <p>
-            While the buffer is running, press your save hotkey (default <b>Ctrl+Shift+F6</b>) to
-            keep the last 30 seconds.
+            While the buffer is running,{" "}
+            {saveKey ? (
+              <>
+                press <b>{saveKey}</b>
+              </>
+            ) : (
+              <>
+                click <b>Save clip</b>
+              </>
+            )}{" "}
+            to save everything in the buffer as a clip. How much it keeps is set in Capture.
           </p>
         </div>
       ) : (

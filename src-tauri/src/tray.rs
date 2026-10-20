@@ -73,8 +73,7 @@ pub fn icon(state: BufferState, recording: bool) -> Image<'static> {
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let status = MenuItem::with_id(app, "status", "Vido — stopped", false, None::<&str>)?;
-    let save30 = MenuItem::with_id(app, "save30", "Save last 30 seconds", true, None::<&str>)?;
-    let save60 = MenuItem::with_id(app, "save60", "Save last 60 seconds", true, None::<&str>)?;
+    let save = MenuItem::with_id(app, "save", "Save clip", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Start buffer", true, None::<&str>)?;
     let record = MenuItem::with_id(app, "record", "Start recording", true, None::<&str>)?;
     let open = MenuItem::with_id(app, "open", "Open Vido", true, None::<&str>)?;
@@ -88,8 +87,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         &[
             &status,
             &sep()?,
-            &save30,
-            &save60,
+            &save,
             &sep()?,
             &pause,
             &record,
@@ -108,8 +106,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, e| match e.id().as_ref() {
-            "save30" => actions::save(app, Some(30)),
-            "save60" => actions::save(app, Some(60)),
+            "save" => actions::save(app),
             "pause" => actions::toggle_pause(app),
             "record" => actions::toggle_recording(app),
             "open" => ui::show_main(app, None),

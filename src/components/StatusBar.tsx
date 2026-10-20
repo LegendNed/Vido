@@ -112,9 +112,15 @@ export function StatusBar() {
         variant="primary"
         icon="save"
         disabled={busy || !canSave}
-        onClick={() => void run(() => commands.saveLastClip(30), "Clip saved")}
+        title="Save everything in the buffer"
+        onClick={() =>
+          void run(async () => {
+            const clip = await commands.saveClip();
+            notify("info", `Clip saved (${formatTime(Math.round(clip.durationSec), 0)})`);
+          })
+        }
       >
-        Save 30 s
+        Save clip
       </Button>
     </div>
   );

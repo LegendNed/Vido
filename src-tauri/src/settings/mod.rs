@@ -379,16 +379,37 @@ pub struct AudioSettings {
 #[serde(rename_all = "camelCase", default)]
 #[ts(export)]
 pub struct HotkeySettings {
-    pub save15: Option<String>,
-    pub save30: Option<String>,
-    pub save60: Option<String>,
-    pub save_custom: Option<String>,
-    /// Length for "save custom"; `0` = everything in the buffer.
-    pub custom_seconds: u32,
+    /// Saves everything in the buffer (`capture.bufferSeconds` long).
+    pub save_clip: Option<String>,
     pub toggle_recording: Option<String>,
     pub toggle_pause: Option<String>,
     pub open_last_clip: Option<String>,
     pub open_editor: Option<String>,
+    // Fixed-length save hotkeys of settings files written before "Save clip". Only read,
+    // never written; `Settings::repaired` folds them into `save_clip`.
+    #[serde(skip_serializing)]
+    #[ts(skip)]
+    save15: LegacyHotkey,
+    #[serde(skip_serializing)]
+    #[ts(skip)]
+    save30: LegacyHotkey,
+    #[serde(skip_serializing)]
+    #[ts(skip)]
+    save60: LegacyHotkey,
+    #[serde(skip_serializing)]
+    #[ts(skip)]
+    save_custom: LegacyHotkey,
+}
+
+/// A hotkey from an older settings file: `None` = not in the file, `Some(None)` =
+/// explicitly unbound (`null`).
+#[derive(Clone, Debug, PartialEq, Default)]
+struct LegacyHotkey(Option<Option<String>>);
+
+impl<'de> Deserialize<'de> for LegacyHotkey {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        Option::<String>::deserialize(d).map(|v| Self(Some(v)))
+    }
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq, Default)]
@@ -568,15 +589,15 @@ impl Default for AudioSettings {
 impl Default for HotkeySettings {
     fn default() -> Self {
         Self {
-            save15: Some("Ctrl+Shift+F5".into()),
-            save30: Some("Ctrl+Shift+F6".into()),
-            save60: Some("Ctrl+Shift+F7".into()),
-            save_custom: Some("Ctrl+Shift+F8".into()),
-            custom_seconds: 0,
+            save_clip: Some("Ctrl+Shift+F6".into()),
             toggle_recording: Some("Ctrl+Shift+F9".into()),
             toggle_pause: Some("Ctrl+Shift+F10".into()),
             open_last_clip: Some("Ctrl+Shift+F11".into()),
             open_editor: Some("Ctrl+Shift+F12".into()),
+            save15: LegacyHotkey::default(),
+            save30: LegacyHotkey::default(),
+            save60: LegacyHotkey::default(),
+            save_custom: LegacyHotkey::default(),
         }
     }
 }
@@ -687,6 +708,7 @@ impl Settings {
     /// is reset to defaults (and logged) instead of refusing to start.
     pub fn repaired(mut self) -> (Self, Vec<String>) {
         let mut notes = self.migrate_legacy_names();
+        notes.extend(self.hotkeys.migrate_legacy_saves());
         notes.extend(self.audio.drop_duplicate_devices());
         macro_rules! repair {
             ($section:ident) => {
@@ -969,13 +991,10 @@ impl AudioSettings {
 }
 
 impl HotkeySettings {
-    pub fn bindings(&self) -> [(crate::hotkeys::HotkeyAction, Option<&str>); 8] {
+    pub fn bindings(&self) -> [(crate::hotkeys::HotkeyAction, Option<&str>); 5] {
         use crate::hotkeys::HotkeyAction as A;
         [
-            (A::Save15, self.save15.as_deref()),
-            (A::Save30, self.save30.as_deref()),
-            (A::Save60, self.save60.as_deref()),
-            (A::SaveCustom, self.save_custom.as_deref()),
+            (A::SaveClip, self.save_clip.as_deref()),
             (A::ToggleRecording, self.toggle_recording.as_deref()),
             (A::TogglePause, self.toggle_pause.as_deref()),
             (A::OpenLastClip, self.open_last_clip.as_deref()),
@@ -983,15 +1002,28 @@ impl HotkeySettings {
         ]
     }
 
-    pub fn validate(&self) -> AppResult<()> {
-        if self.custom_seconds != 0 {
-            check_range(
-                self.custom_seconds,
-                BUFFER_SECONDS_MIN,
-                BUFFER_SECONDS_MAX,
-                "hotkeys.customSeconds",
-            )?;
+    /// Older versions had "save last 15/30/60 s" and "save custom length" hotkeys. If the
+    /// file has any of them, `save_clip` takes the first bound one of 30 s, 60 s, 15 s and
+    /// custom (the 30 s key is the one most users press); all unbound means no hotkey.
+    fn migrate_legacy_saves(&mut self) -> Option<String> {
+        let legacy = [
+            &mut self.save30,
+            &mut self.save60,
+            &mut self.save15,
+            &mut self.save_custom,
+        ]
+        .map(|k| std::mem::take(&mut k.0));
+        if legacy.iter().all(Option::is_none) {
+            return None;
         }
+        self.save_clip = legacy.into_iter().flatten().flatten().next();
+        Some(format!(
+            "save hotkeys (15/30/60 s, custom length) replaced by Save clip: {}",
+            self.save_clip.as_deref().unwrap_or("no hotkey")
+        ))
+    }
+
+    pub fn validate(&self) -> AppResult<()> {
         let mut seen = std::collections::HashMap::new();
         for (action, accel) in self.bindings() {
             let Some(accel) = accel else { continue };
@@ -1183,7 +1215,8 @@ mod tests {
         let json = serde_json::to_string_pretty(&s).unwrap();
         assert!(json.contains("\"scale\": \"1080p\""));
         assert!(json.contains("\"rateMode\": \"targetSize\""));
-        assert!(json.contains("\"save15\": \"Ctrl+Shift+F5\""));
+        assert!(json.contains("\"saveClip\": \"Ctrl+Shift+F6\""));
+        assert!(!json.contains("save30"), "legacy hotkeys are never written");
         let back: Settings = serde_json::from_str(&json).unwrap();
         assert_eq!(s, back);
     }
@@ -1238,9 +1271,85 @@ mod tests {
     #[test]
     fn rejects_duplicate_hotkeys() {
         let mut s = Settings::default();
-        s.hotkeys.save60 = Some("ctrl+shift+f5".into());
+        s.hotkeys.open_editor = Some("ctrl+shift+f6".into());
         let e = s.validate().unwrap_err();
-        assert_eq!(e.field.as_deref(), Some("hotkeys.save60"));
+        assert_eq!(e.field.as_deref(), Some("hotkeys.openEditor"));
+        assert!(e.message.contains("Save clip"), "{}", e.message);
+    }
+
+    /// Loads a settings file with the given `hotkeys` section through the same path as
+    /// startup (parse + repair).
+    fn load_hotkeys(hotkeys: &str) -> (HotkeySettings, Vec<String>) {
+        let s: Settings = serde_json::from_str(&format!(r#"{{ "hotkeys": {hotkeys} }}"#)).unwrap();
+        let (s, notes) = s.repaired();
+        s.validate().unwrap();
+        (s.hotkeys, notes)
+    }
+
+    #[test]
+    fn old_default_hotkeys_become_save_clip() {
+        let (h, notes) = load_hotkeys(
+            r#"{ "save15": "Ctrl+Shift+F5", "save30": "Ctrl+Shift+F6",
+                 "save60": "Ctrl+Shift+F7", "saveCustom": "Ctrl+Shift+F8", "customSeconds": 0,
+                 "toggleRecording": "Ctrl+Shift+F9", "togglePause": "Ctrl+Shift+F10",
+                 "openLastClip": "Ctrl+Shift+F11", "openEditor": "Ctrl+Shift+F12" }"#,
+        );
+        assert_eq!(h, HotkeySettings::default());
+        assert_eq!(notes.len(), 1, "{notes:?}");
+        // Written back without the old fields.
+        let json = serde_json::to_string(&h).unwrap();
+        assert!(
+            !json.contains("save30") && !json.contains("customSeconds"),
+            "{json}"
+        );
+    }
+
+    #[test]
+    fn custom_save_hotkeys_keep_the_first_bound_one() {
+        // 30 s wins over the others.
+        let (h, _) = load_hotkeys(
+            r#"{ "save15": "Shift+F8", "save30": "F8", "save60": "Ctrl+F8",
+                 "saveCustom": "Alt+F8", "customSeconds": 120, "toggleRecording": "F9" }"#,
+        );
+        assert_eq!(h.save_clip.as_deref(), Some("F8"));
+        assert_eq!(h.toggle_recording.as_deref(), Some("F9"));
+        assert_eq!(h.open_editor.as_deref(), Some("Ctrl+Shift+F12"));
+
+        // Then 60 s, 15 s and custom length.
+        let (h, _) = load_hotkeys(
+            r#"{ "save15": "Ctrl+1", "save30": null, "save60": "Ctrl+2", "saveCustom": "Ctrl+3" }"#,
+        );
+        assert_eq!(h.save_clip.as_deref(), Some("Ctrl+2"));
+        let (h, _) = load_hotkeys(
+            r#"{ "save15": "Ctrl+1", "save30": null, "save60": null, "saveCustom": "Ctrl+3" }"#,
+        );
+        assert_eq!(h.save_clip.as_deref(), Some("Ctrl+1"));
+        let (h, _) = load_hotkeys(
+            r#"{ "save15": null, "save30": null, "save60": null, "saveCustom": "Ctrl+3" }"#,
+        );
+        assert_eq!(h.save_clip.as_deref(), Some("Ctrl+3"));
+    }
+
+    #[test]
+    fn all_unbound_save_hotkeys_mean_no_save_clip_hotkey() {
+        let (h, notes) = load_hotkeys(
+            r#"{ "save15": null, "save30": null, "save60": null, "saveCustom": null,
+                 "customSeconds": 0, "openEditor": null }"#,
+        );
+        assert_eq!(h.save_clip, None);
+        assert_eq!(h.open_editor, None);
+        assert_eq!(h.toggle_recording.as_deref(), Some("Ctrl+Shift+F9"));
+        assert_eq!(notes.len(), 1);
+    }
+
+    #[test]
+    fn current_hotkey_files_are_left_alone() {
+        let (h, notes) = load_hotkeys(r#"{ "saveClip": "Ctrl+Alt+S" }"#);
+        assert_eq!(h.save_clip.as_deref(), Some("Ctrl+Alt+S"));
+        assert!(notes.is_empty(), "{notes:?}");
+        let (h, notes) = load_hotkeys(r#"{ "saveClip": null }"#);
+        assert_eq!(h.save_clip, None);
+        assert!(notes.is_empty(), "{notes:?}");
     }
 
     fn track(id: &str, kind: TrackKind, device: Option<&str>, enabled: bool) -> AudioTrackSettings {

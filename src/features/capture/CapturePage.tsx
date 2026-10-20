@@ -302,7 +302,7 @@ export function CapturePage() {
       >
         <Field
           label="Buffer length"
-          description="5 seconds to 10 minutes."
+          description="How much Save clip keeps — the length of your clips (5 seconds to 10 minutes)."
           error={err("capture.bufferSeconds")}
         >
           <Slider
