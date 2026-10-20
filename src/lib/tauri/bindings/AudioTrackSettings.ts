@@ -5,7 +5,13 @@ export type AudioTrackSettings = { id: string, kind: TrackKind, name: string,
 /**
  * Endpoint id; `null` = follow the Windows default device.
  */
-deviceId: string | null, enabled: boolean, muted: boolean, 
+deviceId: string | null, 
+/**
+ * That device's name when it was chosen. If the id isn't connected (e.g. the
+ * device was plugged into another port), a connected device with this name is
+ * recorded instead, else the Windows default.
+ */
+deviceName: string | null, enabled: boolean, muted: boolean, 
 /**
  * Linear volume 0.0–2.0 (1.0 = unchanged).
  */

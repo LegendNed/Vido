@@ -136,6 +136,7 @@ export function setDeviceChecked(
   }
   if (existing) {
     existing.enabled = true;
+    if (row.deviceId !== null && row.connected) existing.deviceName = row.label;
     return;
   }
   if (enabledCount(audio) >= MAX_AUDIO_TRACKS) return;
@@ -149,6 +150,7 @@ export function setDeviceChecked(
     kind: row.direction === "output" ? "desktop" : "microphone",
     name: trackNameFor(row),
     deviceId: row.deviceId,
+    deviceName: row.deviceId === null ? null : row.label,
     enabled: true,
     muted: false,
     volume: 1,
@@ -181,4 +183,37 @@ export function trackSummary(audio: AudioSettings): string {
   if (mix && separate) return `${tracks}: mix + ${sources}`;
   if (mix) return `${tracks}: mix of ${sources}`;
   return `${tracks}, one per source`;
+}
+
+/**
+ * Keeps saved devices current with what is connected (Rust finds a device by id,
+ * then by name, then falls back to the default): records the name of each saved
+ * device that is present, and moves a track whose id is gone onto a connected
+ * device with the same name (e.g. replugged into another port). Returns whether
+ * anything changed.
+ */
+export function syncDevices(audio: AudioSettings, devices: AudioDeviceInfo[]): boolean {
+  let changed = false;
+  for (const t of audio.tracks) {
+    if (t.deviceId === null) continue;
+    const dir = directionOf(t);
+    const same = devices.find((d) => d.kind === dir && d.id === t.deviceId);
+    if (same) {
+      if (same.name && t.deviceName !== same.name) {
+        t.deviceName = same.name;
+        changed = true;
+      }
+      continue;
+    }
+    const name = t.deviceName?.toLowerCase();
+    if (!name) continue;
+    const moved = devices.find(
+      (d) => d.kind === dir && d.name.toLowerCase() === name && findTrack(audio, dir, d.id) < 0,
+    );
+    if (moved) {
+      t.deviceId = moved.id;
+      changed = true;
+    }
+  }
+  return changed;
 }

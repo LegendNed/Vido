@@ -348,6 +348,11 @@ pub struct AudioTrackSettings {
     pub name: String,
     /// Endpoint id; `null` = follow the Windows default device.
     pub device_id: Option<String>,
+    /// That device's name when it was chosen. If the id isn't connected (e.g. the
+    /// device was plugged into another port), a connected device with this name is
+    /// recorded instead, else the Windows default.
+    #[serde(default)]
+    pub device_name: Option<String>,
     pub enabled: bool,
     pub muted: bool,
     /// Linear volume 0.0–2.0 (1.0 = unchanged).
@@ -560,6 +565,7 @@ impl AudioTrackSettings {
             kind,
             name: name.into(),
             device_id: None,
+            device_name: None,
             enabled,
             muted: false,
             volume: 1.0,

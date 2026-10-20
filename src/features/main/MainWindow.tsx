@@ -10,6 +10,7 @@ import { errorMessage } from "../../lib/tauri/types";
 import { useBackendSync } from "../../lib/useBackendSync";
 import { useApp } from "../../stores/app";
 import { AudioPage } from "../audio/AudioPage";
+import { useDeviceSync } from "../audio/useDeviceSync";
 import { CapturePage } from "../capture/CapturePage";
 import { ClipsPage } from "../clips/ClipsPage";
 import { ExportDefaultsPage } from "../export/ExportDefaultsPage";
@@ -123,6 +124,7 @@ export function MainWindow() {
     });
   }, [init]);
   useBackendSync();
+  useDeviceSync();
   useEvent("navigate", (n) => {
     if (isPage(n.page)) setPage(n.page);
   });

@@ -106,19 +106,67 @@ pub fn list_devices() -> AppResult<Vec<AudioDeviceInfo>> {
     Ok(out)
 }
 
-fn open_device(kind: DeviceKind, id: Option<&str>) -> AppResult<(IMMDevice, String)> {
+/// How a track's device was found.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeviceMatch {
+    /// The saved endpoint id (or the default, for tracks that follow it).
+    Exact,
+    /// Not connected under its id; a connected device with the saved name.
+    ByName,
+    /// Neither found: the Windows default device.
+    Default,
+}
+
+/// Picks the endpoint for a track among the connected `(id, name)` devices: its
+/// saved id, else one with the saved name (ids change when a device is replugged
+/// into another port or its driver is reinstalled), else the Windows default
+/// (`None`). Tracks without an id follow the default.
+fn pick_device(
+    id: Option<&str>,
+    name: Option<&str>,
+    active: &[(String, String)],
+) -> (Option<usize>, DeviceMatch) {
+    let Some(id) = id else {
+        return (None, DeviceMatch::Exact);
+    };
+    if let Some(i) = active.iter().position(|(a, _)| a.eq_ignore_ascii_case(id)) {
+        return (Some(i), DeviceMatch::Exact);
+    }
+    let by_name = name
+        .filter(|n| !n.is_empty())
+        .and_then(|n| active.iter().position(|(_, a)| a.eq_ignore_ascii_case(n)));
+    match by_name {
+        Some(i) => (Some(i), DeviceMatch::ByName),
+        None => (None, DeviceMatch::Default),
+    }
+}
+
+fn open_device(
+    kind: DeviceKind,
+    id: Option<&str>,
+    name: Option<&str>,
+) -> AppResult<(IMMDevice, String, DeviceMatch)> {
     let e = enumerator()?;
     unsafe {
-        let dev = match id {
-            Some(id) => {
-                let w: Vec<u16> = id.encode_utf16().chain(std::iter::once(0)).collect();
-                e.GetDevice(PCWSTR(w.as_ptr()))
-            }
-            None => e.GetDefaultAudioEndpoint(flow(kind), eConsole),
+        let coll = e.EnumAudioEndpoints(flow(kind), DEVICE_STATE_ACTIVE)?;
+        let mut active = Vec::new();
+        for i in 0..coll.GetCount()? {
+            let d = coll.Item(i)?;
+            active.push((device_id(&d), device_name(&d), d));
         }
-        .map_err(|_| AppError::new(ErrorCode::Audio, "audio device not found"))?;
+        let keys: Vec<(String, String)> = active
+            .iter()
+            .map(|(i, n, _)| (i.clone(), n.clone()))
+            .collect();
+        let (pick, how) = pick_device(id, name, &keys);
+        let dev = match pick {
+            Some(i) => active.swap_remove(i).2,
+            None => e
+                .GetDefaultAudioEndpoint(flow(kind), eConsole)
+                .map_err(|_| AppError::new(ErrorCode::Audio, "audio device not found"))?,
+        };
         let name = device_name(&dev);
-        Ok((dev, name))
+        Ok((dev, name, how))
     }
 }
 
@@ -126,6 +174,8 @@ pub struct SourceConfig {
     pub kind: DeviceKind,
     /// `None` = follow the Windows default device.
     pub device_id: Option<String>,
+    /// That device's name when it was chosen; finds it again if its id changed.
+    pub device_name: Option<String>,
     pub sample_rate: u32,
 }
 
@@ -133,6 +183,9 @@ pub struct SourceConfig {
 pub struct SourceShared {
     pub state: Mutex<SourceState>,
     pub device_name: Mutex<String>,
+    /// Recording a stand-in (same name, or the default) because the chosen device
+    /// isn't connected; device changes re-check so it switches back when it returns.
+    pub fallback: AtomicBool,
     /// Set by the device watcher: re-open (default changed / device came back).
     pub reopen: AtomicBool,
     pub stop: AtomicBool,
@@ -143,6 +196,7 @@ impl SourceShared {
         Arc::new(Self {
             state: Mutex::new(SourceState::Starting),
             device_name: Mutex::new(String::new()),
+            fallback: AtomicBool::new(false),
             reopen: AtomicBool::new(false),
             stop: AtomicBool::new(false),
         })
@@ -197,7 +251,20 @@ fn capture_session(
     tx: &Sender<AudioChunk>,
     event: HANDLE,
 ) -> AppResult<()> {
-    let (device, name) = open_device(cfg.kind, cfg.device_id.as_deref())?;
+    let (device, name, how) = open_device(
+        cfg.kind,
+        cfg.device_id.as_deref(),
+        cfg.device_name.as_deref(),
+    )?;
+    if how != DeviceMatch::Exact {
+        tracing::info!(
+            "audio device {} not connected; recording {name} ({how:?})",
+            cfg.device_name.as_deref().unwrap_or("(unnamed)")
+        );
+    }
+    shared
+        .fallback
+        .store(how != DeviceMatch::Exact, Ordering::SeqCst);
     *shared.device_name.lock() = name.clone();
     unsafe {
         let client: IAudioClient = device
@@ -367,5 +434,44 @@ impl Drop for DeviceWatcher {
                 .enumerator
                 .UnregisterEndpointNotificationCallback(&self.client);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn devices() -> Vec<(String, String)> {
+        vec![
+            ("{a}".into(), "Speakers (Realtek)".into()),
+            ("{b}".into(), "Headphones (Arctis)".into()),
+        ]
+    }
+
+    #[test]
+    fn devices_are_found_by_id_then_name_then_default() {
+        let d = devices();
+        assert_eq!(
+            pick_device(Some("{b}"), Some("Old name"), &d),
+            (Some(1), DeviceMatch::Exact)
+        );
+        // Replugged elsewhere: new id, same name.
+        assert_eq!(
+            pick_device(Some("{gone}"), Some("headphones (arctis)"), &d),
+            (Some(1), DeviceMatch::ByName)
+        );
+        assert_eq!(
+            pick_device(Some("{gone}"), Some("Unplugged mic"), &d),
+            (None, DeviceMatch::Default)
+        );
+        assert_eq!(
+            pick_device(Some("{gone}"), None, &d),
+            (None, DeviceMatch::Default)
+        );
+        // "Windows default" tracks follow the default.
+        assert_eq!(
+            pick_device(None, Some("Speakers (Realtek)"), &d),
+            (None, DeviceMatch::Exact)
+        );
     }
 }

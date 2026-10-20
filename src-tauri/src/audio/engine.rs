@@ -151,6 +151,7 @@ impl AudioEngine {
             let scfg = SourceConfig {
                 kind,
                 device_id: t.device_id.clone(),
+                device_name: t.device_name.clone(),
                 sample_rate: cfg.sample_rate,
             };
             let sh = shared.clone();
@@ -272,8 +273,16 @@ impl AudioEngine {
     pub fn on_device_event(&self, ev: &DeviceEvent) {
         for s in &self.sources {
             let reopen = match ev {
-                DeviceEvent::DefaultChanged(kind) => s.follows_default && *kind == s.kind,
-                DeviceEvent::Changed => *s.shared.state.lock() == SourceState::Lost,
+                DeviceEvent::DefaultChanged(kind) => {
+                    *kind == s.kind
+                        && (s.follows_default || s.shared.fallback.load(Ordering::SeqCst))
+                }
+                // A device came or went: retry lost sources, and stand-ins in case
+                // the chosen device is back.
+                DeviceEvent::Changed => {
+                    *s.shared.state.lock() == SourceState::Lost
+                        || s.shared.fallback.load(Ordering::SeqCst)
+                }
             };
             if reopen {
                 s.shared.reopen.store(true, Ordering::SeqCst);
