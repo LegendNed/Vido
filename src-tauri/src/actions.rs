@@ -176,6 +176,7 @@ fn reencode_saved(app: &AppHandle, state: &AppState, s: &Settings, path: &Path) 
                 })
                 .collect(),
             mix_audio: false,
+            keep_mixed_tracks: false,
             fade_in: 0.0,
             fade_out: 0.0,
             audio_codec: d.audio_codec,

@@ -71,9 +71,12 @@ editor trims, crops, mutes tracks and compresses clips to a target size.
 - **Save** writes the edit next to the original as `<name>_edit.mp4`; **Save & override** gives
   the edit the original's name (and date) and moves the original to the Recycle Bin. Both keep
   the source resolution, frame rate and codec, and stream-copy when only trimming.
-- Frame-accurate scrubbing and stepping, draggable trim handles + numeric fields, waveform, keyframe ticks.
-- Crop (free, 16:9, 9:16, 1:1, 4:3), speed 0.25×–4×, audio fade in/out.
-- Per-track keep/remove/mute/volume ("recorded mix" or "per track" mixing).
+- Video above a timeline: time ruler, the video row with draggable trim handles and keyframe
+  ticks, and one lane per audio track with its waveform, mute and volume (0–200 %). The recorded
+  mix lane follows the source lanes; frame-accurate scrubbing and stepping, Set in / Set out.
+- Crop from the toolbar under the video (free, 16:9, 9:16, 1:1, 4:3).
+- The side panel is Export only. Exports get one track (the audible lanes mixed; an untouched
+  recorded mix is copied as is) or, optionally, separate tracks; Save keeps the clip's track layout.
 - PNG screenshot of the current frame, undo/redo (Ctrl+Z / Ctrl+Y).
 
 **Look**

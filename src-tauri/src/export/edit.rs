@@ -318,6 +318,7 @@ mod tests {
                 })
                 .collect(),
             mix_audio: false,
+            keep_mixed_tracks: false,
             fade_in: 0.0,
             fade_out: 0.0,
             audio_codec: AudioCodec::Aac,
@@ -425,6 +426,38 @@ mod tests {
         assert_eq!(p.video, VideoPlan::Copy);
         assert!(p.audio.iter().all(|a| matches!(a, AudioOut::Copy { .. })));
         assert_eq!(p.output, dir.path().join("clip_edit.mp4"));
+    }
+
+    #[test]
+    fn save_can_rebuild_the_mix_and_keep_the_sources() {
+        // The editor's lanes changed: a new mix in front, every source after it.
+        let dir = tempfile::tempdir().unwrap();
+        let input = clip(&dir, "clip.mp4");
+        let i = info(Some(VideoCodec::H264), "h264", "aac");
+        let mut editor = editor_request(&input);
+        editor.mix_audio = true;
+        editor.keep_mixed_tracks = true;
+        editor.audio_tracks[0].include = false;
+        editor.audio_tracks[2].muted = true;
+        let r = save_request(&input, &editor, &i, SaveEditMode::New).unwrap();
+        assert!(r.mix_audio && r.keep_mixed_tracks);
+        let p = plan(&r, &i, &KF).unwrap();
+        assert_eq!(p.video, VideoPlan::Copy);
+        let titles: Vec<&str> = p
+            .audio
+            .iter()
+            .map(|a| match a {
+                AudioOut::Copy { title, .. } | AudioOut::Encode { title, .. } => title.as_str(),
+            })
+            .collect();
+        assert_eq!(titles, ["Mix", "Desktop audio", "Microphone"]);
+        assert!(
+            matches!(&p.audio[0], AudioOut::Encode { inputs, .. } if inputs == &vec![(1, 1.0)])
+        );
+        assert!(matches!(p.audio[1], AudioOut::Copy { index: 1, .. }));
+        assert!(
+            matches!(&p.audio[2], AudioOut::Encode { inputs, .. } if inputs == &vec![(2, 0.0)])
+        );
     }
 
     #[test]

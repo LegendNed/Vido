@@ -41,6 +41,33 @@ pub fn atempo_chain(speed: f64) -> Vec<String> {
     out
 }
 
+/// A decoded input audio stream and the outputs reading it: (filter label, gain).
+type AudioFeed = (usize, Vec<(String, f32)>);
+
+/// Filter chains that trim, resample and level each decoded input audio stream
+/// (`[a{stream}_in]`) into the labels its outputs read. A stream read by several
+/// outputs (a mix and the track on its own) is decoded once and split.
+fn audio_input_filters(feeds: &[AudioFeed], start: f64, end: f64) -> Vec<String> {
+    let mut parts = Vec::new();
+    for (stream, taps) in feeds {
+        let prep = format!(
+            "[a{stream}_in]atrim=start={start:.6}:end={end:.6},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo"
+        );
+        if let [(label, gain)] = taps.as_slice() {
+            parts.push(format!("{prep},volume={gain:.4}[{label}]"));
+            continue;
+        }
+        let splits: String = (0..taps.len())
+            .map(|k| format!("[a{stream}_s{k}]"))
+            .collect();
+        parts.push(format!("{prep},asplit={}{splits}", taps.len()));
+        for (k, (label, gain)) in taps.iter().enumerate() {
+            parts.push(format!("[a{stream}_s{k}]volume={gain:.4}[{label}]"));
+        }
+    }
+    parts
+}
+
 fn pix_fmt_name(f: sys::AVPixelFormat) -> String {
     unsafe { CStr::from_ptr(sys::av_get_pix_fmt_name(f)) }
         .to_string_lossy()
@@ -288,11 +315,12 @@ fn run_inner(
     }
 
     // ---- Audio
-    // Input track index → (demux stream, graph source) for decoded tracks.
+    // Demux stream → (decoder, graph source) for decoded tracks.
     let mut adecs: HashMap<usize, (CodecCtx, usize)> = HashMap::new();
     // Demux stream → output stream for copied tracks.
     let mut acopy: HashMap<usize, usize> = HashMap::new();
     let mut aencs: Vec<AudioEncOut> = Vec::new();
+    let mut feeds: Vec<AudioFeed> = Vec::new();
     for (o, out) in plan.audio.iter().enumerate() {
         let out_stream = 1 + o;
         match out {
@@ -305,28 +333,31 @@ fn run_inner(
                 let mut labels = String::new();
                 for (j, (index, gain)) in inputs.iter().enumerate() {
                     let stream = info.audio[*index as usize].0;
-                    let dec = av::open_decoder(&dmx, stream, 1)?;
-                    let (rate, fmt, chn) = unsafe {
-                        let c = dec.as_ptr();
-                        (
-                            (*c).sample_rate as u32,
-                            (*c).sample_fmt,
-                            (*c).ch_layout.nb_channels.max(1) as u32,
-                        )
-                    };
-                    let label = format!("a{stream}_in");
-                    let src = graph.add_audio_src(
-                        &label,
-                        rate,
-                        fmt,
-                        chn,
-                        dmx.stream_time_base(stream),
-                    )?;
-                    parts.push(format!(
-                        "[{label}]atrim=start={e_abs:.6}:end={end_abs:.6},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,volume={gain:.4}[m{o}_{j}]"
-                    ));
-                    labels.push_str(&format!("[m{o}_{j}]"));
-                    adecs.insert(stream, (dec, src));
+                    if let std::collections::hash_map::Entry::Vacant(e) = adecs.entry(stream) {
+                        let dec = av::open_decoder(&dmx, stream, 1)?;
+                        let (rate, fmt, chn) = unsafe {
+                            let c = dec.as_ptr();
+                            (
+                                (*c).sample_rate as u32,
+                                (*c).sample_fmt,
+                                (*c).ch_layout.nb_channels.max(1) as u32,
+                            )
+                        };
+                        let src = graph.add_audio_src(
+                            &format!("a{stream}_in"),
+                            rate,
+                            fmt,
+                            chn,
+                            dmx.stream_time_base(stream),
+                        )?;
+                        e.insert((dec, src));
+                        feeds.push((stream, Vec::new()));
+                    }
+                    let label = format!("m{o}_{j}");
+                    if let Some((_, taps)) = feeds.iter_mut().find(|(s, _)| *s == stream) {
+                        taps.push((label.clone(), *gain));
+                    }
+                    labels.push_str(&format!("[{label}]"));
                 }
                 let mut post = Vec::new();
                 if inputs.len() > 1 {
@@ -369,6 +400,7 @@ fn run_inner(
             }
         }
     }
+    parts.extend(audio_input_filters(&feeds, e_abs, end_abs));
 
     let graph = if any_filter {
         graph.build(&parts.join(";"))?;
@@ -502,22 +534,27 @@ fn run_inner(
                     }
                 }
             }
-        } else if let Some(&out) = acopy.get(&si) {
-            if t.is_finite() && t >= e_abs - 0.0005 && t <= end_abs {
-                let base = (e_abs / av::q2d(tb)).round() as i64;
-                let (p, d) = (pkt.pts(), pkt.dts());
-                pkt.set_pts(p - base);
-                if d != av::NOPTS {
-                    pkt.set_dts(d - base);
+        } else {
+            // A track can be both decoded (for a mix) and copied (on its own).
+            // Decode first: writing the copy hands the packet to the muxer.
+            if let Some((dec, src)) = adecs.get_mut(&si) {
+                if !(t.is_finite() && t > end_abs + 1.0) {
+                    if let Some(g) = ctx.graph.as_mut() {
+                        decode_into(dec, Some(&pkt), g, *src)?;
+                    }
+                    ctx.drain_audio()?;
                 }
-                ctx.mux.write_packet(&mut pkt, out)?;
             }
-        } else if let Some((dec, src)) = adecs.get_mut(&si) {
-            if !(t.is_finite() && t > end_abs + 1.0) {
-                if let Some(g) = ctx.graph.as_mut() {
-                    decode_into(dec, Some(&pkt), g, *src)?;
+            if let Some(&out) = acopy.get(&si) {
+                if t.is_finite() && t >= e_abs - 0.0005 && t <= end_abs {
+                    let base = (e_abs / av::q2d(tb)).round() as i64;
+                    let (p, d) = (pkt.pts(), pkt.dts());
+                    pkt.set_pts(p - base);
+                    if d != av::NOPTS {
+                        pkt.set_dts(d - base);
+                    }
+                    ctx.mux.write_packet(&mut pkt, out)?;
                 }
-                ctx.drain_audio()?;
             }
         }
         pkt.unref();
@@ -566,5 +603,27 @@ mod tests {
         assert_eq!(atempo_chain(4.0), ["atempo=2.0", "atempo=2.000000"]);
         assert_eq!(atempo_chain(0.25), ["atempo=0.5", "atempo=0.500000"]);
         assert_eq!(atempo_chain(0.75), ["atempo=0.750000"]);
+    }
+
+    #[test]
+    fn shared_audio_inputs_are_decoded_once_and_split() {
+        let feeds = vec![
+            (
+                1,
+                vec![("m0_0".to_string(), 1.0), ("m1_0".to_string(), 1.0)],
+            ),
+            (2, vec![("m0_1".to_string(), 0.5)]),
+        ];
+        let parts = audio_input_filters(&feeds, 1.0, 4.0);
+        let prep = "atrim=start=1.000000:end=4.000000,asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo";
+        assert_eq!(
+            parts,
+            [
+                format!("[a1_in]{prep},asplit=2[a1_s0][a1_s1]"),
+                "[a1_s0]volume=1.0000[m0_0]".to_string(),
+                "[a1_s1]volume=1.0000[m1_0]".to_string(),
+                format!("[a2_in]{prep},volume=0.5000[m0_1]"),
+            ]
+        );
     }
 }
