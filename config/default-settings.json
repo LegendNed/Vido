@@ -80,10 +80,27 @@
     "filenameTemplate": "Vido_{date}_{time}",
     "container": "mp4",
     "saveMode": "remux",
+    "reencode": {
+      "container": "mp4",
+      "videoCodec": "h264",
+      "encoder": "auto",
+      "preset": "balanced",
+      "rateMode": "quality",
+      "quality": 18,
+      "bitrateKbps": 8000,
+      "maxBitrateKbps": 0,
+      "targetSizeMb": 25.0,
+      "audioCodec": "aac",
+      "audioBitrateKbps": 192,
+      "scale": "native",
+      "fps": 0,
+      "mixAudio": false
+    },
     "postSave": {
       "openEditor": false,
       "openFolder": false,
       "copyPath": false,
+      "copyVideo": true,
       "runCommand": null
     }
   },
