@@ -1,5 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 
+import {
+  highlight,
+  nodeText,
+  SettingsSearchContext,
+  useSearchRow,
+  useSearchScope,
+} from "../lib/settingsSearch";
 import { Icon, type IconName } from "./Icon";
 
 export function Button({
@@ -365,45 +372,81 @@ export function TextInput({
 export function Section({
   title,
   description,
+  keywords,
   children,
 }: {
   title: string;
   description?: string;
+  /** Extra words the settings search should find this section by. */
+  keywords?: string;
   children: ReactNode;
 }) {
+  const s = useSearchScope(`${title}\n${description ?? ""}\n${keywords ?? ""}`);
   return (
-    <section className="card section">
+    <section className="card section" hidden={!s.visible}>
       <header>
-        <h2>{title}</h2>
-        {description && <p>{description}</p>}
+        <h2>{highlight(title, s.terms)}</h2>
+        {description && <p>{highlight(description, s.terms)}</p>}
       </header>
-      <div className="body">{children}</div>
+      <div className="body">
+        <SettingsSearchContext value={s.value}>{children}</SettingsSearchContext>
+      </div>
     </section>
+  );
+}
+
+/**
+ * A titled block without card chrome (e.g. content that brings its own cards) that
+ * the settings search treats like a `Section`.
+ */
+export function SearchBlock({
+  title,
+  description,
+  keywords,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  keywords?: string;
+  children: ReactNode;
+}) {
+  const s = useSearchScope(`${title}\n${nodeText(description)}\n${keywords ?? ""}`);
+  return (
+    <div className="search-block" hidden={!s.visible}>
+      <header>
+        <h2>{highlight(title, s.terms)}</h2>
+        {description && <p>{highlight(description, s.terms)}</p>}
+      </header>
+      <SettingsSearchContext value={s.value}>{children}</SettingsSearchContext>
+    </div>
   );
 }
 
 export function Field({
   label,
   description,
+  keywords,
   children,
   error,
 }: {
   label: string;
   description?: ReactNode;
+  /** Extra words the settings search should find this row by (e.g. for custom controls). */
+  keywords?: string;
   children: ReactNode;
   error?: boolean;
 }) {
+  const { hidden, terms } = useSearchRow(`${label}\n${nodeText(description)}\n${keywords ?? ""}`);
   return (
-    <div className={`field${error ? " error" : ""}`}>
+    <div className={`field${error ? " error" : ""}`} hidden={hidden}>
       <div className="label">
-        <span>{label}</span>
-        {description && <span className="desc">{description}</span>}
+        <span>{highlight(label, terms)}</span>
+        {description && <span className="desc">{highlight(description, terms)}</span>}
       </div>
       <div className="control">{children}</div>
     </div>
   );
 }
-
 export function Badge({
   children,
   tone,

@@ -101,7 +101,7 @@ export function ClipsPage() {
                 click <b>Save clip</b>
               </>
             )}{" "}
-            to save everything in the buffer as a clip. How much it keeps is set in Capture.
+            to save everything in the buffer as a clip. How much it keeps is set under Recording.
           </p>
         </div>
       ) : (

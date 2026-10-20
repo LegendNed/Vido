@@ -13,7 +13,7 @@ const ACTIONS: { action: HotkeyAction; key: keyof HotkeySettings; label: string;
       action: "saveClip",
       key: "saveClip",
       label: "Save clip",
-      desc: "Saves everything in the buffer — set its length in Capture.",
+      desc: "Saves everything in the buffer — set its length under Recording.",
     },
     {
       action: "toggleRecording",

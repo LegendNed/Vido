@@ -460,8 +460,19 @@ pub async fn open_editor(app: AppHandle, path: Option<String>) -> AppResult<()> 
 
 #[tauri::command]
 pub fn show_main_window(app: AppHandle, page: Option<String>) -> AppResult<()> {
-    const PAGES: [&str; 7] = [
-        "clips", "capture", "audio", "hotkeys", "saving", "export", "advanced",
+    // Pages, Settings groups, and the pre-Settings ids `capture` / `audio` (see `events::Navigate`).
+    const PAGES: [&str; 11] = [
+        "clips",
+        "recording",
+        "hotkeys",
+        "overlay",
+        "settings",
+        "saving",
+        "export",
+        "general",
+        "advanced",
+        "capture",
+        "audio",
     ];
     if let Some(p) = &page {
         if !PAGES.contains(&p.as_str()) {

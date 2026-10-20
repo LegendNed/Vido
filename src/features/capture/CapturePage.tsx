@@ -32,7 +32,8 @@ import { useApp } from "../../stores/app";
 
 const BUFFER_PRESETS = [15, 30, 60, 120, 300, 600];
 
-export function CapturePage() {
+/** Video source, quality and replay buffer: the video half of the Recording page. */
+export function CaptureSettings() {
   const settings = useApp((s) => s.settings);
   const update = useApp((s) => s.update);
   const caps = useApp((s) => s.caps);
@@ -88,12 +89,12 @@ export function CapturePage() {
   };
 
   return (
-    <div className="page">
-      <div className="page-head">
-        <h1>Capture</h1>
-      </div>
-
-      <Section title="Source" description="What the replay buffer records.">
+    <>
+      <Section
+        title="Video source"
+        description="What the replay buffer records."
+        keywords="capture screen monitor"
+      >
         <Field label="Capture" error={err("capture.window") || err("capture.region")}>
           <Segmented<CaptureMode>
             value={c.mode}
@@ -213,7 +214,10 @@ export function CapturePage() {
         </Field>
       </Section>
 
-      <Section title="Video" description="Hardware encoders keep CPU and GPU overhead minimal.">
+      <Section
+        title="Video quality"
+        description="Hardware encoders keep CPU and GPU overhead minimal."
+      >
         <Field label="Frame rate" error={err("capture.fps")}>
           <Select
             value={c.fps}
@@ -395,6 +399,6 @@ export function CapturePage() {
           games may show black frames; use borderless/windowed mode for those.
         </Banner>
       )}
-    </div>
+    </>
   );
 }
