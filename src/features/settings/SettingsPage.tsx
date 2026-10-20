@@ -70,7 +70,9 @@ function Group({
       <h2 id={`${groupDomId(id)}-title`} className="settings-group-title">
         {highlight(label, s.terms)}
       </h2>
-      <SettingsSearchContext value={s.value}>{children}</SettingsSearchContext>
+      <div className="settings-group-body">
+        <SettingsSearchContext value={s.value}>{children}</SettingsSearchContext>
+      </div>
     </section>
   );
 }

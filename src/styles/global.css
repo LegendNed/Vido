@@ -526,11 +526,13 @@ textarea {
 }
 .content-banner {
   max-width: 860px;
-  margin-bottom: 12px;
+  margin: 0 auto 12px;
 }
 
+/* Pages sit centered in the content area (ultrawide screens). */
 .page {
   max-width: 860px;
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -538,7 +540,7 @@ textarea {
 }
 /* Pages that grow with the window (Clips). */
 .page.page-wide {
-  max-width: none;
+  max-width: calc(100vh * 16 / 9);
 }
 @keyframes page-in {
   from {

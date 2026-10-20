@@ -1,14 +1,31 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "../../components/Icon";
-import { Badge, Button, ConfirmButton, Spinner } from "../../components/ui";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  ConfirmButton,
+  Segmented,
+  Select,
+  Spinner,
+} from "../../components/ui";
 import { formatBytes, formatDate, formatDuration } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import { errorMessage, type ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 import { ClipsHero } from "./ClipsHero";
+import {
+  groupClips,
+  loadView,
+  saveView,
+  SIZE_OPTIONS,
+  SORT_OPTIONS,
+  sortClips,
+  type ClipView,
+} from "./clipView";
 import { ClipViewer } from "./ClipViewer";
 import { clipSrc } from "./media";
 
@@ -22,6 +39,14 @@ export function ClipsPage({ open }: { open?: string | null }) {
   const status = useApp((s) => s.status);
   const info = useApp((s) => s.info);
   const saveKey = useApp((s) => s.settings?.hotkeys.saveClip);
+  const [view, setViewState] = useState<ClipView>(loadView);
+  const setView = (patch: Partial<ClipView>) => {
+    setViewState((v) => {
+      const next = { ...v, ...patch };
+      saveView(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     let alive = true;
@@ -56,8 +81,15 @@ export function ClipsPage({ open }: { open?: string | null }) {
   };
 
   const canSave = status?.state === "buffering" || status?.state === "paused";
-  const latest = clips?.[0];
-  const viewIndex = viewing && clips ? clips.findIndex((c) => c.path === viewing) : -1;
+  const sorted = useMemo(() => (clips ? sortClips(clips, view.sort) : null), [clips, view.sort]);
+  // The newest clip is featured as a 2×2 tile, only when sorting newest first.
+  const featured = view.sort === "newest" ? sorted?.[0] : undefined;
+  const groups = useMemo(
+    () => groupClips(sorted ?? [], view.groupByDate),
+    [sorted, view.groupByDate],
+  );
+  // The viewer steps through clips in the order shown.
+  const viewIndex = viewing && sorted ? sorted.findIndex((c) => c.path === viewing) : -1;
 
   return (
     <div className="page page-wide">
@@ -87,7 +119,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
         <div className="empty">
           <Spinner />
         </div>
-      ) : clips.length === 0 || !latest ? (
+      ) : clips.length === 0 ? (
         <div className="card empty">
           <Icon name="film" size={32} />
           <h3>No clips yet</h3>
@@ -108,112 +140,153 @@ export function ClipsPage({ open }: { open?: string | null }) {
         </div>
       ) : (
         <>
-          <ClipsHero
-            key={clipSrc(latest)}
-            clip={latest}
-            onPlay={() => {
-              setViewing(latest.path);
-            }}
-            onEdit={() => void act(() => commands.openEditor(latest.path))}
-          />
-          <div className="clip-grid">
-            {clips.map((c) => (
-              <div key={c.path} className="card clip-card">
-                <div
-                  className="clip-thumb"
-                  role="button"
-                  tabIndex={0}
-                  title="Play"
-                  style={
-                    c.thumbnail
-                      ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }
-                      : undefined
-                  }
-                  onClick={() => {
-                    setViewing(c.path);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") setViewing(c.path);
-                  }}
-                >
-                  <div className="play">
-                    <Icon name="play" size={26} />
-                  </div>
-                  <span className="duration">{formatDuration(c.durationSec)}</span>
-                </div>
-                <div className="clip-meta">
-                  <div className="ellipsis" title={c.fileName}>
-                    {c.fileName}
-                  </div>
-                  <div className="row small muted">
-                    <span>{formatDate(c.modifiedMs)}</span>
-                    <span className="spacer" />
-                    <span>{formatBytes(c.sizeBytes)}</span>
-                  </div>
-                  <div className="row" style={{ gap: 4, marginTop: 2 }}>
-                    <Badge>
-                      {c.height}p{Math.round(c.fps)}
-                    </Badge>
-                    <Badge>{c.videoCodec.toUpperCase()}</Badge>
-                    {c.audioTracks.length > 0 && (
-                      <Badge>
-                        {c.audioTracks.length} audio track{c.audioTracks.length > 1 ? "s" : ""}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="clip-actions">
-                  <Button
-                    small
-                    variant="ghost"
-                    icon="scissors"
-                    onClick={() => void act(() => commands.openEditor(c.path))}
-                  >
-                    Edit
-                  </Button>
-                  <span className="spacer" />
-                  <Button
-                    small
-                    variant="ghost"
-                    icon="external"
-                    title="Open in default player"
-                    onClick={() => void act(() => commands.openClipExternal(c.path))}
-                  />
-                  <Button
-                    small
-                    variant="ghost"
-                    icon="folder"
-                    title="Show in folder"
-                    onClick={() => void act(() => commands.revealClip(c.path))}
-                  />
-                  <Button
-                    small
-                    variant="ghost"
-                    icon="copy"
-                    title="Copy file path"
-                    onClick={() =>
-                      void act(async () => {
-                        await commands.copyClipPath(c.path);
-                        notify("info", "Path copied");
-                      })
-                    }
-                  />
-                  <ConfirmButton
-                    small
-                    icon="trash"
-                    title="Delete clip"
-                    onConfirm={() => void act(() => commands.deleteClip(c.path))}
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="clips-toolbar">
+            <Select
+              value={view.sort}
+              options={SORT_OPTIONS}
+              width={150}
+              onChange={(v) => {
+                setView({ sort: v });
+              }}
+            />
+            <Checkbox
+              checked={view.groupByDate}
+              onChange={(v) => {
+                setView({ groupByDate: v });
+              }}
+            >
+              Group by date
+            </Checkbox>
+            <span className="spacer" />
+            <span className="muted small">
+              {clips.length} clip{clips.length === 1 ? "" : "s"}
+            </span>
+            <Segmented
+              value={view.size}
+              options={SIZE_OPTIONS}
+              onChange={(v) => {
+                setView({ size: v });
+              }}
+            />
           </div>
+          {groups.map((g, gi) => (
+            <section key={g.title ?? "all"} className="clip-group">
+              {g.title && <h2 className="clip-group-title">{g.title}</h2>}
+              <div className={`clip-grid size-${view.size}`}>
+                {gi === 0 && featured && (
+                  <div className="clip-feature">
+                    <ClipsHero
+                      key={clipSrc(featured)}
+                      clip={featured}
+                      onPlay={() => {
+                        setViewing(featured.path);
+                      }}
+                      onEdit={() => void act(() => commands.openEditor(featured.path))}
+                    />
+                  </div>
+                )}
+                {g.clips
+                  .filter((c) => c !== featured)
+                  .map((c) => (
+                    <div key={c.path} className="card clip-card">
+                      <div
+                        className="clip-thumb"
+                        role="button"
+                        tabIndex={0}
+                        title="Play"
+                        style={
+                          c.thumbnail
+                            ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }
+                            : undefined
+                        }
+                        onClick={() => {
+                          setViewing(c.path);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") setViewing(c.path);
+                        }}
+                      >
+                        <div className="play">
+                          <Icon name="play" size={26} />
+                        </div>
+                        <span className="duration">{formatDuration(c.durationSec)}</span>
+                      </div>
+                      <div className="clip-meta">
+                        <div className="ellipsis" title={c.fileName}>
+                          {c.fileName}
+                        </div>
+                        <div className="row small muted">
+                          <span>{formatDate(c.modifiedMs)}</span>
+                          <span className="spacer" />
+                          <span>{formatBytes(c.sizeBytes)}</span>
+                        </div>
+                        <div className="row" style={{ gap: 4, marginTop: 2 }}>
+                          <Badge>
+                            {c.height}p{Math.round(c.fps)}
+                          </Badge>
+                          <Badge>{c.videoCodec.toUpperCase()}</Badge>
+                          {c.audioTracks.length > 0 && (
+                            <Badge>
+                              {c.audioTracks.length} audio track
+                              {c.audioTracks.length > 1 ? "s" : ""}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="clip-actions">
+                        <Button
+                          small
+                          variant="ghost"
+                          icon="scissors"
+                          onClick={() => void act(() => commands.openEditor(c.path))}
+                        >
+                          Edit
+                        </Button>
+                        <span className="spacer" />
+                        <Button
+                          small
+                          variant="ghost"
+                          icon="external"
+                          title="Open in default player"
+                          onClick={() => void act(() => commands.openClipExternal(c.path))}
+                        />
+                        <Button
+                          small
+                          variant="ghost"
+                          icon="folder"
+                          title="Show in folder"
+                          onClick={() => void act(() => commands.revealClip(c.path))}
+                        />
+                        <Button
+                          small
+                          variant="ghost"
+                          icon="copy"
+                          title="Copy file path"
+                          onClick={() =>
+                            void act(async () => {
+                              await commands.copyClipPath(c.path);
+                              notify("info", "Path copied");
+                            })
+                          }
+                        />
+                        <ConfirmButton
+                          small
+                          icon="trash"
+                          title="Delete clip"
+                          onConfirm={() => void act(() => commands.deleteClip(c.path))}
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </section>
+          ))}
         </>
       )}
 
-      {clips && viewIndex >= 0 && (
+      {sorted && viewIndex >= 0 && (
         <ClipViewer
-          clips={clips}
+          clips={sorted}
           index={viewIndex}
           onNavigate={setViewing}
           onClose={() => {

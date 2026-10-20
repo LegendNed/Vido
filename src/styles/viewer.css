@@ -314,3 +314,56 @@
 .confirm-dialog .row {
   margin-top: 6px;
 }
+
+/* ---------------------------------------------------------------- clips grid */
+
+.clips-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.clip-group {
+  container-type: inline-size;
+}
+.clip-group-title {
+  margin: 8px 0 10px;
+  font: 600 14px/20px var(--font);
+  color: var(--text-2);
+}
+.clip-grid {
+  grid-auto-flow: row dense;
+}
+.clip-grid.size-small {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.clip-grid.size-medium {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.clip-grid.size-large {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+/* The newest clip: a 2×2 tile at the top-left of the grid. */
+.clip-feature {
+  grid-column: span 2;
+  grid-row: span 2;
+  min-height: 0;
+  display: flex;
+}
+.clip-feature .clips-hero {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: auto;
+}
+/* Only room for one column: a normal-sized tile. */
+@container (max-width: 520px) {
+  .clip-feature {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+  .clip-feature .clips-hero {
+    aspect-ratio: 16 / 10;
+    height: auto;
+  }
+}

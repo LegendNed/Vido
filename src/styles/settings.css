@@ -51,6 +51,10 @@ mark.search-hit {
 .settings {
   flex: 1;
   min-height: 0;
+  /* Centered, never wider than 16:9 of the window height (ultrawide screens). */
+  width: 100%;
+  max-width: calc(100vh * 16 / 9);
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
   container-type: inline-size;
@@ -221,18 +225,25 @@ mark.search-hit {
 
 /* An existing page rendered as a group: its own heading gives way to the group
    title; header actions (e.g. Restore defaults) sit at the title's right. */
-.settings-group > .page {
+/* Sections of a group are spaced like on a page. */
+.settings-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.settings-group-body > .page {
   max-width: none;
+  margin: 0;
   animation: none;
 }
-.settings-group > .page > .page-head {
+.settings-group-body > .page > .page-head {
   position: absolute;
   top: 8px;
   right: 0;
   min-height: 28px;
   margin: 0;
 }
-.settings-group > .page > .page-head h1 {
+.settings-group-body > .page > .page-head h1 {
   display: none;
 }
 
@@ -240,6 +251,7 @@ mark.search-hit {
    group matches; sections and search blocks hide themselves. */
 .settings.searching
   .settings-group:not([data-all])
+  > .settings-group-body
   > .page
   > :not(.section, .search-block, .page-head) {
   display: none;
