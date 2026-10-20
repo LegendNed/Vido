@@ -1,5 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { Button } from "../../components/ui";
 import { formatBytes, formatDate, formatDuration } from "../../lib/format";
@@ -14,10 +14,13 @@ export function ClipsHero({
   clip,
   onPlay,
   onEdit,
+  tools,
 }: {
   clip: ClipInfo;
   onPlay: () => void;
   onEdit: () => void;
+  /** Extra buttons in the top-right corner (open, folder, copy, delete). */
+  tools?: ReactNode;
 }) {
   const [frameReady, setFrameReady] = useState(false);
   // Same moment as the thumbnail, so the sharper frame doesn't jump.
@@ -42,6 +45,7 @@ export function ClipsHero({
         }}
       />
       <div className="hero-scrim" />
+      {tools && <div className="hero-tools">{tools}</div>}
       <div className="hero-body">
         <span className="hero-eyebrow">Latest clip</span>
         <h2 className="ellipsis" title={clip.fileName}>

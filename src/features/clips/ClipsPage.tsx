@@ -186,6 +186,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
                       onEdit={() => {
                         openEditor(featured.path);
                       }}
+                      tools={<ClipTools path={featured.path} act={act} />}
                     />
                   </div>
                 )}
@@ -249,38 +250,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
                           Edit
                         </Button>
                         <span className="spacer" />
-                        <Button
-                          small
-                          variant="ghost"
-                          icon="external"
-                          title="Open in default player"
-                          onClick={() => void act(() => commands.openClipExternal(c.path))}
-                        />
-                        <Button
-                          small
-                          variant="ghost"
-                          icon="folder"
-                          title="Show in folder"
-                          onClick={() => void act(() => commands.revealClip(c.path))}
-                        />
-                        <Button
-                          small
-                          variant="ghost"
-                          icon="copy"
-                          title="Copy file path"
-                          onClick={() =>
-                            void act(async () => {
-                              await commands.copyClipPath(c.path);
-                              notify("info", "Path copied");
-                            })
-                          }
-                        />
-                        <ConfirmButton
-                          small
-                          icon="trash"
-                          title="Delete clip"
-                          onConfirm={() => void act(() => commands.deleteClip(c.path))}
-                        />
+                        <ClipTools path={c.path} act={act} />
                       </div>
                     </div>
                   ))}
@@ -301,5 +271,52 @@ export function ClipsPage({ open }: { open?: string | null }) {
         />
       )}
     </div>
+  );
+}
+
+/** Open in default player, show in folder, copy path, delete (cards and the featured tile). */
+function ClipTools({
+  path,
+  act,
+}: {
+  path: string;
+  act: (fn: () => Promise<unknown>) => Promise<void>;
+}) {
+  const notify = useApp((s) => s.notify);
+  return (
+    <>
+      <Button
+        small
+        variant="ghost"
+        icon="external"
+        title="Open in default player"
+        onClick={() => void act(() => commands.openClipExternal(path))}
+      />
+      <Button
+        small
+        variant="ghost"
+        icon="folder"
+        title="Show in folder"
+        onClick={() => void act(() => commands.revealClip(path))}
+      />
+      <Button
+        small
+        variant="ghost"
+        icon="copy"
+        title="Copy file path"
+        onClick={() =>
+          void act(async () => {
+            await commands.copyClipPath(path);
+            notify("info", "Path copied");
+          })
+        }
+      />
+      <ConfirmButton
+        small
+        icon="trash"
+        title="Delete clip"
+        onConfirm={() => void act(() => commands.deleteClip(path))}
+      />
+    </>
   );
 }
