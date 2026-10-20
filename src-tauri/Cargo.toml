@@ -97,7 +97,9 @@ opt-level = 1
 opt-level = 2
 
 [profile.release]
-codegen-units = 1
+# 16 (Rust's default) lets the last, largest crate (vido) compile on 16 threads; 1 would
+# squeeze slightly more speed out of the binary but builds it on a single core.
+codegen-units = 16
 lto = "thin"
 opt-level = 3
 panic = "unwind"
