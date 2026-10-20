@@ -1,19 +1,9 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon } from "../../components/Icon";
 import { Notices } from "../../components/Notices";
-import {
-  Banner,
-  Button,
-  Field,
-  NumberInput,
-  Segmented,
-  Select,
-  Slider,
-  Spinner,
-  Toggle,
-} from "../../components/ui";
+import { Banner, Button, Spinner, Toggle } from "../../components/ui";
 import { clamp, formatTime } from "../../lib/format";
 import { windowInit } from "../../lib/init";
 import { commands } from "../../lib/tauri/commands";
@@ -21,28 +11,36 @@ import { useEvent } from "../../lib/tauri/events";
 import {
   errorMessage,
   type ClipDetails,
-  type ExportAudioTrack,
+  type CropRect,
   type ExportDefaults,
 } from "../../lib/tauri/types";
 import { useBackendSync } from "../../lib/useBackendSync";
 import { useApp } from "../../stores/app";
 import { clipSrc, unloadVideo } from "../clips/media";
 import { ExportPanel } from "../export/ExportPanel";
+import type { LaneView } from "./AudioLane";
+import { CropBar } from "./CropBar";
 import { CropOverlay } from "./CropOverlay";
 import { aspectCrop } from "./cropMath";
-import { hasEdits, initialState, type AudioMode, type EditState, type ExportOpts } from "./model";
+import { mixWave, previewGain, previewNote } from "./lanes";
+import {
+  hasEdits,
+  initialState,
+  isAudible,
+  lanesChanged,
+  UNITY,
+  type EditState,
+  type ExportOpts,
+  type Lane,
+} from "./model";
 import { SaveActions } from "./SaveEdit";
 import { Timeline } from "./Timeline";
 import { useHistory } from "./useHistory";
 
-const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
-const ASPECTS: { label: string; value: number | null }[] = [
-  { label: "Free", value: null },
-  { label: "16:9", value: 16 / 9 },
-  { label: "9:16", value: 9 / 16 },
-  { label: "1:1", value: 1 },
-  { label: "4:3", value: 4 / 3 },
-];
+/** Waveform resolution (buckets across the whole clip). */
+const WAVE_BUCKETS = 1600;
+/** Waveforms decoded at the same time (each one reads the whole file). */
+const WAVE_JOBS = 3;
 
 /** Editor window shell: follows `editor-open` events; each clip gets a fresh editor. */
 export function EditorWindow() {
@@ -144,7 +142,9 @@ function ClipEditor({
   const info = details.info;
   const path = info.path;
   const src = clipSrc(info);
-  const [waveform, setWaveform] = useState<number[] | null>(null);
+  const tracks = info.audioTracks;
+  // Per audio track; `[]` when a waveform could not be read.
+  const [waves, setWaves] = useState<(number[] | null)[]>(() => tracks.map(() => null));
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [loop, setLoop] = useState(true);
@@ -167,19 +167,27 @@ function ClipEditor({
   const duration = info.durationSec;
   const frame = 1 / fps;
 
+  // Waveforms, a few tracks at a time.
   useEffect(() => {
-    if (info.audioTracks.length === 0) return;
     let cancelled = false;
-    commands.getWaveform(path, 0, 1200).then(
-      (w) => {
-        if (!cancelled) setWaveform(w);
-      },
-      () => undefined,
-    );
+    const live = () => !cancelled;
+    const queue = tracks.map((t) => t.index);
+    const work = async () => {
+      for (let i = queue.shift(); i !== undefined && live(); i = queue.shift()) {
+        let w: number[] = [];
+        try {
+          w = await commands.getWaveform(path, i, WAVE_BUCKETS);
+        } catch {
+          // Drawn as an empty lane.
+        }
+        if (live()) setWaves((cur) => cur.map((x, j) => (j === i ? w : x)));
+      }
+    };
+    for (let k = 0; k < WAVE_JOBS; k++) void work();
     return () => {
       cancelled = true;
     };
-  }, [path, info.audioTracks.length]);
+  }, [path, tracks]);
 
   // Frame-accurate time display.
   useEffect(() => {
@@ -214,9 +222,14 @@ function ClipEditor({
     }
   }, [current, playing, loop, s.trimStart, s.trimEnd, frame]);
 
+  // The preview approximates the lanes with the element's volume (it plays one track).
+  const gain = previewGain(s);
   useEffect(() => {
-    if (video.current) video.current.playbackRate = s.speed;
-  }, [s.speed]);
+    const v = video.current;
+    if (!v) return;
+    v.volume = clamp(gain, 0, 1);
+    v.muted = gain <= 0;
+  }, [gain]);
 
   const seek = useCallback(
     (t: number) => {
@@ -252,6 +265,40 @@ function ClipEditor({
     edit((d) => ({ ...d, trimEnd: Math.max(Math.round(current * fps) / fps, d.trimStart + 0.1) }));
   }, [edit, current, fps]);
 
+  const setLane = useCallback(
+    (index: number, patch: Partial<Lane>, record: boolean) => {
+      (record ? edit : preview)((d) => ({
+        ...d,
+        lanes: d.lanes.map((l, i) => (i === index ? { ...l, ...patch } : l)),
+      }));
+    },
+    [edit, preview],
+  );
+
+  // Crop: the whole frame is stored as "no crop" (keeps stream copy possible).
+  const full = useMemo<CropRect>(
+    () => ({ x: 0, y: 0, width: info.width, height: info.height }),
+    [info.width, info.height],
+  );
+  const orNull = useCallback(
+    (c: CropRect): CropRect | null =>
+      c.x === 0 && c.y === 0 && c.width >= (info.width & ~1) && c.height >= (info.height & ~1)
+        ? null
+        : c,
+    [info.width, info.height],
+  );
+  const chooseAspect = (a: number | null) => {
+    setAspect(a);
+    if (a !== null) edit((d) => ({ ...d, crop: orNull(aspectCrop(a, info.width, info.height)) }));
+  };
+  const resetCrop = () => {
+    setAspect(null);
+    edit((d) => ({ ...d, crop: null }));
+  };
+  const closeCrop = useCallback(() => {
+    setCropMode(false);
+  }, []);
+
   // Save & override: the preview must not hold the file while it is replaced.
   const releaseVideo = useCallback(() => {
     if (video.current) unloadVideo(video.current);
@@ -275,8 +322,12 @@ function ClipEditor({
   // Keyboard shortcuts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+      const el = e.target as HTMLElement;
+      const tag = el.tagName;
+      // Lane volume sliders keep the arrow keys; everything else still works there.
+      const slider = el instanceof HTMLInputElement && el.type === "range";
+      if ((tag === "INPUT" && !slider) || tag === "SELECT" || tag === "TEXTAREA") return;
+      if (slider && /^(Arrow|Page|Home|End)/.test(e.key)) return;
       const ctrl = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       if (ctrl && key === "z" && !e.shiftKey) {
@@ -285,6 +336,9 @@ function ClipEditor({
       } else if (ctrl && (key === "y" || (e.shiftKey && key === "z"))) {
         e.preventDefault();
         redo();
+      } else if (cropMode && (e.key === "Enter" || e.key === "Escape")) {
+        e.preventDefault();
+        closeCrop();
       } else if (e.key === " " || key === "k") {
         e.preventDefault();
         togglePlay();
@@ -302,19 +356,41 @@ function ClipEditor({
     return () => {
       window.removeEventListener("keydown", onKey);
     };
-  }, [undo, redo, togglePlay, seek, current, frame, setIn, setOut, s.trimStart, s.trimEnd]);
+  }, [
+    undo,
+    redo,
+    togglePlay,
+    seek,
+    current,
+    frame,
+    setIn,
+    setOut,
+    s.trimStart,
+    s.trimEnd,
+    cropMode,
+    closeCrop,
+  ]);
 
-  const setTrack = (i: number, patch: Partial<ExportAudioTrack>) => {
-    edit((d) => ({
-      ...d,
-      // Touching a source track switches from the recorded mix to a rebuilt mix.
-      audioMode: d.audioMode === "mix" && i > 0 ? "separate" : d.audioMode,
-      tracks: d.tracks.map((t, j) => (j === i ? { ...t, ...patch } : t)),
-    }));
-  };
-  const visibleTracks = info.audioTracks.filter((_, i) =>
-    s.audioMode === "plain" ? true : s.audioMode === "mix" ? i === 0 : i > 0,
-  );
+  // Lanes: a recorded mix is shown on top, derived from the source lanes below it.
+  const lanes = useMemo<LaneView[]>(() => {
+    const set = { lanes: s.lanes, recordedMix: s.recordedMix };
+    const changed = lanesChanged(set);
+    return tracks.map((t) => {
+      const lane = s.lanes[t.index] ?? UNITY;
+      if (!(s.recordedMix && t.index === 0)) {
+        return { index: t.index, title: t.title, lane, wave: waves[t.index] ?? null };
+      }
+      const audible = s.lanes.some((l, i) => i > 0 && isAudible(l));
+      return {
+        index: t.index,
+        title: t.title,
+        lane: { ...UNITY, muted: !audible },
+        wave: changed ? mixWave(waves, set) : (waves[0] ?? null),
+        derived: changed ? "Rebuilt from the lanes below" : "Follows the lanes below",
+      };
+    });
+  }, [tracks, s.lanes, s.recordedMix, waves]);
+  const note = previewNote(s);
 
   return (
     <div className="editor">
@@ -386,19 +462,30 @@ function ClipEditor({
               }}
               onClick={togglePlay}
             />
-            {cropMode && s.crop && (
+            {cropMode && (
               <CropOverlay
                 videoWidth={info.width}
                 videoHeight={info.height}
-                crop={s.crop}
+                crop={s.crop ?? full}
                 aspect={aspect}
                 onChange={(c) => {
-                  preview((d) => ({ ...d, crop: c }));
+                  preview((d) => ({ ...d, crop: orNull(c) }));
                 }}
                 onCommit={commit}
               />
             )}
           </div>
+          {cropMode && (
+            <CropBar
+              crop={s.crop}
+              width={info.width}
+              height={info.height}
+              aspect={aspect}
+              onAspect={chooseAspect}
+              onReset={resetCrop}
+              onDone={closeCrop}
+            />
+          )}
           {videoError && (
             <Banner>
               This codec can't be previewed here ({info.videoCodec.toUpperCase()}). Trimming by time
@@ -437,14 +524,27 @@ function ClipEditor({
               {formatTime(current)} / {formatTime(duration)}
             </span>
             <span className="spacer" />
-            <Button small onClick={setIn} title="Set start at playhead (I)">
-              Set in
-            </Button>
-            <Button small onClick={setOut} title="Set end at playhead (O)">
-              Set out
-            </Button>
-            <span className="muted small">Loop</span>
-            <Toggle value={loop} onChange={setLoop} label="Loop selection" />
+            <div className="transport-tools">
+              <Button small onClick={setIn} title="Set the start at the playhead (I)">
+                Set in
+              </Button>
+              <Button small onClick={setOut} title="Set the end at the playhead (O)">
+                Set out
+              </Button>
+              <Button
+                small
+                icon="crop"
+                variant={cropMode ? "primary" : undefined}
+                title={cropMode ? "Done cropping (Enter)" : "Crop the video"}
+                onClick={() => {
+                  setCropMode((v) => !v);
+                }}
+              >
+                {s.crop && !cropMode ? `Crop ${s.crop.width}×${s.crop.height}` : "Crop"}
+              </Button>
+              <span className="muted small">Loop</span>
+              <Toggle value={loop} onChange={setLoop} label="Loop the selection" />
+            </div>
           </div>
 
           <Timeline
@@ -454,206 +554,30 @@ function ClipEditor({
             trimStart={s.trimStart}
             trimEnd={s.trimEnd}
             keyframes={details.keyframes}
-            waveform={waveform}
+            lanes={lanes}
             onSeek={seek}
             onTrim={(a, b) => {
               preview((d) => ({ ...d, trimStart: a, trimEnd: b }));
             }}
             onTrimCommit={commit}
+            onLane={setLane}
+            onLaneCommit={commit}
           />
-          <div className="muted small">
-            Space play · ←/→ frame (Shift: 1 s) · I/O set in/out · Ctrl+Z / Ctrl+Y undo/redo · blue
-            ticks are keyframes
+          <div className="editor-hint">
+            {note && (
+              <span className="editor-note">
+                <Icon name="info" size={12} />
+                {note}
+              </span>
+            )}
+            <span>
+              Space play · ←/→ frame (Shift: 1 s) · I/O set in/out · Home/End go to in/out · Ctrl+Z
+              / Ctrl+Y undo/redo · blue ticks are keyframes
+            </span>
           </div>
         </div>
 
         <aside className="editor-side">
-          <div className="side-title">Edit</div>
-          <div className="card" style={{ padding: "0 12px" }}>
-            <Field label="Start">
-              <NumberInput
-                value={s.trimStart}
-                min={0}
-                max={Math.max(0, s.trimEnd - 0.1)}
-                step={frame}
-                decimals={3}
-                suffix="s"
-                onChange={(v) => {
-                  edit((d) => ({ ...d, trimStart: v }));
-                }}
-              />
-            </Field>
-            <Field
-              label="End"
-              description={`Length ${formatTime((s.trimEnd - s.trimStart) / s.speed)}`}
-            >
-              <NumberInput
-                value={s.trimEnd}
-                min={s.trimStart + 0.1}
-                max={duration}
-                step={frame}
-                decimals={3}
-                suffix="s"
-                onChange={(v) => {
-                  edit((d) => ({ ...d, trimEnd: v }));
-                }}
-              />
-            </Field>
-            <Field label="Speed">
-              <Select
-                value={s.speed}
-                options={SPEEDS.map((v) => ({ value: v, label: `${v}×` }))}
-                onChange={(v) => {
-                  edit((d) => ({ ...d, speed: v }));
-                }}
-              />
-            </Field>
-            <Field label="Crop">
-              {s.crop && (
-                <Select<string>
-                  value={ASPECTS.find((a) => a.value === aspect)?.label ?? "Free"}
-                  options={ASPECTS.map((a) => ({ value: a.label, label: a.label }))}
-                  onChange={(label) => {
-                    const a = ASPECTS.find((x) => x.label === label)?.value ?? null;
-                    setAspect(a);
-                    if (a) edit((d) => ({ ...d, crop: aspectCrop(a, info.width, info.height) }));
-                  }}
-                />
-              )}
-              <Toggle
-                value={s.crop !== null}
-                onChange={(v) => {
-                  setCropMode(v);
-                  edit((d) => ({
-                    ...d,
-                    crop: v
-                      ? aspect
-                        ? aspectCrop(aspect, info.width, info.height)
-                        : { x: 0, y: 0, width: info.width & ~1, height: info.height & ~1 }
-                      : null,
-                  }));
-                }}
-              />
-            </Field>
-            {s.crop && !cropMode && (
-              <Field label="">
-                <Button
-                  small
-                  icon="crop"
-                  onClick={() => {
-                    setCropMode(true);
-                  }}
-                >
-                  Adjust crop
-                </Button>
-              </Field>
-            )}
-            <Field label="Fade in / out" description="Audio, seconds">
-              <NumberInput
-                value={s.fadeIn}
-                min={0}
-                max={10}
-                step={0.1}
-                decimals={1}
-                width={56}
-                onChange={(v) => {
-                  edit((d) => ({ ...d, fadeIn: v }));
-                }}
-              />
-              <NumberInput
-                value={s.fadeOut}
-                min={0}
-                max={10}
-                step={0.1}
-                decimals={1}
-                width={56}
-                onChange={(v) => {
-                  edit((d) => ({ ...d, fadeOut: v }));
-                }}
-              />
-            </Field>
-          </div>
-
-          {info.audioTracks.length > 0 && (
-            <>
-              <div className="side-title">Audio</div>
-              <div className="card" style={{ padding: "0 12px" }}>
-                {s.audioMode !== "plain" && (
-                  <Field label="Source">
-                    <Segmented<AudioMode>
-                      value={s.audioMode}
-                      options={[
-                        { value: "mix", label: "Recorded mix" },
-                        { value: "separate", label: "Per track" },
-                      ]}
-                      onChange={(v) => {
-                        edit((d) => ({ ...d, audioMode: v }));
-                      }}
-                    />
-                  </Field>
-                )}
-                {visibleTracks.map((t) => {
-                  const tr = s.tracks[t.index];
-                  if (!tr) return null;
-                  return (
-                    <Field
-                      key={t.index}
-                      label={t.title}
-                      description={tr.muted ? "Muted" : !tr.include ? "Removed" : undefined}
-                    >
-                      <Slider
-                        value={Math.round(tr.volume * 100)}
-                        min={0}
-                        max={200}
-                        width={90}
-                        onChange={(v) => {
-                          preview((d) => ({
-                            ...d,
-                            audioMode:
-                              d.audioMode === "mix" && t.index > 0 ? "separate" : d.audioMode,
-                            tracks: d.tracks.map((x, j) =>
-                              j === t.index ? { ...x, volume: v / 100 } : x,
-                            ),
-                          }));
-                        }}
-                        onCommit={commit}
-                      />
-                      <span className="mono small" style={{ width: 36, textAlign: "right" }}>
-                        {Math.round(tr.volume * 100)}%
-                      </span>
-                      <Button
-                        small
-                        variant={tr.muted ? "danger" : "ghost"}
-                        icon="speaker"
-                        title={tr.muted ? "Unmute" : "Mute"}
-                        onClick={() => {
-                          setTrack(t.index, { muted: !tr.muted });
-                        }}
-                      />
-                      <Toggle
-                        label="Keep track"
-                        value={tr.include}
-                        onChange={(v) => {
-                          setTrack(t.index, { include: v });
-                        }}
-                      />
-                    </Field>
-                  );
-                })}
-                {s.audioMode !== "mix" && info.audioTracks.length > 1 && (
-                  <Field label="Mix into one track" description="Best compatibility">
-                    <Toggle
-                      value={s.mixAudio}
-                      onChange={(v) => {
-                        edit((d) => ({ ...d, mixAudio: v }));
-                      }}
-                    />
-                  </Field>
-                )}
-              </div>
-            </>
-          )}
-
           <div className="side-title">Export</div>
           <ExportPanel path={info.path} state={s} setOpts={setOpts} />
         </aside>

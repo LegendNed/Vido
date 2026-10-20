@@ -25,7 +25,12 @@ fps: number, videoCodec: VideoCodec, encoder: EncoderPreference, preset: Quality
 /**
  * Mix kept tracks into one output track.
  */
-mixAudio: boolean, fadeIn: number, fadeOut: number, audioCodec: AudioCodec, audioBitrateKbps: number, container: Container, 
+mixAudio: boolean, 
+/**
+ * With `mix_audio`: the mix is followed by every kept track on its own
+ * (muted ones silent), e.g. to keep a clip's mix + per-source layout.
+ */
+keepMixedTracks: boolean, fadeIn: number, fadeOut: number, audioCodec: AudioCodec, audioBitrateKbps: number, container: Container, 
 /**
  * Copy video packets instead of re-encoding when possible.
  */

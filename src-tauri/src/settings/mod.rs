@@ -635,6 +635,8 @@ impl Default for SavingSettings {
 }
 
 impl Default for ExportDefaults {
+    /// The "High quality" preset (`src/features/export/presets.ts`): H.264 CRF 18 in
+    /// MP4 at the source resolution and frame rate, audio mixed into one track.
     fn default() -> Self {
         Self {
             container: Container::Mp4,
@@ -642,12 +644,12 @@ impl Default for ExportDefaults {
             encoder: EncoderPreference::Auto,
             preset: QualityPreset::Balanced,
             rate_mode: RateMode::Quality,
-            quality: 23,
+            quality: 18,
             bitrate_kbps: 8_000,
             max_bitrate_kbps: 0,
             target_size_mb: 25.0,
             audio_codec: AudioCodec::Aac,
-            audio_bitrate_kbps: 160,
+            audio_bitrate_kbps: 192,
             scale: ScalePreset::Native,
             fps: 0,
             mix_audio: true,
@@ -656,13 +658,10 @@ impl Default for ExportDefaults {
 }
 
 impl ExportDefaults {
-    /// The "High quality" preset (`src/features/export/presets.ts`): H.264 CRF 18 in
-    /// MP4 at the source resolution and frame rate. Used for re-encode-on-save, which
-    /// keeps every audio track (the clip it replaces may be edited later).
+    /// Re-encode-on-save default: "High quality", but keeping every audio track (the
+    /// clip it replaces may be edited later).
     pub fn high_quality() -> Self {
         Self {
-            quality: 18,
-            audio_bitrate_kbps: 192,
             mix_audio: false,
             ..Self::default()
         }

@@ -94,9 +94,23 @@ Packets are grouped into segments that start at a video keyframe (target ≈2 s,
 | Crop / scale / speed / fps / target size / codec change | encode (exact start)           | copy if unchanged, else encode |
 | Track volume/mute/fades, or mixing tracks               | —                              | encode that output track       |
 
+Audio outputs: `mixAudio` mixes the kept tracks (muted ones left out) into one "Mix" track;
+with `keepMixedTracks` the mix is followed by every kept track on its own (muted ones silent),
+which is how a changed lane rebuilds Vido's `[Mix][sources…]` layout; otherwise each kept track is
+its own output.
+
 `export::transcode::run` performs one demux pass; copied streams are rebased, encoded streams go
 decoder → libavfilter graph (`trim`, `crop`, `scale`, `setpts` for speed, `fps`, `format`;
 `atrim`, `volume`, `amix`, `atempo` chain, `afade`, `aresample`, `aformat`) → encoder → muxer.
+Each input audio track is decoded once (`asplit` when several outputs read it) and can be copied
+in the same pass.
+
+The editor (`src/features/editor`) shows one timeline lane per audio track. With a recorded mix
+(track 0 titled "Mix" plus source tracks) only the source lanes are editable and the mix lane
+follows them. Export: untouched lanes keep the recorded mix as is (copied; "keep separate tracks"
+copies all tracks); changed lanes give one mix of the audible source lanes, or with "keep separate
+tracks" a rebuilt mix followed by each audible source. Save keeps the layout: the mix (copied, or
+rebuilt from changed lanes) and every source with its lane applied.
 Target-size mode computes the video bitrate from the duration and audio bitrates
 (`export::bitrate`), and `export::manager` re-encodes once or twice with a corrected bitrate if the
 result overshoots by more than 1 %.

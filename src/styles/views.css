@@ -27,15 +27,16 @@
 .editor-stage {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 16px;
   min-width: 0;
   min-height: 0;
 }
+/* The video takes what the timeline leaves (the lanes scroll past ~40 % of the window). */
 .video-box {
   position: relative;
-  flex: 1;
-  min-height: 200px;
+  flex: 1 1 0;
+  min-height: 160px;
   background: #000;
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
@@ -51,8 +52,57 @@
 }
 .transport {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+/* Wraps as one group, kept on the right. */
+.transport-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.editor .tabular {
+  font-variant-numeric: tabular-nums;
+}
+.editor-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  color: var(--muted);
+  font: 12px/16px var(--font-small);
+}
+.editor-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+}
+.editor-note svg {
+  flex: none;
+  color: var(--info);
+}
+
+/* Crop toolbar under the video while the crop overlay is shown. */
+.crop-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 6px 8px 6px 12px;
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-md);
+}
+.crop-bar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.crop-bar-title svg {
+  color: var(--accent-text);
 }
 .editor-side {
   border-left: 1px solid var(--border);
@@ -77,45 +127,92 @@
   margin-top: 8px;
 }
 
-.timeline {
+/* Timeline: ruler + video row on top, audio lanes below (scrolling when many).
+   Rows are [header | cell]; each cell's `.tl-track` (inset so the trim handles fit
+   at both ends) is the time axis. Stable scrollbar gutters keep the axis aligned
+   between the two panes. */
+.tl {
+  --tl-head: 220px;
+  --tl-pad: 7px;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-.tl-track {
-  position: relative;
-  height: 74px;
   background: var(--card);
   border: 1px solid var(--stroke);
   border-radius: var(--radius-md);
-  cursor: pointer;
+  overflow: hidden;
   touch-action: none;
 }
-.tl-wave {
+.tl-pane {
+  flex: none;
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+.tl-lanes {
+  flex: 0 1 auto;
+  min-height: 52px;
+  max-height: 42vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--stroke);
+}
+.tl-body {
+  position: relative;
+}
+.tl-row {
+  display: grid;
+  grid-template-columns: var(--tl-head) minmax(0, 1fr);
+}
+.tl-row + .tl-row {
+  border-top: 1px solid var(--border);
+}
+.tl-row.ruler {
+  height: 22px;
+}
+.tl-row.video {
+  height: 44px;
+}
+.tl-row.lane {
+  height: 52px;
+}
+.tl-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 10px 0 6px;
+  background: var(--card-2);
+  border-right: 1px solid var(--border);
+}
+.tl-cell {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  cursor: pointer;
+}
+.tl-track {
+  position: absolute;
+  inset: 0 var(--tl-pad);
+}
+.tl-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-.tl-dim {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: color-mix(in srgb, var(--bg) 70%, transparent);
-  pointer-events: none;
-}
+
+/* Selection block, trim handles (video row) and the overlay spanning all rows. */
 .tl-sel {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 6px;
+  bottom: 6px;
+  background: var(--accent-soft);
   border-top: 2px solid var(--accent);
   border-bottom: 2px solid var(--accent);
-  pointer-events: none;
 }
 .tl-handle {
   position: absolute;
-  top: -2px;
-  bottom: -2px;
+  top: 3px;
+  bottom: 3px;
   width: 10px;
   margin-left: -5px;
   background: var(--accent);
@@ -134,23 +231,117 @@
   opacity: 0.7;
   border-radius: 1px;
 }
+.tl-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--tl-head) + var(--tl-pad));
+  right: var(--tl-pad);
+  pointer-events: none;
+}
+.tl-dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  z-index: 1;
+}
+.tl-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+  z-index: 1;
+}
 .tl-playhead {
   position: absolute;
-  top: -4px;
-  bottom: -4px;
+  top: 0;
+  bottom: 0;
   width: 2px;
   margin-left: -1px;
   background: var(--text);
   border-radius: 1px;
-  pointer-events: none;
   z-index: 3;
 }
-.tl-scale {
+
+/* Lane headers. */
+.lane-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--muted);
+}
+.video-head .lane-icon {
+  color: var(--accent-text);
+}
+.lane-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lane-title {
+  font-size: 13px;
+  line-height: 18px;
+}
+.lane-note {
+  color: var(--muted);
+  font: 12px/16px var(--font-small);
+}
+.video-title {
   display: flex;
   justify-content: space-between;
-  color: var(--faint);
-  font: 11px/14px var(--font-small);
+  gap: 8px;
+}
+.video-title > span {
+  color: var(--accent-text);
+  font: 600 12px/18px var(--font-small);
+}
+.lane-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lane-volume .slider {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  height: 18px;
+}
+.lane-pct {
+  flex: none;
+  width: 36px;
+  text-align: right;
+  color: var(--text-2);
+  font: 12px/16px var(--font-small);
   font-variant-numeric: tabular-nums;
+}
+.lane-loading {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--faint);
+  font: 12px/16px var(--font-small);
+  pointer-events: none;
+}
+.lane.derived .lane-title {
+  color: var(--text-2);
+}
+.lane.silent .lane-title {
+  color: var(--muted);
+}
+.lane.silent .tl-cell {
+  opacity: 0.4;
+}
+
+@media (max-width: 1040px) {
+  .tl {
+    --tl-head: 180px;
+  }
 }
 
 /* Crop handles sit on the (always dark) video. */

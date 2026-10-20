@@ -78,6 +78,10 @@ pub struct ExportRequest {
     pub audio_tracks: Vec<ExportAudioTrack>,
     /// Mix kept tracks into one output track.
     pub mix_audio: bool,
+    /// With `mix_audio`: the mix is followed by every kept track on its own
+    /// (muted ones silent), e.g. to keep a clip's mix + per-source layout.
+    #[serde(default)]
+    pub keep_mixed_tracks: bool,
     pub fade_in: f64,
     pub fade_out: f64,
     pub audio_codec: AudioCodec,
@@ -489,7 +493,10 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
     let has_fades = req.fade_in > 0.0 || req.fade_out > 0.0;
     let speed_changed = (req.speed - 1.0).abs() > 1e-6;
     let mut audio = Vec::new();
-    if req.mix_audio && tracks.len() > 1 {
+    // A lone track is only "mixed" when it is also kept on its own (the mix
+    // track then stays in front, as in Vido's clip layout).
+    let mix = req.mix_audio && !tracks.is_empty() && (tracks.len() > 1 || req.keep_mixed_tracks);
+    if mix {
         let mut inputs: Vec<(u32, f32)> = tracks
             .iter()
             .filter(|t| !t.muted)
@@ -502,7 +509,8 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
             inputs,
             title: "Mix".into(),
         });
-    } else {
+    }
+    if !mix || req.keep_mixed_tracks {
         for t in tracks {
             let unchanged =
                 !t.muted && (t.volume - 1.0).abs() < 1e-4 && !has_fades && !speed_changed;
@@ -790,6 +798,7 @@ mod tests {
                 })
                 .collect(),
             mix_audio: false,
+            keep_mixed_tracks: false,
             fade_in: 0.0,
             fade_out: 0.0,
             audio_codec: AudioCodec::Aac,
@@ -858,6 +867,79 @@ mod tests {
         assert!(
             matches!(&p.audio[0], AudioOut::Encode { inputs, .. } if inputs == &vec![(1, 1.0)])
         );
+    }
+
+    #[test]
+    fn mixing_a_lone_track_keeps_it_as_is() {
+        let mut r = req();
+        r.mix_audio = true;
+        r.audio_tracks[1].include = false;
+        r.audio_tracks[2].include = false;
+        let p = plan(&r, &info(), &KF).unwrap();
+        assert_eq!(p.audio.len(), 1);
+        assert!(matches!(p.audio[0], AudioOut::Copy { index: 0, .. }));
+    }
+
+    #[test]
+    fn mix_can_be_followed_by_the_mixed_tracks() {
+        // Vido's layout with the recorded mix rebuilt from re-leveled sources.
+        let mut r = req();
+        r.mix_audio = true;
+        r.keep_mixed_tracks = true;
+        r.audio_tracks[0].include = false;
+        r.audio_tracks[2].volume = 0.5;
+        let p = plan(&r, &info(), &KF).unwrap();
+        assert_eq!(p.video, VideoPlan::Copy);
+        assert_eq!(p.audio.len(), 3);
+        assert!(matches!(
+            &p.audio[0],
+            AudioOut::Encode { inputs, title } if inputs == &vec![(1, 1.0), (2, 0.5)] && title == "Mix"
+        ));
+        assert!(matches!(p.audio[1], AudioOut::Copy { index: 1, .. }));
+        assert!(
+            matches!(&p.audio[2], AudioOut::Encode { inputs, .. } if inputs == &vec![(2, 0.5)])
+        );
+        assert_eq!(
+            p.total_audio_kbps(|i| source_audio_kbps(&info(), i)),
+            3 * 160
+        );
+    }
+
+    #[test]
+    fn kept_mixed_tracks_stay_silent_when_muted() {
+        let mut r = req();
+        r.mix_audio = true;
+        r.keep_mixed_tracks = true;
+        r.audio_tracks[0].include = false;
+        r.audio_tracks[1].muted = true;
+        let p = plan(&r, &info(), &KF).unwrap();
+        assert_eq!(p.audio.len(), 3);
+        assert!(
+            matches!(&p.audio[0], AudioOut::Encode { inputs, .. } if inputs == &vec![(2, 1.0)])
+        );
+        assert!(
+            matches!(&p.audio[1], AudioOut::Encode { inputs, title } if inputs == &vec![(1, 0.0)] && title == "Desktop audio")
+        );
+        assert!(matches!(p.audio[2], AudioOut::Copy { index: 2, .. }));
+
+        // A single kept track still gets its mix in front (the layout stays).
+        r.audio_tracks[2].include = false;
+        let p = plan(&r, &info(), &KF).unwrap();
+        assert_eq!(p.audio.len(), 2);
+        assert!(matches!(
+            &p.audio[0],
+            AudioOut::Encode { inputs, title } if inputs == &vec![(1, 0.0)] && title == "Mix"
+        ));
+        assert!(
+            matches!(&p.audio[1], AudioOut::Encode { inputs, .. } if inputs == &vec![(1, 0.0)])
+        );
+
+        // Without `mix_audio` the flag changes nothing.
+        let mut r = req();
+        r.keep_mixed_tracks = true;
+        let p = plan(&r, &info(), &KF).unwrap();
+        assert_eq!(p.audio.len(), 3);
+        assert!(p.audio.iter().all(|a| matches!(a, AudioOut::Copy { .. })));
     }
 
     #[test]

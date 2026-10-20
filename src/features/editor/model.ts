@@ -15,31 +15,38 @@ export interface ExportOpts extends ExportDefaults {
   streamCopy: boolean;
   /** `null` = `<name>_export.<ext>` next to the clip. */
   outputPath: string | null;
+  /**
+   * Exports carry one audio track (the lanes mixed). `false` keeps separate tracks:
+   * the (re)built mix first when the clip has one, then every audible lane.
+   */
+  mixAudio: boolean;
 }
 
-/**
- * - `plain`: no separate mix track; tracks are edited directly.
- * - `mix`: use the recorded "Mix" track as-is (stream-copyable).
- * - `separate`: rebuild the mix from the per-source tracks (per-track volume/mute).
- */
-export type AudioMode = "plain" | "mix" | "separate";
+/** Mute and volume of one audio lane (one audio track of the clip). */
+export interface Lane {
+  muted: boolean;
+  /** Linear 0–2. */
+  volume: number;
+}
 
 export interface EditState {
   trimStart: number;
   trimEnd: number;
   crop: CropRect | null;
-  speed: number;
-  fadeIn: number;
-  fadeOut: number;
-  audioMode: AudioMode;
-  tracks: ExportAudioTrack[];
+  /** One per audio track of the clip, by track index. */
+  lanes: Lane[];
   /**
-   * No longer read: whether exports mix the audio is `x.mixAudio` (Export → Advanced →
-   * Keep separate audio tracks). Remove together with the editor's old Audio section.
+   * Fixed per clip: track 0 is the recorded mix of the other tracks (Vido's
+   * layout). Its lane is derived from the source lanes and never edited.
    */
-  mixAudio: boolean;
+  recordedMix: boolean;
   x: ExportOpts;
 }
+
+/** The audio part of the edit state. */
+export type LaneSet = Pick<EditState, "lanes" | "recordedMix">;
+
+export const UNITY: Lane = { muted: false, volume: 1 };
 
 export function hasMixStructure(d: ClipDetails): boolean {
   const t = d.info.audioTracks;
@@ -51,52 +58,111 @@ export function initialState(d: ClipDetails, defaults: ExportDefaults): EditStat
     trimStart: 0,
     trimEnd: d.info.durationSec,
     crop: null,
-    speed: 1,
-    fadeIn: 0,
-    fadeOut: 0,
-    audioMode: hasMixStructure(d) ? "mix" : "plain",
-    tracks: d.info.audioTracks.map((t) => ({
-      index: t.index,
-      include: true,
-      muted: false,
-      volume: 1,
-    })),
-    mixAudio: defaults.mixAudio,
+    lanes: d.info.audioTracks.map(() => UNITY),
+    recordedMix: hasMixStructure(d),
     x: {
       ...defaults,
       // Trim-only edits default to a lossless, instant export.
       streamCopy: true,
       outputPath: null,
+      mixAudio: defaults.mixAudio,
     },
   };
 }
 
-export function requestTracks(s: EditState): { tracks: ExportAudioTrack[]; mix: boolean } {
-  switch (s.audioMode) {
-    case "plain":
-      return { tracks: s.tracks, mix: s.x.mixAudio };
-    case "mix":
-      return {
-        tracks: s.tracks.map((t, i) => (i === 0 ? t : { ...t, include: false })),
-        mix: false,
-      };
-    case "separate":
-      return {
-        tracks: s.tracks.map((t, i) => (i === 0 ? { ...t, include: false } : t)),
-        mix: s.x.mixAudio,
-      };
-  }
+const isUnity = (l: Lane) => !l.muted && Math.abs(l.volume - 1) < 1e-4;
+
+/** Heard in the output: not muted and above 0 %. */
+export const isAudible = (l: Lane) => !l.muted && l.volume > 0;
+
+/** Track indices of the lanes the user edits (all but a recorded mix). */
+export function editableLanes(s: LaneSet): number[] {
+  return s.lanes.map((_, i) => i).filter((i) => !(s.recordedMix && i === 0));
 }
 
-export function buildRequest(path: string, s: EditState): ExportRequest {
-  const { tracks, mix } = requestTracks(s);
+/** Whether any lane's mute or volume differs from the recording. */
+export function lanesChanged(s: LaneSet): boolean {
+  return editableLanes(s).some((i) => !isUnity(s.lanes[i] ?? UNITY));
+}
+
+/** The audio part of an `ExportRequest`. */
+interface AudioOut {
+  audioTracks: ExportAudioTrack[];
+  mixAudio: boolean;
+  keepMixedTracks: boolean;
+}
+
+const keep = (index: number, l: Lane): ExportAudioTrack => ({
+  index,
+  include: true,
+  muted: l.muted,
+  volume: l.volume,
+});
+const drop = (index: number): ExportAudioTrack => ({
+  index,
+  include: false,
+  muted: false,
+  volume: 1,
+});
+
+/**
+ * Export audio. While the lanes are untouched a recorded mix is kept as it is
+ * (stream-copyable); otherwise the lanes are mixed with their volumes, leaving the
+ * recorded mix out so nothing is counted twice. `x.mixAudio` off keeps separate
+ * tracks: the mix (rebuilt from the lanes when the clip has one) followed by every
+ * audible lane.
+ */
+export function exportAudio(s: EditState): AudioOut {
+  if (s.lanes.length === 0) return { audioTracks: [], mixAudio: false, keepMixedTracks: false };
+  const lanes = editableLanes(s);
+  const tracks = s.lanes.map((_, i) => drop(i));
+  if (s.recordedMix && !lanesChanged(s)) {
+    s.lanes.forEach((_, i) => {
+      if (i === 0 || !s.x.mixAudio) tracks[i] = keep(i, UNITY);
+    });
+    return { audioTracks: tracks, mixAudio: false, keepMixedTracks: false };
+  }
+  const audible = lanes.filter((i) => isAudible(s.lanes[i] ?? UNITY));
+  if (s.x.mixAudio || audible.length === 0) {
+    // One track: a lone lane is just re-leveled; all muted gives silence.
+    for (const i of lanes) tracks[i] = keep(i, s.lanes[i] ?? UNITY);
+    return { audioTracks: tracks, mixAudio: true, keepMixedTracks: false };
+  }
+  for (const i of audible) tracks[i] = keep(i, s.lanes[i] ?? UNITY);
+  // A single audible lane already is the mix.
+  const remix = s.recordedMix && audible.length > 1;
+  return { audioTracks: tracks, mixAudio: remix, keepMixedTracks: remix };
+}
+
+/**
+ * Save / Save & override audio: the clip keeps its track layout. A recorded mix is
+ * copied while the lanes are untouched, else rebuilt from them; every other track
+ * keeps its place with its lane applied (muted = silent).
+ */
+export function saveAudio(s: EditState): AudioOut {
+  if (s.recordedMix && lanesChanged(s)) {
+    return {
+      audioTracks: s.lanes.map((l, i) => (i === 0 ? drop(0) : keep(i, l))),
+      mixAudio: true,
+      keepMixedTracks: true,
+    };
+  }
+  return {
+    audioTracks: s.lanes.map((l, i) => keep(i, s.recordedMix ? UNITY : l)),
+    mixAudio: false,
+    keepMixedTracks: false,
+  };
+}
+
+function request(path: string, s: EditState, audio: AudioOut): ExportRequest {
   return {
     inputPath: path,
     ...(s.x.outputPath ? { outputPath: s.x.outputPath } : {}),
     trimStart: s.trimStart,
     trimEnd: s.trimEnd,
     ...(s.crop ? { crop: s.crop } : {}),
-    speed: s.speed,
+    // The editor offers no speed change or fades (the backend still supports them).
+    speed: 1,
     scale: s.x.scale,
     fps: s.x.fps,
     videoCodec: s.x.videoCodec,
@@ -107,10 +173,9 @@ export function buildRequest(path: string, s: EditState): ExportRequest {
     bitrateKbps: s.x.bitrateKbps,
     maxBitrateKbps: s.x.maxBitrateKbps,
     targetSizeMb: s.x.targetSizeMb,
-    audioTracks: tracks,
-    mixAudio: mix,
-    fadeIn: s.fadeIn,
-    fadeOut: s.fadeOut,
+    ...audio,
+    fadeIn: 0,
+    fadeOut: 0,
     audioCodec: s.x.audioCodec,
     audioBitrateKbps: s.x.audioBitrateKbps,
     container: s.x.container,
@@ -118,36 +183,21 @@ export function buildRequest(path: string, s: EditState): ExportRequest {
   };
 }
 
+export function buildRequest(path: string, s: EditState): ExportRequest {
+  return request(path, s, exportAudio(s));
+}
+
 /**
  * Request for the editor's Save / Save & override. Same edits as an export (Rust
- * then matches the output format to the original), except that in "Recorded mix"
- * mode the per-source tracks are carried along untouched, so the clip keeps its
+ * then matches the output format to the original), but the audio keeps the clip's
  * track layout.
  */
 export function buildSaveRequest(path: string, s: EditState): ExportRequest {
-  const req = buildRequest(path, s);
-  if (s.audioMode !== "mix") return req;
-  return {
-    ...req,
-    audioTracks: s.tracks.map((t, i) =>
-      i === 0 ? t : { index: t.index, include: true, muted: false, volume: 1 },
-    ),
-    mixAudio: false,
-  };
+  return request(path, s, saveAudio(s));
 }
 
 /** Whether `s` changes the clip itself (export-only options don't count). */
 export function hasEdits(s: EditState, initial: EditState): boolean {
-  const key = (e: EditState) =>
-    JSON.stringify([
-      e.trimStart,
-      e.trimEnd,
-      e.crop,
-      e.speed,
-      e.fadeIn,
-      e.fadeOut,
-      e.audioMode,
-      e.tracks,
-    ]);
+  const key = (e: EditState) => JSON.stringify([e.trimStart, e.trimEnd, e.crop, e.lanes]);
   return key(s) !== key(initial);
 }

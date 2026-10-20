@@ -172,6 +172,7 @@ fn base_request(input: &Path) -> ExportRequest {
             })
             .collect(),
         mix_audio: false,
+        keep_mixed_tracks: false,
         fade_in: 0.0,
         fade_out: 0.0,
         audio_codec: AudioCodec::Aac,
@@ -260,6 +261,40 @@ fn crop_scale_speed_mix_export_reencodes() {
     // (4.0 - 1.5) / 2 = 1.25 s
     assert!((info.duration - 1.25).abs() < 0.15, "{}", info.duration);
     assert_eq!(info.audio.len(), 1, "mixed into one track");
+}
+
+#[test]
+fn mix_followed_by_the_separate_tracks() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = make_clip(dir.path());
+    let mut req = base_request(&src);
+    req.mix_audio = true;
+    req.keep_mixed_tracks = true;
+    req.audio_tracks[1].volume = 0.5;
+    let (plan, out, _) = run_export(&req);
+    assert_eq!(plan.video, VideoPlan::Copy);
+    // "Desktop" is decoded for the mix and copied on its own in the same pass.
+    assert!(matches!(
+        &plan.audio[..],
+        [
+            AudioOut::Encode { .. },
+            AudioOut::Copy { index: 0, .. },
+            AudioOut::Encode { .. }
+        ]
+    ));
+    let info = probe::probe(&out).unwrap();
+    let titles: Vec<&str> = info.audio.iter().map(|(_, t)| t.title.as_str()).collect();
+    assert_eq!(titles, ["Mix", "Desktop", "Mic"]);
+    assert!((info.duration - 3.0).abs() < 0.1, "{}", info.duration);
+    let level = |track: u32| {
+        let w = frames::waveform(&out, track, 60).unwrap();
+        w.iter().sum::<f32>() / w.len() as f32
+    };
+    let (mix, desktop, mic) = (level(0), level(1), level(2));
+    // 440 Hz at 0.5 (copied), 880 Hz at 0.25 × 0.5, and both together.
+    assert!(desktop > 0.35 && desktop < 0.6, "desktop {desktop}");
+    assert!(mic > 0.07 && mic < 0.18, "mic {mic}");
+    assert!(mix > desktop, "mix {mix} vs desktop {desktop}");
 }
 
 #[test]

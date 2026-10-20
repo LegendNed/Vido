@@ -254,6 +254,7 @@ fn reencode_request(path: &Path, info: &MediaInfo, d: &ExportDefaults) -> Export
             })
             .collect(),
         mix_audio: d.mix_audio && !has_mix,
+        keep_mixed_tracks: false,
         fade_in: 0.0,
         fade_out: 0.0,
         audio_codec: d.audio_codec,
