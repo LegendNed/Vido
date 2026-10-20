@@ -109,6 +109,17 @@ hidden `<stem>.vido-tmp.<ext>` next to the original and only after success: recy
 original's modification time. Any failure before the rename leaves the original untouched and
 removes the temp; a failed final rename keeps the temp and reports its path.
 
+**Re-encode-on-save** (`actions::reencode_saved`) exports the whole saved clip with
+`saving.reencode` (its own `ExportDefaults`, "High quality" by default) and replaces the file
+(`Finish::ReplaceInput`, which may change its extension). "Keep separate audio tracks" off keeps
+only the recorded Mix track when the clip has one, else mixes the tracks.
+
+**Copy the video** (`saving.postSave.copyVideo`, on by default) runs on the save worker thread:
+`win::copy_file_to_clipboard` puts the file on the clipboard like Explorer's Copy (`CF_HDROP` with
+a wide `DROPFILES` list + `Preferred DropEffect` = copy) with plain Win32 clipboard calls — no COM,
+so the STA main thread is never involved. If a re-encode later gives the file a new name, the
+clipboard follows it unless something else was copied meanwhile (clipboard sequence number).
+
 ## Appearance
 
 `theme.rs` decides Mica support (Windows build ≥ 22000) and watches the Windows accent palette

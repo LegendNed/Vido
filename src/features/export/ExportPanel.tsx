@@ -1,32 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  Banner,
-  Button,
-  Field,
-  NumberInput,
-  Progress,
-  Segmented,
-  Select,
-  Toggle,
-} from "../../components/ui";
-import {
-  formatBitrate,
-  formatBytes,
-  formatDuration,
-  formatTime,
-  parseSizeMb,
-} from "../../lib/format";
-import {
-  AUDIO_CODEC_OPTIONS,
-  codecOptions,
-  CONTAINER_OPTIONS,
-  encoderOptions,
-  FPS_OPTIONS,
-  PRESET_OPTIONS,
-  RATE_MODE_OPTIONS,
-  SCALE_OPTIONS,
-} from "../../lib/options";
+import { Banner, Button, Progress } from "../../components/ui";
+import { formatBitrate, formatBytes, formatDuration, formatTime } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import {
@@ -38,7 +13,8 @@ import {
   type ExportResult,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
-import { buildRequest, PRESETS, type EditState, type ExportOpts } from "../editor/model";
+import { buildRequest, type EditState, type ExportOpts } from "../editor/model";
+import { EncodeOptions } from "./EncodeOptions";
 
 type Job =
   | { kind: "idle" }
@@ -46,6 +22,14 @@ type Job =
   | { kind: "done"; result: ExportResult }
   | { kind: "failed"; error: string };
 
+type Outcome = Extract<Job, { kind: "idle" | "done" | "failed" }>;
+
+const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
+
+/**
+ * Editor export: preset chips and the estimate up front, every encode option
+ * under "Advanced" (shared with the settings pages via `EncodeOptions`).
+ */
 export function ExportPanel({
   path,
   state,
@@ -55,16 +39,27 @@ export function ExportPanel({
   state: EditState;
   setOpts: (fn: (x: ExportOpts) => ExportOpts) => void;
 }) {
-  const caps = useApp((s) => s.caps);
   const notify = useApp((s) => s.notify);
   const [estimate, setEstimate] = useState<ExportEstimate | null>(null);
   const [problem, setProblem] = useState<AppError | null>(null);
   const [job, setJob] = useState<Job>({ kind: "idle" });
-  // Only set while the user is typing a size; otherwise the stored value is shown.
-  const [sizeDraft, setSizeDraft] = useState<string | null>(null);
-  const sizeText = sizeDraft ?? `${state.x.targetSizeMb} MB`;
-  const jobId = job.kind === "running" ? job.id : null;
+  // The running job. Its id arrives with the command's reply and a quick stream
+  // copy may finish before that, so outcomes of unknown jobs are kept briefly.
+  const active = useRef<string | null>(null);
+  const early = useRef(new Map<string, Outcome>());
   const x = state.x;
+
+  // A custom output path has the old extension: back to the default name when
+  // the container changes (also through a preset).
+  const update = useCallback(
+    (fn: (o: ExportOpts) => ExportOpts) => {
+      setOpts((o) => {
+        const n = fn(o);
+        return n.container !== o.container && n.outputPath ? { ...n, outputPath: null } : n;
+      });
+    },
+    [setOpts],
+  );
 
   // Debounced estimate (Rust validates the whole request).
   const reqKey = JSON.stringify(buildRequest(path, state));
@@ -93,243 +88,69 @@ export function ExportPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the serialized request
   }, [reqKey]);
 
+  const settle = (id: string, o: Outcome) => {
+    if (id === active.current) {
+      active.current = null;
+      setJob(o);
+      return;
+    }
+    early.current.set(id, o);
+    // Only the latest few matter (other ids belong to Save or re-encode-on-save).
+    for (const k of [...early.current.keys()].slice(0, -8)) early.current.delete(k);
+  };
   useEvent("export-progress", (p) => {
-    if (p.jobId === jobId) setJob({ kind: "running", id: p.jobId, progress: p });
+    if (p.jobId === active.current) setJob({ kind: "running", id: p.jobId, progress: p });
   });
   useEvent("export-completed", (r) => {
-    if (r.jobId === jobId) setJob({ kind: "done", result: r });
+    settle(r.jobId, { kind: "done", result: r });
   });
   useEvent("export-failed", (f) => {
-    if (f.jobId === jobId)
-      setJob(
-        f.error.code === "CANCELLED"
-          ? { kind: "idle" }
-          : { kind: "failed", error: errorMessage(f.error) },
-      );
+    settle(
+      f.jobId,
+      f.error.code === "CANCELLED"
+        ? { kind: "idle" }
+        : { kind: "failed", error: errorMessage(f.error) },
+    );
   });
 
   const start = async () => {
+    let id: string;
     try {
-      const id = await commands.exportClip(buildRequest(path, state));
-      setJob({ kind: "running", id, progress: null });
+      id = await commands.exportClip(buildRequest(path, state));
     } catch (e) {
       setJob({ kind: "failed", error: errorMessage(e) });
+      return;
     }
+    const done = early.current.get(id);
+    if (done) {
+      early.current.delete(id);
+      setJob(done);
+      return;
+    }
+    active.current = id;
+    setJob({ kind: "running", id, progress: null });
   };
 
+  const stem = path.replace(/\.[^.\\/]+$/, "");
   const browse = async () => {
-    const stem = path.replace(/\.[^.\\/]+$/, "");
     const p = await commands.pickExportPath(`${stem}_export.${x.container}`, x.container);
     if (p) setOpts((o) => ({ ...o, outputPath: p }));
   };
 
   const willCopy = estimate?.willCopyVideo ?? false;
-  const encodeControlsDisabled = willCopy;
 
   return (
-    <div className="col" style={{ gap: 10 }}>
-      <div className="preset-row">
-        {PRESETS.map((p) => (
-          <button
-            type="button"
-            key={p.id}
-            className="preset"
-            title={p.hint}
-            onClick={() => {
-              setOpts(p.apply);
-            }}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="card" style={{ padding: "0 12px" }}>
-        <Field
-          label="Re-encode"
-          description={
-            estimate?.canStreamCopy
-              ? "Off = lossless & instant"
-              : (estimate?.streamCopyBlocker ?? undefined)
-          }
-        >
-          <Toggle
-            value={!x.streamCopy || !(estimate?.canStreamCopy ?? true)}
-            disabled={!(estimate?.canStreamCopy ?? false)}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, streamCopy: !v }));
-            }}
-          />
-        </Field>
-        <Field label="Container">
-          <Select
-            value={x.container}
-            options={CONTAINER_OPTIONS}
-            onChange={(v) => {
-              setOpts((o) => ({
-                ...o,
-                container: v,
-                ...(v === "webm"
-                  ? { videoCodec: "av1" as const, audioCodec: "opus" as const }
-                  : {}),
-                outputPath: null,
-              }));
-            }}
-          />
-        </Field>
-        <Field label="Codec">
-          <Select
-            value={x.videoCodec}
-            disabled={encodeControlsDisabled}
-            options={codecOptions(caps)}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, videoCodec: v }));
-            }}
-          />
-        </Field>
-        <Field label="Encoder">
-          <Select
-            value={x.encoder}
-            disabled={encodeControlsDisabled}
-            options={encoderOptions(caps, x.videoCodec)}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, encoder: v }));
-            }}
-          />
-        </Field>
-        <Field label="Mode">
-          <Segmented
-            value={x.rateMode}
-            options={RATE_MODE_OPTIONS}
-            onChange={(v) => {
-              setOpts((o) => ({
-                ...o,
-                rateMode: v,
-                ...(v === "targetSize" ? { streamCopy: false } : {}),
-              }));
-            }}
-          />
-        </Field>
-        {x.rateMode === "quality" && (
-          <Field label="Quality" description="Lower = better (18–28 typical)">
-            <NumberInput
-              value={x.quality}
-              min={0}
-              max={51}
-              onChange={(v) => {
-                setOpts((o) => ({ ...o, quality: v }));
-              }}
-            />
-          </Field>
-        )}
-        {x.rateMode === "bitrate" && (
-          <Field label="Bitrate">
-            <NumberInput
-              value={x.bitrateKbps}
-              min={100}
-              max={200000}
-              step={100}
-              suffix="kbps"
-              onChange={(v) => {
-                setOpts((o) => ({ ...o, bitrateKbps: v }));
-              }}
-            />
-          </Field>
-        )}
-        {x.rateMode === "targetSize" && (
-          <Field label="Target size" description='e.g. "8 MB", "25", "1.5 GB"'>
-            <input
-              className={`input${parseSizeMb(sizeText) === null ? " invalid" : ""}`}
-              style={{ width: 110 }}
-              value={sizeText}
-              onChange={(e) => {
-                setSizeDraft(e.target.value);
-              }}
-              onBlur={() => {
-                const mb = parseSizeMb(sizeText);
-                if (mb !== null) {
-                  setOpts((o) => ({ ...o, targetSizeMb: Math.min(10000, Math.max(1, mb)) }));
-                  setSizeDraft(null);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-              }}
-            />
-          </Field>
-        )}
-        <Field label="Speed / quality">
-          <Select
-            value={x.preset}
-            disabled={encodeControlsDisabled}
-            options={PRESET_OPTIONS}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, preset: v }));
-            }}
-          />
-        </Field>
-        <Field label="Resolution">
-          <Select
-            value={x.scale}
-            options={SCALE_OPTIONS}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, scale: v }));
-            }}
-          />
-        </Field>
-        <Field label="Frame rate">
-          <Select
-            value={x.fps}
-            options={FPS_OPTIONS.map((o) =>
-              o.value === 0 ? { ...o, label: "Same as source" } : o,
-            )}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, fps: v }));
-            }}
-          />
-        </Field>
-        <Field label="Audio">
-          <Select
-            value={x.audioCodec}
-            options={AUDIO_CODEC_OPTIONS}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, audioCodec: v }));
-            }}
-          />
-          <Select
-            value={x.audioBitrateKbps}
-            options={[64, 96, 128, 160, 192, 256, 320].map((k) => ({ value: k, label: `${k}k` }))}
-            onChange={(v) => {
-              setOpts((o) => ({ ...o, audioBitrateKbps: v }));
-            }}
-          />
-        </Field>
-        <Field
-          label="Save as"
-          description={
-            x.outputPath ? (
-              <span className="mono ellipsis">{x.outputPath}</span>
-            ) : (
-              "Next to the clip (…_export)"
-            )
-          }
-        >
-          {x.outputPath && (
-            <Button
-              small
-              variant="ghost"
-              icon="x"
-              title="Use default location"
-              onClick={() => {
-                setOpts((o) => ({ ...o, outputPath: null }));
-              }}
-            />
-          )}
-          <Button small icon="folder" onClick={() => void browse()}>
-            Browse…
-          </Button>
-        </Field>
-      </div>
+    <div className="col export-panel" style={{ gap: 10 }}>
+      <EncodeOptions
+        value={x}
+        onChange={update}
+        scope="editor"
+        copy={{
+          available: estimate?.canStreamCopy ?? false,
+          blocker: estimate?.streamCopyBlocker ?? null,
+          active: willCopy,
+        }}
+      />
 
       {problem && (
         <Banner tone="error">
@@ -368,6 +189,34 @@ export function ExportPanel({
         .map((w) => (
           <Banner key={w}>{w}</Banner>
         ))}
+
+      <div className="export-dest">
+        <div className="export-dest-text">
+          <span className="muted small">Saves as</span>
+          <span className="ellipsis" title={x.outputPath ?? undefined}>
+            {x.outputPath ? fileName(x.outputPath) : `${fileName(stem)}_export.${x.container}`}
+          </span>
+          <span className="muted small ellipsis" title={x.outputPath ?? undefined}>
+            {x.outputPath
+              ? x.outputPath.slice(0, -fileName(x.outputPath).length)
+              : "Next to the clip"}
+          </span>
+        </div>
+        {x.outputPath && (
+          <Button
+            small
+            variant="ghost"
+            icon="x"
+            title="Save next to the clip"
+            onClick={() => {
+              setOpts((o) => ({ ...o, outputPath: null }));
+            }}
+          />
+        )}
+        <Button small icon="folder" onClick={() => void browse()}>
+          Save as…
+        </Button>
+      </div>
 
       {job.kind === "running" && (
         <div className="col" style={{ gap: 6 }}>

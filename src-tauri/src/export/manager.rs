@@ -25,6 +25,9 @@ pub enum ExportEvent {
 
 pub type EventSink = Arc<dyn Fn(ExportEvent) + Send + Sync>;
 
+/// Runs on the export worker when a job succeeded, right before its completion event.
+pub type OnDone = Box<dyn FnOnce(&ExportResult) + Send>;
+
 /// What happens to the output file once the export succeeded.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Finish {
@@ -42,6 +45,7 @@ struct Job {
     plan: Plan,
     cancel: Arc<AtomicBool>,
     finish: Finish,
+    on_done: Option<OnDone>,
 }
 
 pub struct ExportManager {
@@ -89,6 +93,11 @@ impl ExportManager {
     }
 
     pub fn submit_with(&self, plan: Plan, finish: Finish) -> String {
+        self.submit_then(plan, finish, None)
+    }
+
+    /// Like [`Self::submit_with`]; `on_done` runs once the job succeeded.
+    pub fn submit_then(&self, plan: Plan, finish: Finish, on_done: Option<OnDone>) -> String {
         let id = uuid::Uuid::new_v4().simple().to_string();
         let cancel = Arc::new(AtomicBool::new(false));
         self.cancels.lock().insert(id.clone(), cancel.clone());
@@ -97,6 +106,7 @@ impl ExportManager {
             plan,
             cancel,
             finish,
+            on_done,
         });
         id
     }
@@ -124,6 +134,7 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
         mut plan,
         cancel,
         finish,
+        on_done,
     } = job;
     if cancel.load(Ordering::SeqCst) {
         sink(ExportEvent::Failed(ExportFailed {
@@ -240,7 +251,7 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
                     }
                 }
                 let over_target = plan.target_bytes.is_some_and(|t| stats.bytes > t + t / 100);
-                sink(ExportEvent::Completed(ExportResult {
+                let result = ExportResult {
                     job_id: id,
                     output_path: output.to_string_lossy().into_owned(),
                     size_bytes: stats.bytes,
@@ -249,7 +260,11 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
                     encoder: stats.encoder,
                     attempts: attempt,
                     over_target,
-                }));
+                };
+                if let Some(f) = on_done {
+                    f(&result);
+                }
+                sink(ExportEvent::Completed(result));
                 return;
             }
             Err(e) => {

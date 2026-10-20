@@ -2,6 +2,7 @@ import { Badge, Button, Field, Section, Segmented, TextInput, Toggle } from "../
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage, type Container, type SaveMode } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import { EncodeOptions } from "../export/EncodeOptions";
 
 function previewName(template: string): string {
   const now = new Date();
@@ -24,6 +25,9 @@ export function SavingPage() {
   if (!settings) return null;
   const sv = settings.saving;
   const err = (f: string) => fieldError?.field?.startsWith(f) ?? false;
+  const reencode = sv.saveMode === "reencode";
+  // The file that stays: re-encoding replaces the instant save in its own container.
+  const extension = reencode ? sv.reencode.container : sv.container;
 
   const browse = async () => {
     try {
@@ -85,7 +89,7 @@ export function SavingPage() {
             <>
               Tokens: {"{date} {time} {source} {duration}"} · Preview:{" "}
               <span className="mono">
-                {previewName(sv.filenameTemplate)}.{sv.container}
+                {previewName(sv.filenameTemplate)}.{extension}
               </span>
             </>
           }
@@ -105,28 +109,11 @@ export function SavingPage() {
           />
         </Field>
         <Field
-          label="Container"
-          description="MP4 plays everywhere. MKV survives crashes mid-write."
-        >
-          <Segmented<Container>
-            value={sv.container}
-            options={[
-              { value: "mp4", label: "MP4" },
-              { value: "mkv", label: "MKV" },
-            ]}
-            onChange={(v) => {
-              update((d) => {
-                d.saving.container = v;
-              });
-            }}
-          />
-        </Field>
-        <Field
           label="When saving"
           description={
-            sv.saveMode === "remux"
-              ? "Instant: buffered video is copied as-is (no quality loss, no CPU/GPU cost)."
-              : "Saves instantly, then re-encodes in the background with your Export defaults (smaller files)."
+            reencode
+              ? "Saves instantly, then re-encodes in the background and replaces the file."
+              : "Instant: buffered video is copied as-is (no quality loss, no CPU/GPU cost)."
           }
         >
           <Segmented<SaveMode>
@@ -142,6 +129,38 @@ export function SavingPage() {
             }}
           />
         </Field>
+        {reencode ? (
+          <div className="field-expansion">
+            <EncodeOptions
+              value={sv.reencode}
+              onChange={(fn) => {
+                update((d) => {
+                  d.saving.reencode = fn(d.saving.reencode);
+                });
+              }}
+              scope="saving"
+              errorPrefix="saving.reencode"
+            />
+          </div>
+        ) : (
+          <Field
+            label="Container"
+            description="MP4 plays everywhere. MKV survives crashes mid-write."
+          >
+            <Segmented<Container>
+              value={sv.container}
+              options={[
+                { value: "mp4", label: "MP4" },
+                { value: "mkv", label: "MKV" },
+              ]}
+              onChange={(v) => {
+                update((d) => {
+                  d.saving.container = v;
+                });
+              }}
+            />
+          </Field>
+        )}
       </Section>
 
       <Section title="After saving" description="Optional actions that run after every saved clip.">
@@ -165,12 +184,30 @@ export function SavingPage() {
             }}
           />
         </Field>
-        <Field label="Copy file path to clipboard">
+        <Field
+          label="Copy the video to the clipboard"
+          description="Paste it straight into Discord or a folder"
+        >
           <Toggle
-            value={sv.postSave.copyPath}
+            label="Copy the video to the clipboard"
+            value={sv.postSave.copyVideo}
+            onChange={(v) => {
+              update((d) => {
+                d.saving.postSave.copyVideo = v;
+                // One clipboard: the video or its path.
+                if (v) d.saving.postSave.copyPath = false;
+              });
+            }}
+          />
+        </Field>
+        <Field label="Copy file path to clipboard" description="As text, instead of the video">
+          <Toggle
+            label="Copy file path to clipboard"
+            value={sv.postSave.copyPath && !sv.postSave.copyVideo}
             onChange={(v) => {
               update((d) => {
                 d.saving.postSave.copyPath = v;
+                if (v) d.saving.postSave.copyVideo = false;
               });
             }}
           />

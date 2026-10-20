@@ -181,7 +181,7 @@ pub enum SaveMode {
     /// Copy buffered packets into the file (instant, no quality loss).
     #[default]
     Remux,
-    /// Re-encode with the export defaults after saving (smaller, slower).
+    /// Re-encode with `saving.reencode` after saving (smaller, slower).
     Reencode,
 }
 
@@ -412,13 +412,17 @@ impl<'de> Deserialize<'de> for LegacyHotkey {
     }
 }
 
-#[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 #[ts(export)]
 pub struct PostSaveActions {
     pub open_editor: bool,
     pub open_folder: bool,
+    /// Copy the clip's path as text. Ignored while `copy_video` is on (one clipboard).
     pub copy_path: bool,
+    /// Put the saved file itself on the clipboard, so Ctrl+V pastes the video
+    /// (Discord, Explorer, ...).
+    pub copy_video: bool,
     /// Command run after saving; `{path}` is replaced with the quoted clip path.
     pub run_command: Option<String>,
 }
@@ -431,8 +435,11 @@ pub struct SavingSettings {
     pub output_dir: Option<String>,
     /// Tokens: `{date}`, `{time}`, `{source}`, `{duration}`.
     pub filename_template: String,
+    /// Container of instant saves (the re-encoded file uses `reencode.container`).
     pub container: Container,
     pub save_mode: SaveMode,
+    /// What re-encode-on-save produces; independent of the editor's export defaults.
+    pub reencode: ExportDefaults,
     pub post_save: PostSaveActions,
 }
 
@@ -602,6 +609,18 @@ impl Default for HotkeySettings {
     }
 }
 
+impl Default for PostSaveActions {
+    fn default() -> Self {
+        Self {
+            open_editor: false,
+            open_folder: false,
+            copy_path: false,
+            copy_video: true,
+            run_command: None,
+        }
+    }
+}
+
 impl Default for SavingSettings {
     fn default() -> Self {
         Self {
@@ -609,6 +628,7 @@ impl Default for SavingSettings {
             filename_template: "Vido_{date}_{time}".into(),
             container: Container::Mp4,
             save_mode: SaveMode::Remux,
+            reencode: ExportDefaults::high_quality(),
             post_save: PostSaveActions::default(),
         }
     }
@@ -631,6 +651,20 @@ impl Default for ExportDefaults {
             scale: ScalePreset::Native,
             fps: 0,
             mix_audio: true,
+        }
+    }
+}
+
+impl ExportDefaults {
+    /// The "High quality" preset (`src/features/export/presets.ts`): H.264 CRF 18 in
+    /// MP4 at the source resolution and frame rate. Used for re-encode-on-save, which
+    /// keeps every audio track (the clip it replaces may be edited later).
+    pub fn high_quality() -> Self {
+        Self {
+            quality: 18,
+            audio_bitrate_kbps: 192,
+            mix_audio: false,
+            ..Self::default()
         }
     }
 }
@@ -710,6 +744,17 @@ impl Settings {
         let mut notes = self.migrate_legacy_names();
         notes.extend(self.hotkeys.migrate_legacy_saves());
         notes.extend(self.audio.drop_duplicate_devices());
+        notes.extend(self.saving.post_save.one_clipboard_action());
+        // The re-encode options are reset on their own so the rest of the
+        // saving section (folder, template, ...) survives.
+        if let Err(e) = self.saving.reencode.validate_at("saving.reencode") {
+            notes.push(format!(
+                "saving.reencode reset to defaults: {} ({})",
+                e.message,
+                e.field.clone().unwrap_or_default()
+            ));
+            self.saving.reencode = ExportDefaults::high_quality();
+        }
         macro_rules! repair {
             ($section:ident) => {
                 if let Err(e) = self.$section.validate() {
@@ -1092,32 +1137,51 @@ impl SavingSettings {
                 "command must be a single line up to 1024 characters",
             )?;
         }
+        self.reencode.validate_at("saving.reencode")?;
         Ok(())
+    }
+}
+
+impl PostSaveActions {
+    /// The clipboard holds one thing: with both copy actions on (settings from before
+    /// `copy_video` existed), the video wins and the path option is switched off.
+    fn one_clipboard_action(&mut self) -> Option<String> {
+        (self.copy_video && self.copy_path).then(|| {
+            self.copy_path = false;
+            "saving.postSave.copyPath turned off: the video is copied to the clipboard instead"
+                .to_string()
+        })
     }
 }
 
 impl ExportDefaults {
     pub fn validate(&self) -> AppResult<()> {
-        check_range(self.quality, 0, 63, "export.quality")?;
-        check_range(self.bitrate_kbps, 100, 200_000, "export.bitrateKbps")?;
+        self.validate_at("export")
+    }
+
+    /// Validates with error fields under `prefix` (`export`, `saving.reencode`).
+    pub fn validate_at(&self, prefix: &str) -> AppResult<()> {
+        let f = |name: &str| format!("{prefix}.{name}");
+        check_range(self.quality, 0, 63, &f("quality"))?;
+        check_range(self.bitrate_kbps, 100, 200_000, &f("bitrateKbps"))?;
         if self.max_bitrate_kbps != 0 {
             check(
                 self.max_bitrate_kbps >= self.bitrate_kbps && self.max_bitrate_kbps <= 400_000,
-                "export.maxBitrateKbps",
+                &f("maxBitrateKbps"),
                 "peak bitrate must be at least the average bitrate",
             )?;
         }
-        check_finite(self.target_size_mb, "export.targetSizeMb")?;
-        check_range(self.target_size_mb, 1.0, 10_000.0, "export.targetSizeMb")?;
-        check_range(self.audio_bitrate_kbps, 32, 512, "export.audioBitrateKbps")?;
+        check_finite(self.target_size_mb, &f("targetSizeMb"))?;
+        check_range(self.target_size_mb, 1.0, 10_000.0, &f("targetSizeMb"))?;
+        check_range(self.audio_bitrate_kbps, 32, 512, &f("audioBitrateKbps"))?;
         check(
             ALLOWED_FPS.contains(&self.fps),
-            "export.fps",
+            &f("fps"),
             "must be one of 24, 30, 48, 60, 120 or source",
         )?;
         check(
             self.container.supports(self.video_codec, self.audio_codec),
-            "export.container",
+            &f("container"),
             "WebM requires AV1 video and Opus audio",
         )?;
         Ok(())
@@ -1486,6 +1550,99 @@ mod tests {
 
         // Default settings need no migration.
         assert!(Settings::default().repaired().1.is_empty());
+    }
+
+    #[test]
+    fn saving_options_from_older_files_get_defaults() {
+        // Written before `reencode` and `copyVideo` existed.
+        let s: Settings = serde_json::from_str(
+            r#"{ "saving": { "saveMode": "reencode", "container": "mkv",
+                 "postSave": { "openFolder": true } } }"#,
+        )
+        .unwrap();
+        s.validate().unwrap();
+        assert_eq!(s.saving.save_mode, SaveMode::Reencode);
+        assert_eq!(s.saving.container, Container::Mkv);
+        assert_eq!(s.saving.reencode, ExportDefaults::high_quality());
+        assert!(s.saving.post_save.open_folder);
+        assert!(
+            s.saving.post_save.copy_video,
+            "copying the video is on by default"
+        );
+        assert!(!s.saving.post_save.copy_path);
+    }
+
+    #[test]
+    fn reencode_on_save_defaults_to_high_quality() {
+        let d = SavingSettings::default().reencode;
+        assert_eq!(d.container, Container::Mp4);
+        assert_eq!(d.video_codec, VideoCodec::H264);
+        assert_eq!(d.rate_mode, RateMode::Quality);
+        assert_eq!(d.quality, 18);
+        assert_eq!(d.scale, ScalePreset::Native);
+        assert_eq!(d.fps, 0);
+        // Keeps every track of the clip it replaces.
+        assert!(!d.mix_audio);
+        d.validate_at("saving.reencode").unwrap();
+    }
+
+    #[test]
+    fn reencode_errors_name_their_field() {
+        let mut s = Settings::default();
+        s.saving.reencode.quality = 99;
+        assert_eq!(
+            s.validate().unwrap_err().field.as_deref(),
+            Some("saving.reencode.quality")
+        );
+        let mut s = Settings::default();
+        s.saving.reencode.container = Container::Webm;
+        assert_eq!(
+            s.validate().unwrap_err().field.as_deref(),
+            Some("saving.reencode.container")
+        );
+        // Re-encoding may produce WebM even though instant saves can't.
+        s.saving.reencode.video_codec = VideoCodec::Av1;
+        s.saving.reencode.audio_codec = AudioCodec::Opus;
+        s.validate().unwrap();
+        // The editor defaults keep their own field names.
+        let mut s = Settings::default();
+        s.export.fps = 59;
+        assert_eq!(
+            s.validate().unwrap_err().field.as_deref(),
+            Some("export.fps")
+        );
+    }
+
+    #[test]
+    fn repair_resets_only_the_reencode_options() {
+        let mut s = Settings::default();
+        s.saving.filename_template = "Clip_{time}".into();
+        s.saving.reencode.target_size_mb = 0.0;
+        let (fixed, notes) = s.repaired();
+        fixed.validate().unwrap();
+        assert_eq!(fixed.saving.reencode, ExportDefaults::high_quality());
+        assert_eq!(fixed.saving.filename_template, "Clip_{time}");
+        assert_eq!(notes.len(), 1, "{notes:?}");
+    }
+
+    #[test]
+    fn video_and_path_share_one_clipboard() {
+        // An older file that copied the path also gets the new video copy, which wins.
+        let s: Settings =
+            serde_json::from_str(r#"{ "saving": { "postSave": { "copyPath": true } } }"#).unwrap();
+        assert!(s.saving.post_save.copy_video && s.saving.post_save.copy_path);
+        let (fixed, notes) = s.repaired();
+        assert!(fixed.saving.post_save.copy_video);
+        assert!(!fixed.saving.post_save.copy_path);
+        assert_eq!(notes.len(), 1);
+        // Path only, video explicitly off: kept as is.
+        let s: Settings = serde_json::from_str(
+            r#"{ "saving": { "postSave": { "copyPath": true, "copyVideo": false } } }"#,
+        )
+        .unwrap();
+        let (fixed, notes) = s.repaired();
+        assert!(fixed.saving.post_save.copy_path && !fixed.saving.post_save.copy_video);
+        assert!(notes.is_empty());
     }
 
     #[test]

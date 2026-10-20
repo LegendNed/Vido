@@ -59,8 +59,11 @@ milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips 
 - **Save clip** (hotkey, tray, status bar) saves everything in the buffer; more hotkeys for manual
   recording, pause, open last clip, open editor.
 - Configurable folder and filename template (`Vido_{date}_{time}`, `{source}`, `{duration}`).
-- MP4 or MKV; instant copy or re-encode-on-save.
-- Post-save actions: open editor, open folder, copy path, run a command.
+- MP4 or MKV; instant copy or re-encode-on-save (its own presets and options, e.g. "25 MB" or
+  "High quality").
+- After saving, the video itself is copied to the clipboard (on by default), so Ctrl+V pastes it
+  into Discord or a folder. Other post-save actions: open editor, open folder, copy path, run a
+  command.
 
 **Clips**
 
@@ -87,6 +90,8 @@ milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips 
 
 **Export & compression**
 
+- Presets up front (Original, 10 / 25 / 50 MB, High quality, Small (HEVC)); everything else under
+  a collapsed **Advanced** section. The same options drive Saving → Re-encode and the Export page.
 - MP4 / MKV / WebM; H.264, HEVC, AV1; NVENC → AMF → QSV → CPU (x264/x265/SVT-AV1) fallback.
 - Quality (CRF/CQ), bitrate (avg/peak) or **target file size** (“8 MB”, “25”, “1.5 GB”) with an
   automatic second attempt if the first one overshoots.
