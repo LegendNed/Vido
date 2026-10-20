@@ -225,9 +225,12 @@ pub enum LogLevel {
 #[ts(export)]
 pub enum HudPosition {
     TopLeft,
+    /// Horizontally centred in the primary display's work area.
+    TopCenter,
     #[default]
     TopRight,
     BottomLeft,
+    BottomCenter,
     BottomRight,
 }
 
@@ -284,10 +287,29 @@ pub struct GeneralSettings {
 #[serde(rename_all = "camelCase", default)]
 #[ts(export)]
 pub struct HudSettings {
-    pub enabled: bool,
+    /// The always-visible pill (buffer state).
+    pub overlay: bool,
     pub position: HudPosition,
-    /// Show buffered seconds next to the indicator dot.
+    /// Show buffered seconds / the REC timer next to the indicator dot.
     pub show_details: bool,
+    /// Briefly show "Clip saved", recording and error messages in the overlay's
+    /// position, even while the permanent overlay is off.
+    pub clip_popup: bool,
+    // overlay was called nabled in older settings files. Only read, never written;
+    // Settings::repaired moves it to overlay.
+    #[serde(skip_serializing)]
+    #[ts(skip)]
+    enabled: Option<bool>,
+}
+
+impl HudSettings {
+    fn migrate_legacy_enabled(&mut self) -> Option<String> {
+        let enabled = self.enabled.take()?;
+        self.overlay = enabled;
+        Some(format!(
+            "general.hud.enabled renamed to overlay ({enabled})"
+        ))
+    }
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq, Eq)]
@@ -529,9 +551,11 @@ impl Default for GeneralSettings {
 impl Default for HudSettings {
     fn default() -> Self {
         Self {
-            enabled: true,
+            overlay: true,
             position: HudPosition::TopRight,
             show_details: true,
+            clip_popup: true,
+            enabled: None,
         }
     }
 }
@@ -748,6 +772,7 @@ impl Settings {
     pub fn repaired(mut self) -> (Self, Vec<String>) {
         let mut notes = self.migrate_legacy_names();
         notes.extend(self.hotkeys.migrate_legacy_saves());
+        notes.extend(self.general.hud.migrate_legacy_enabled());
         notes.extend(self.audio.drop_duplicate_devices());
         notes.extend(self.saving.post_save.one_clipboard_action());
         // The re-encode options are reset on their own so the rest of the
@@ -1311,6 +1336,55 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&SidebarMode::Small).unwrap(),
             "\"small\""
+        );
+    }
+
+    #[test]
+    fn hud_settings_from_older_files() {
+        // nabled was renamed to overlay; the clip popup is on for everyone.
+        let load = |json: &str| {
+            let s: Settings = serde_json::from_str(json).unwrap();
+            let (s, notes) = s.repaired();
+            s.validate().unwrap();
+            (s, notes)
+        };
+        let (s, notes) = load(
+            r#"{ "general": { "hud": { "enabled": false, "position": "bottomLeft",
+                 "showDetails": false } } }"#,
+        );
+        assert_eq!(notes.len(), 1, "{notes:?}");
+        let h = &s.general.hud;
+        assert!(!h.overlay);
+        assert!(h.clip_popup);
+        assert_eq!(h.position, HudPosition::BottomLeft);
+        assert!(!h.show_details);
+        assert_eq!(
+            h,
+            &HudSettings {
+                overlay: false,
+                position: HudPosition::BottomLeft,
+                show_details: false,
+                ..Default::default()
+            }
+        );
+        let (s, _) = load(r#"{ "general": { "hud": { "enabled": true } } }"#);
+        assert_eq!(s.general.hud, HudSettings::default());
+        // Written back under the new names only.
+        let json = serde_json::to_string(&s.general.hud).unwrap();
+        assert!(json.contains("\"overlay\":true"), "{json}");
+        assert!(json.contains("\"clipPopup\":true"), "{json}");
+        assert!(!json.contains("enabled"), "{json}");
+        // Current files and the new centre positions.
+        let (s, notes) = load(
+            r#"{ "general": { "hud": { "overlay": false, "clipPopup": false,
+                 "position": "topCenter" } } }"#,
+        );
+        assert!(notes.is_empty(), "{notes:?}");
+        assert!(!s.general.hud.overlay && !s.general.hud.clip_popup);
+        assert_eq!(s.general.hud.position, HudPosition::TopCenter);
+        assert_eq!(
+            serde_json::to_string(&HudPosition::BottomCenter).unwrap(),
+            "\"bottomCenter\""
         );
     }
 

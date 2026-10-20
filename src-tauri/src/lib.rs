@@ -305,6 +305,7 @@ pub fn run() {
             commands::open_folder,
             commands::get_hotkey_status,
             commands::set_hotkeys_suspended,
+            commands::preview_hud,
             commands::open_region_picker,
             commands::close_region_picker,
             commands::set_capture_region,

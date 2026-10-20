@@ -506,3 +506,79 @@ html.win-region #root {
   box-shadow: var(--shadow);
   cursor: default;
 }
+
+/* ---------------------------------------------------------------- Overlay page */
+
+/* Position picker: a small 16:9 screen with six spots (2 rows × 3 columns). */
+.overlay-screen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr 1fr 8px;
+  width: 224px;
+  aspect-ratio: 16 / 9;
+  padding: 4px 4px 0;
+  gap: 2px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--control);
+  overflow: hidden;
+}
+.overlay-screen .spot {
+  display: flex;
+  padding: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+.overlay-screen .spot:hover {
+  background: var(--subtle-hover);
+}
+.overlay-screen .spot:active {
+  background: var(--subtle-pressed);
+}
+.overlay-screen .spot.r0 {
+  align-items: flex-start;
+}
+.overlay-screen .spot.r1 {
+  align-items: flex-end;
+}
+.overlay-screen .spot.c0 {
+  justify-content: flex-start;
+}
+.overlay-screen .spot.c1 {
+  justify-content: center;
+}
+.overlay-screen .spot.c2 {
+  justify-content: flex-end;
+}
+.overlay-screen .mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--control-strong);
+  transition: border-color 0.15s var(--ease);
+}
+.overlay-screen .spot:hover .mark {
+  border-color: var(--text-2);
+}
+.overlay-screen .mini-pill {
+  display: flex;
+  align-items: center;
+  width: 34px;
+  height: 12px;
+  padding-left: 3px;
+  border-radius: 6px;
+  background: var(--accent);
+}
+.overlay-screen .mini-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--on-accent);
+}
+.overlay-screen .taskbar {
+  grid-column: 1 / -1;
+  margin: 0 -4px;
+  background: var(--panel-3);
+}
