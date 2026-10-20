@@ -71,8 +71,10 @@ export const AUDIO_CODEC_OPTIONS: Option<AudioCodec>[] = [
 
 export const HUD_POSITIONS: Option<HudPosition>[] = [
   { value: "topLeft", label: "Top left" },
+  { value: "topCenter", label: "Top centre" },
   { value: "topRight", label: "Top right" },
   { value: "bottomLeft", label: "Bottom left" },
+  { value: "bottomCenter", label: "Bottom centre" },
   { value: "bottomRight", label: "Bottom right" },
 ];
 

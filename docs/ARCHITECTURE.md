@@ -172,10 +172,11 @@ bindings`). `src/lib/tauri/commands.ts` wraps every command with typed arguments
 | Export       | `estimate_export`, `export_clip`, `cancel_export`                                                                                                      |
 | Windows      | `open_editor`, `show_main_window`, `pick_folder`, `pick_export_path`, `open_folder`, `open_region_picker`, `close_region_picker`, `set_capture_region` |
 | Hotkeys      | `get_hotkey_status`, `set_hotkeys_suspended`                                                                                                           |
+| Overlay      | `preview_hud` (sample "Clip saved" popup; the overlay itself is `hud.rs`, driven by settings and Rust events)                                          |
 
 **Events:** `buffer-status`, `capture-error` (capture/audio/save problems with severity + hint),
 `audio-devices-changed`, `audio-levels`, `export-progress`, `export-completed`, `export-failed`,
-`hotkey-triggered`, `clip-saved`, `clips-changed`, `settings-changed`, `editor-open`, `hud-toast`,
+`hotkey-triggered`, `clip-saved`, `clips-changed`, `settings-changed`, `editor-open`,
 `navigate`.
 
 ## Error handling & resilience

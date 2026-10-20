@@ -17,7 +17,6 @@ import {
   codecOptions,
   encoderOptions,
   FPS_OPTIONS,
-  HUD_POSITIONS,
   QUALITY_OPTIONS,
   SCALE_OPTIONS,
   STORAGE_OPTIONS,
@@ -383,43 +382,6 @@ export function CapturePage() {
             onChange={(v) => {
               update((d) => {
                 d.capture.bufferMaxMb = v ? 4096 : null;
-              });
-            }}
-          />
-        </Field>
-      </Section>
-
-      <Section
-        title="Recording indicator"
-        description="A small overlay that is hidden from your recordings."
-      >
-        <Field label="Show overlay">
-          <Toggle
-            value={settings.general.hud.enabled}
-            onChange={(v) => {
-              update((d) => {
-                d.general.hud.enabled = v;
-              });
-            }}
-          />
-        </Field>
-        <Field label="Position">
-          <Select
-            value={settings.general.hud.position}
-            options={HUD_POSITIONS}
-            onChange={(v) => {
-              update((d) => {
-                d.general.hud.position = v;
-              });
-            }}
-          />
-        </Field>
-        <Field label="Show buffer details">
-          <Toggle
-            value={settings.general.hud.showDetails}
-            onChange={(v) => {
-              update((d) => {
-                d.general.hud.showDetails = v;
               });
             }}
           />

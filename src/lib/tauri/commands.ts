@@ -94,6 +94,10 @@ export const commands = {
   getHotkeyStatus: () => invoke<HotkeyStatus[]>("get_hotkey_status"),
   setHotkeysSuspended: (suspended: boolean) =>
     invoke<undefined>("set_hotkeys_suspended", { suspended }),
+
+  // Overlay
+  /** Shows a sample "Clip saved" popup in the overlay's position (whatever the toggles). */
+  previewHud: () => invoke<undefined>("preview_hud"),
   openRegionPicker: (monitorId?: string) => invoke<undefined>("open_region_picker", { monitorId }),
   closeRegionPicker: () => invoke<undefined>("close_region_picker"),
   setCaptureRegion: (region: RegionRect) => invoke<Settings>("set_capture_region", { region }),

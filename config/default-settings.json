@@ -8,9 +8,10 @@
     "startBufferOnLaunch": true,
     "soundOnSave": true,
     "hud": {
-      "enabled": true,
+      "overlay": true,
       "position": "topRight",
-      "showDetails": true
+      "showDetails": true,
+      "clipPopup": true
     },
     "sidebar": "full"
   },
