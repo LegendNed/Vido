@@ -77,8 +77,11 @@ milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips 
   the edit the original's name (and date) and moves the original to the Recycle Bin. Both keep
   the source resolution, frame rate and codec, and stream-copy when only trimming.
 - Video above a timeline: time ruler, the video row with draggable trim handles and keyframe
-  ticks, and one lane per audio track with its waveform, mute and volume (0–200 %). The recorded
-  mix lane follows the source lanes; frame-accurate scrubbing and stepping, Set in / Set out.
+  ticks, and one lane per audio track with its waveform, mute and volume (0–200 %; double-click
+  the slider for 100 %). The recorded mix lane follows the source lanes; frame-accurate scrubbing
+  and stepping, Set in / Set out.
+- Lane changes are heard live while previewing: each track plays from its own copy (no
+  re-encode, cached in `cache\preview`, cleaned after a day) through a Web Audio gain.
 - Crop from the toolbar under the video (free, 16:9, 9:16, 1:1, 4:3).
 - The side panel is Export only. Exports get one track (the audible lanes mixed; an untouched
   recorded mix is copied as is) or, optionally, separate tracks; Save keeps the clip's track layout.

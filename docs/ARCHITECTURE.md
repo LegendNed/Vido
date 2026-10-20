@@ -134,6 +134,18 @@ a wide `DROPFILES` list + `Preferred DropEffect` = copy) with plain Win32 clipbo
 so the STA main thread is never involved. If a re-encode later gives the file a new name, the
 clipboard follows it unless something else was copied meanwhile (clipboard sequence number).
 
+## Editor audio preview
+
+A `<video>` element only plays a file's first audio track, so the editor can't preview lane
+changes with it. `prepare_audio_preview` (`export::preview`) copies every audio track into its
+own small file in one pass (AAC → `.m4a`, Opus → `.webm`; timestamps kept so they line up with
+the video), cached in `cache\preview` by path, size and date and pruned after a day. The editor
+(`useLaneAudio`) plays them as hidden `<audio>` elements, each through a Web Audio `GainNode`
+set from its lane (an untouched recorded mix plays as recorded; once a lane changes, the sources
+play instead — the same rule as exports), muting the video and following its play, pause and
+seeks with drift correction. The asset protocol sends CORS headers for the app origin, which Web
+Audio requires. If a track can't be prepared, the preview falls back to the video's own audio.
+
 ## Appearance
 
 `theme.rs` decides Mica support (Windows build ≥ 22000) and watches the Windows accent palette

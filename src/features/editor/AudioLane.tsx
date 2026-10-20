@@ -85,6 +85,10 @@ export const AudioLane = memo(function AudioLane({
                   onChange(index, { volume: v / 100 }, false);
                 }}
                 onCommit={onCommit}
+                title="Volume (double-click for 100 %)"
+                onDoubleClick={() => {
+                  onChange(index, { volume: 1 }, true);
+                }}
               />
               <span
                 className="lane-pct"

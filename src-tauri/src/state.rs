@@ -41,3 +41,8 @@ impl AppState {
 pub fn thumbs_dir(paths: &AppPaths) -> PathBuf {
     paths.default_cache_dir.join("thumbs")
 }
+
+/// Per-track audio copies for the editor's live preview (`export::preview`).
+pub fn preview_dir(paths: &AppPaths) -> PathBuf {
+    paths.default_cache_dir.join("preview")
+}

@@ -226,6 +226,8 @@ export function Slider({
   step = 1,
   onChange,
   onCommit,
+  onDoubleClick,
+  title,
   width,
 }: {
   value: number;
@@ -235,6 +237,9 @@ export function Slider({
   onChange: (v: number) => void;
   /** Called when the user releases the slider (for undo history). */
   onCommit?: () => void;
+  /** E.g. reset to the default value. */
+  onDoubleClick?: () => void;
+  title?: string;
   width?: number;
 }) {
   const pct = ((value - min) / (max - min)) * 100;
@@ -246,6 +251,8 @@ export function Slider({
       max={max}
       step={step}
       value={value}
+      title={title}
+      onDoubleClick={onDoubleClick}
       style={{ "--pct": `${pct}%`, ...(width ? { width } : {}) } as React.CSSProperties}
       onChange={(e) => {
         onChange(Number(e.target.value));

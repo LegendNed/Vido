@@ -1,6 +1,6 @@
 // Audio lanes as the editor shows and previews them (export semantics live in model.ts).
 
-import { editableLanes, isAudible, lanesChanged, UNITY, type LaneSet } from "./model";
+import { editableLanes, isAudible, lanesChanged, UNITY, type Lane, type LaneSet } from "./model";
 
 /**
  * Volume for the preview, which can only play the clip's first audio track: the
@@ -18,6 +18,20 @@ export function previewGain(s: LaneSet): number {
   }
   const first = s.lanes[0] ?? UNITY;
   return isAudible(first) ? first.volume : 0;
+}
+
+/**
+ * Gain per audio track for the live lane mix (`useLaneAudio`), matching what an
+ * export would contain: an untouched recorded mix plays as recorded; once a lane
+ * changes, the source lanes play with their volumes instead of the mix.
+ */
+export function laneGains(s: LaneSet): number[] {
+  const gain = (l: Lane) => (isAudible(l) ? l.volume : 0);
+  if (s.recordedMix) {
+    const changed = lanesChanged(s);
+    return s.lanes.map((l, i) => (i === 0 ? (changed ? 0 : 1) : changed ? gain(l) : 0));
+  }
+  return s.lanes.map(gain);
 }
 
 /** What the preview cannot play as exported, if anything. */

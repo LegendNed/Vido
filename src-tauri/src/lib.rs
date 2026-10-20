@@ -107,6 +107,7 @@ fn setup(
     let scope = app.asset_protocol_scope();
     let _ = scope.allow_directory(&output_dir, true);
     let _ = scope.allow_directory(state::thumbs_dir(&paths), true);
+    let _ = scope.allow_directory(state::preview_dir(&paths), true);
 
     app.manage(AppState {
         paths,
@@ -277,6 +278,7 @@ pub fn run() {
             commands::open_clip_external,
             commands::copy_clip_path,
             commands::get_waveform,
+            commands::prepare_audio_preview,
             commands::take_screenshot,
             commands::estimate_export,
             commands::export_clip,

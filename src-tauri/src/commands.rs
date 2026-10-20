@@ -328,6 +328,22 @@ pub async fn get_waveform(path: String, track: u32, buckets: u32) -> AppResult<V
     blocking(move || export::frames::waveform(&p, track, buckets as usize)).await
 }
 
+/// One playable copy per audio track (by track position; `null` if the webview
+/// can't play that codec), so the editor can mix the lanes live while previewing.
+#[tauri::command]
+pub async fn prepare_audio_preview(app: AppHandle, path: String) -> AppResult<Vec<Option<String>>> {
+    let p = ensure_media_file(&path)?;
+    blocking(move || {
+        let dir = crate::state::preview_dir(&app.state::<AppState>().paths);
+        let files = export::preview::audio_tracks(&p, &dir)?;
+        Ok(files
+            .into_iter()
+            .map(|f| f.map(|f| f.to_string_lossy().into_owned()))
+            .collect())
+    })
+    .await
+}
+
 /// Saves the frame at `timeSec` as a PNG next to the clip; returns its path.
 #[tauri::command]
 pub async fn take_screenshot(

@@ -22,7 +22,7 @@ import type { LaneView } from "./AudioLane";
 import { CropBar } from "./CropBar";
 import { CropOverlay } from "./CropOverlay";
 import { aspectCrop } from "./cropMath";
-import { mixWave, previewGain, previewNote } from "./lanes";
+import { laneGains, mixWave, previewGain, previewNote } from "./lanes";
 import {
   hasEdits,
   initialState,
@@ -36,6 +36,7 @@ import {
 import { SaveActions } from "./SaveEdit";
 import { Timeline } from "./Timeline";
 import { useHistory } from "./useHistory";
+import { useLaneAudio } from "./useLaneAudio";
 
 /** Waveform resolution (buckets across the whole clip). */
 const WAVE_BUCKETS = 1600;
@@ -222,14 +223,21 @@ function ClipEditor({
     }
   }, [current, playing, loop, s.trimStart, s.trimEnd, frame]);
 
-  // The preview approximates the lanes with the element's volume (it plays one track).
+  // The lanes play live (one Web Audio source per track) while the video stays muted.
+  // Until that is ready, the video's own first track approximates them with its volume.
+  const live = useLaneAudio(video, path, src, laneGains(s));
   const gain = previewGain(s);
   useEffect(() => {
     const v = video.current;
     if (!v) return;
+    if (live) {
+      v.volume = 1;
+      v.muted = true;
+      return;
+    }
     v.volume = clamp(gain, 0, 1);
     v.muted = gain <= 0;
-  }, [gain]);
+  }, [gain, live]);
 
   const seek = useCallback(
     (t: number) => {
@@ -390,7 +398,7 @@ function ClipEditor({
       };
     });
   }, [tracks, s.lanes, s.recordedMix, waves]);
-  const note = previewNote(s);
+  const note = live ? null : previewNote(s);
 
   return (
     <div className="editor">

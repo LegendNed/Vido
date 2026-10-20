@@ -63,6 +63,9 @@ export const commands = {
   copyClipPath: (path: string) => invoke<undefined>("copy_clip_path", { path }),
   getWaveform: (path: string, track: number, buckets: number) =>
     invoke<number[]>("get_waveform", { path, track, buckets }),
+  /** One playable copy per audio track (`null` if the webview can't play it). */
+  prepareAudioPreview: (path: string) =>
+    invoke<(string | null)[]>("prepare_audio_preview", { path }),
   takeScreenshot: (path: string, timeSec: number, crop?: CropRect) =>
     invoke<string>("take_screenshot", { path, timeSec, crop }),
 

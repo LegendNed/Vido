@@ -9,6 +9,7 @@ pub mod bitrate;
 pub mod edit;
 pub mod frames;
 pub mod manager;
+pub mod preview;
 pub mod probe;
 pub mod remux;
 pub mod transcode;

@@ -402,3 +402,51 @@ fn screenshot_thumbnail_and_waveform() {
     let avg2: f32 = wf2.iter().sum::<f32>() / wf2.len() as f32;
     assert!(avg2 < avg, "mic track is quieter");
 }
+
+#[test]
+fn audio_preview_copies_each_track_once() {
+    use vido_lib::export::preview;
+    let dir = tempfile::tempdir().unwrap();
+    let src = make_clip(dir.path());
+    let cache = dir.path().join("preview");
+    let files = preview::audio_tracks(&src, &cache).unwrap();
+    assert_eq!(files.len(), 2);
+    for f in &files {
+        let f = f.as_ref().expect("AAC is playable");
+        assert_eq!(f.extension().unwrap(), "m4a");
+        let info = probe::describe(&Demuxer::open(f).unwrap()).unwrap();
+        assert!(info.video.is_none());
+        assert_eq!(info.audio.len(), 1);
+        assert!((info.duration - 6.0).abs() < 0.1, "{}", info.duration);
+    }
+    // Each copy holds exactly that track's packets (not the first track twice).
+    let packets = |path: &Path, stream: usize| {
+        let mut dmx = Demuxer::open(path).unwrap();
+        let mut pkt = av::Packet::new();
+        let mut out = Vec::new();
+        while dmx.read(&mut pkt).unwrap() {
+            if pkt.stream_index() == stream {
+                out.push(pkt.data().to_vec());
+            }
+            pkt.unref();
+        }
+        out
+    };
+    let info = probe::probe(&src).unwrap();
+    for (k, (stream, _)) in info.audio.iter().enumerate() {
+        let copy = packets(files[k].as_ref().unwrap(), 0);
+        assert!(!copy.is_empty());
+        assert_eq!(copy, packets(&src, *stream), "track {k}");
+    }
+    // Same version of the clip: reused, not rewritten.
+    let before = std::fs::metadata(files[0].as_ref().unwrap())
+        .unwrap()
+        .modified()
+        .unwrap();
+    assert_eq!(preview::audio_tracks(&src, &cache).unwrap(), files);
+    let after = std::fs::metadata(files[0].as_ref().unwrap())
+        .unwrap()
+        .modified()
+        .unwrap();
+    assert_eq!(before, after);
+}
