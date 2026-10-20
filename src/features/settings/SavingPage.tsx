@@ -1,6 +1,11 @@
 import { Badge, Button, Field, Section, Segmented, TextInput, Toggle } from "../../components/ui";
 import { commands } from "../../lib/tauri/commands";
-import { errorMessage, type Container, type SaveMode } from "../../lib/tauri/types";
+import {
+  errorMessage,
+  type Container,
+  type ExportDefaults,
+  type SaveMode,
+} from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 import { EncodeOptions } from "../export/EncodeOptions";
 
@@ -132,10 +137,11 @@ export function SavingPage() {
         {reencode ? (
           <div className="field-expansion">
             <EncodeOptions
-              value={sv.reencode}
+              value={withoutCopy(sv.reencode)}
               onChange={(fn) => {
                 update((d) => {
-                  d.saving.reencode = fn(d.saving.reencode);
+                  // Re-encoding on save never copies the video: no "Original" here.
+                  d.saving.reencode = { ...fn(withoutCopy(d.saving.reencode)), streamCopy: false };
                 });
               }}
               scope="saving"
@@ -250,4 +256,11 @@ export function SavingPage() {
       </Section>
     </div>
   );
+}
+
+/** The re-encode options without `streamCopy`, so the "Original" preset isn't offered. */
+function withoutCopy(d: ExportDefaults): Omit<ExportDefaults, "streamCopy"> {
+  const rest: Partial<ExportDefaults> = { ...d };
+  delete rest.streamCopy;
+  return rest as Omit<ExportDefaults, "streamCopy">;
 }

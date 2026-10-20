@@ -23,4 +23,9 @@ fps: 0 | 24 | 30 | 48 | 60 | 120,
 /**
  * Mix kept audio tracks into one (best compatibility) instead of keeping them separate.
  */
-mixAudio: boolean, };
+mixAudio: boolean, 
+/**
+ * Editor exports copy the video when the edit allows it ("Original" preset);
+ * off = re-encode with the settings above. Not used by re-encode-on-save.
+ */
+streamCopy: boolean, };

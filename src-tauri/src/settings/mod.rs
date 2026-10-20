@@ -496,6 +496,9 @@ pub struct ExportDefaults {
     pub fps: u32,
     /// Mix kept audio tracks into one (best compatibility) instead of keeping them separate.
     pub mix_audio: bool,
+    /// Editor exports copy the video when the edit allows it ("Original" preset);
+    /// off = re-encode with the settings above. Not used by re-encode-on-save.
+    pub stream_copy: bool,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
@@ -669,8 +672,9 @@ impl Default for SavingSettings {
 }
 
 impl Default for ExportDefaults {
-    /// The "High quality" preset (`src/features/export/presets.ts`): H.264 CRF 18 in
-    /// MP4 at the source resolution and frame rate, audio mixed into one track.
+    /// The "Original" preset (`src/features/export/presets.ts`): copy the video when only
+    /// trimming, else H.264 CRF 18 in MP4 at the source resolution and frame rate;
+    /// audio mixed into one track.
     fn default() -> Self {
         Self {
             container: Container::Mp4,
@@ -687,6 +691,7 @@ impl Default for ExportDefaults {
             scale: ScalePreset::Native,
             fps: 0,
             mix_audio: true,
+            stream_copy: true,
         }
     }
 }
@@ -697,6 +702,7 @@ impl ExportDefaults {
     pub fn high_quality() -> Self {
         Self {
             mix_audio: false,
+            stream_copy: false,
             ..Self::default()
         }
     }

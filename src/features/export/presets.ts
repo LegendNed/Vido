@@ -4,7 +4,7 @@ import type { ExportDefaults } from "../../lib/tauri/types";
  * Encode options as edited by `EncodeOptions`: the export-defaults shape, plus
  * `streamCopy` where copying the video is possible (the editor's export).
  */
-export type EncodeValues = ExportDefaults & { streamCopy?: boolean };
+export type EncodeValues = Omit<ExportDefaults, "streamCopy"> & { streamCopy?: boolean };
 
 export interface Preset {
   id: string;

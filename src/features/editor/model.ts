@@ -62,8 +62,8 @@ export function initialState(d: ClipDetails, defaults: ExportDefaults): EditStat
     recordedMix: hasMixStructure(d),
     x: {
       ...defaults,
-      // Trim-only edits default to a lossless, instant export.
-      streamCopy: true,
+      // "Original" (the default): trim-only edits export lossless and instant.
+      streamCopy: defaults.streamCopy,
       outputPath: null,
       mixAudio: defaults.mixAudio,
     },

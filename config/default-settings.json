@@ -94,7 +94,8 @@
       "audioBitrateKbps": 192,
       "scale": "native",
       "fps": 0,
-      "mixAudio": false
+      "mixAudio": false,
+      "streamCopy": false
     },
     "postSave": {
       "openEditor": false,
@@ -118,7 +119,8 @@
     "audioBitrateKbps": 192,
     "scale": "native",
     "fps": 0,
-    "mixAudio": true
+    "mixAudio": true,
+    "streamCopy": true
   },
   "advanced": {
     "logLevel": "info",

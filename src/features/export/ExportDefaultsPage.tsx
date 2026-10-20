@@ -13,8 +13,8 @@ export function ExportDefaultsPage() {
         <h1>Export & compression</h1>
       </div>
       <p className="muted" style={{ margin: 0 }}>
-        What the editor's Export panel starts with. Trims without other changes are exported without
-        re-encoding.
+        What the editor's Export panel starts with. Original copies the video when you only trim
+        (lossless and instant).
       </p>
       <Section
         title="Default export"
