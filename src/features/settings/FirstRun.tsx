@@ -29,6 +29,8 @@ export function FirstRun() {
   const current = useApp((s) => s.settings);
   const setSettings = useApp((s) => s.setSettingsFromBackend);
   const notify = useApp((s) => s.notify);
+  const redo = useApp((s) => s.redoSetup);
+  const setRedo = useApp((s) => s.setRedoSetup);
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Settings | null>(current);
   const [displays, setDisplays] = useState<DisplayInfo[]>([]);
@@ -59,6 +61,7 @@ export function FirstRun() {
       notify("error", "Could not start the buffer", errorMessage(e));
     } finally {
       setBusy(false);
+      setRedo(false);
       commands.getSettings().then(setSettings, () => undefined);
     }
   };
@@ -197,6 +200,16 @@ export function FirstRun() {
         )}
 
         <div className="row" style={{ marginTop: 20 }}>
+          {redo && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setRedo(false);
+              }}
+            >
+              Cancel
+            </Button>
+          )}
           {step > 0 && (
             <Button
               variant="ghost"

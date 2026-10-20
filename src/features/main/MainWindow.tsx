@@ -112,6 +112,7 @@ export function MainWindow() {
   const init = useApp((s) => s.init);
   const settings = useApp((s) => s.settings);
   const status = useApp((s) => s.status);
+  const redoSetup = useApp((s) => s.redoSetup);
   const [page, setPage] = useState<PageId>(() => {
     const p = windowInit().page;
     return isPage(p) ? p : "clips";
@@ -165,7 +166,7 @@ export function MainWindow() {
         {page === "export" && <ExportDefaultsPage />}
         {page === "advanced" && <AdvancedPage />}
       </main>
-      {!settings.firstRunCompleted && <FirstRun />}
+      {(!settings.firstRunCompleted || redoSetup) && <FirstRun />}
       <Notices />
     </div>
   );

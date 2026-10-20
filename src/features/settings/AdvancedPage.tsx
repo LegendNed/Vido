@@ -26,6 +26,7 @@ export function AdvancedPage() {
   const notify = useApp((s) => s.notify);
   const setSettings = useApp((s) => s.setSettingsFromBackend);
   const fieldError = useApp((s) => s.fieldError);
+  const setRedoSetup = useApp((s) => s.setRedoSetup);
   const [probing, setProbing] = useState(false);
   if (!settings) return null;
   const adv = settings.advanced;
@@ -70,6 +71,22 @@ export function AdvancedPage() {
               );
             }}
           />
+        </Field>
+      </Section>
+
+      <Section title="Setup">
+        <Field
+          label="Run setup again"
+          description="Walks through display, audio, clip length and the save hotkey again. Your current settings are the starting point; Cancel keeps them."
+        >
+          <Button
+            icon="refresh"
+            onClick={() => {
+              setRedoSetup(true);
+            }}
+          >
+            Run setup
+          </Button>
         </Field>
       </Section>
 

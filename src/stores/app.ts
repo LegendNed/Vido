@@ -35,6 +35,9 @@ interface AppStore {
   caps: EncoderCapabilities | null;
   notices: Notice[];
   fieldError: AppError | null;
+  /** The setup wizard was reopened from Advanced (not persisted). */
+  redoSetup: boolean;
+  setRedoSetup: (v: boolean) => void;
   init: () => Promise<void>;
   setStatus: (s: BufferStatus) => void;
   setSettingsFromBackend: (s: Settings) => void;
@@ -57,6 +60,11 @@ export const useApp = create<AppStore>((set, get) => ({
   caps: null,
   notices: [],
   fieldError: null,
+  redoSetup: false,
+
+  setRedoSetup: (redoSetup) => {
+    set({ redoSetup });
+  },
 
   init: async () => {
     const [info, settings, status] = await Promise.all([
