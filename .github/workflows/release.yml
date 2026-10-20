@@ -1,0 +1,57 @@
+name: Release
+
+# Publishing a GitHub release builds the installer and portable zip and attaches
+# them with fixed names, so these links always point at the newest release:
+#   https://github.com/LegendNed/Vido/releases/latest/download/Vido-setup.exe
+#   https://github.com/LegendNed/Vido/releases/latest/download/Vido-portable-x64.zip
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm version comes from "packageManager" in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Fetch FFmpeg dev build
+        shell: pwsh
+        run: ./scripts/fetch-ffmpeg.ps1
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build installer
+        run: pnpm tauri build
+
+      - name: Build portable zip
+        shell: pwsh
+        run: ./scripts/package-portable.ps1 -SkipBuild
+
+      - name: Attach to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          $zip = Get-ChildItem release/*-portable-x64.zip | Select-Object -First 1
+          Copy-Item $setup.FullName Vido-setup.exe
+          Copy-Item $zip.FullName Vido-portable-x64.zip
+          gh release upload "${{ github.event.release.tag_name }}" Vido-setup.exe Vido-portable-x64.zip --clobber
