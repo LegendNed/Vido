@@ -11,18 +11,14 @@ import { useBackendSync } from "../../lib/useBackendSync";
 import { useApp } from "../../stores/app";
 import { useDeviceSync } from "../audio/useDeviceSync";
 import { ClipsPage } from "../clips/ClipsPage";
-import { HotkeysPage } from "../hotkeys/HotkeysPage";
-import { OverlayPage } from "../overlay/OverlayPage";
-import { RecordingPage } from "../recording/RecordingPage";
+import { OverviewPage } from "../overview/OverviewPage";
 import { FirstRun } from "../settings/FirstRun";
 import { isSettingsGroup, type SettingsGroupId, type SettingsTarget } from "../settings/groups";
 import { SettingsPage } from "../settings/SettingsPage";
 
 const PAGES = [
+  { id: "overview", label: "Overview", icon: "home" },
   { id: "clips", label: "Clips", icon: "film" },
-  { id: "recording", label: "Recording", icon: "record" },
-  { id: "hotkeys", label: "Hotkeys", icon: "keyboard" },
-  { id: "overlay", label: "Overlay", icon: "overlay" },
   { id: "settings", label: "Settings", icon: "cog" },
 ] as const satisfies readonly { id: string; label: string; icon: IconName }[];
 
@@ -32,30 +28,28 @@ function isPage(p: string | null | undefined): p is PageId {
   return PAGES.some((x) => x.id === p);
 }
 
-/** Page ids from before the regrouping that are pages of their own again. */
-const OLD_PAGES: Partial<Record<string, PageId>> = {
+/** Old page ids that are now Settings groups. */
+const OLD_PAGES: Partial<Record<string, SettingsGroupId>> = {
   capture: "recording",
   audio: "recording",
 };
 
 /**
  * Resolves a page id from `navigate` / window init: a page, a Settings group
- * (`saving`, `export`, `general`, `advanced`, …: Settings scrolled to it) or an old id.
+ * (`recording`, `hotkeys`, `overlay`, `saving`, …: Settings scrolled to it) or an old id.
  */
 function resolvePage(
   p: string | null | undefined,
 ): { page: PageId; group?: SettingsGroupId } | null {
   if (!p) return null;
   if (isPage(p)) return { page: p };
-  const old = OLD_PAGES[p];
-  if (old) return { page: old };
-  if (isSettingsGroup(p)) return { page: "settings", group: p };
-  return null;
+  const group = OLD_PAGES[p] ?? (isSettingsGroup(p) ? p : undefined);
+  return group ? { page: "settings", group } : null;
 }
 
 /**
  * Store-style navigation rail: icon above a label ("full") or icons only ("small").
- * Clips stands apart at the top and Settings sits at the bottom, like in Windows apps.
+ * Overview and Clips at the top, Settings at the bottom, like in Windows apps.
  */
 function Rail({
   page,
@@ -83,12 +77,9 @@ function Rail({
       <span className="nav-label">{p.label}</span>
     </button>
   );
-  const edge = (p: { id: PageId }) => p.id === "clips" || p.id === "settings";
   return (
     <nav className="sidebar" aria-label="Pages">
-      {PAGES.filter((p) => p.id === "clips").map(item)}
-      <div className="nav-sep" />
-      {PAGES.filter((p) => !edge(p)).map(item)}
+      {PAGES.filter((p) => p.id !== "settings").map(item)}
       <div className="nav-fill" />
       {PAGES.filter((p) => p.id === "settings").map(item)}
       {!small && info && (
@@ -155,6 +146,13 @@ export function MainWindow() {
     setPage(p);
     setTarget(null);
   };
+  const go = (id: string) => {
+    const r = resolvePage(id);
+    if (!r) return;
+    setPage(r.page);
+    const group = r.group;
+    setTarget(group ? (t) => ({ group, seq: (t?.seq ?? 0) + 1 }) : null);
+  };
 
   if (loadError) {
     return (
@@ -184,10 +182,8 @@ export function MainWindow() {
             <Banner>{w}</Banner>
           </div>
         ))}
+        {page === "overview" && <OverviewPage go={go} />}
         {page === "clips" && <ClipsPage />}
-        {page === "recording" && <RecordingPage />}
-        {page === "hotkeys" && <HotkeysPage />}
-        {page === "overlay" && <OverlayPage />}
         {page === "settings" && <SettingsPage target={target} />}
       </main>
       {(!settings.firstRunCompleted || redoSetup) && <FirstRun />}

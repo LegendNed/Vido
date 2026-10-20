@@ -109,7 +109,7 @@ export function FirstRun() {
               })}
             </div>
             <p className="muted small">
-              You can switch to a specific window or region later under Recording.
+              You can switch to a specific window or region later in Settings → Recording.
             </p>
           </>
         )}
@@ -194,7 +194,7 @@ export function FirstRun() {
               </Field>
             </div>
             <p className="muted small">
-              More shortcuts (recording, pause, …) are on the Hotkeys page.
+              More shortcuts (recording, pause, …) are in Settings → Hotkeys.
             </p>
           </>
         )}
