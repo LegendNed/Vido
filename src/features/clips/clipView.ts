@@ -26,8 +26,9 @@ export const SIZE_OPTIONS: { value: GridSize; label: string }[] = [
   { value: "large", label: "L" },
 ];
 
-const KEY = "vido.clips.view";
-const DEFAULT_VIEW: ClipView = { sort: "newest", groupByDate: false, size: "medium" };
+// v2: grouping by date became the default.
+const KEY = "vido.clips.view.v2";
+const DEFAULT_VIEW: ClipView = { sort: "newest", groupByDate: true, size: "medium" };
 
 export function loadView(): ClipView {
   try {
@@ -72,18 +73,25 @@ export function dateGroup(ms: number, now = new Date()): string {
   return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
-/** Consecutive runs of clips with the same heading (keeps the current sort order). */
+/**
+ * Clips under date headings: one group per heading, newest heading first; within a
+ * group the clips keep the current sort order.
+ */
 export function groupClips(
   clips: ClipInfo[],
   byDate: boolean,
 ): { title: string | null; clips: ClipInfo[] }[] {
   if (!byDate) return [{ title: null, clips }];
-  const out: { title: string; clips: ClipInfo[] }[] = [];
+  const groups = new Map<string, { clips: ClipInfo[]; newest: number }>();
   for (const c of clips) {
     const title = dateGroup(c.modifiedMs);
-    const last = out[out.length - 1];
-    if (last?.title === title) last.clips.push(c);
-    else out.push({ title, clips: [c] });
+    const g = groups.get(title);
+    if (g) {
+      g.clips.push(c);
+      g.newest = Math.max(g.newest, c.modifiedMs);
+    } else groups.set(title, { clips: [c], newest: c.modifiedMs });
   }
-  return out;
+  return [...groups.entries()]
+    .sort((a, b) => b[1].newest - a[1].newest)
+    .map(([title, g]) => ({ title, clips: g.clips }));
 }

@@ -89,8 +89,9 @@ export function ClipsPage({ open }: { open?: string | null }) {
     () => groupClips(sorted ?? [], view.groupByDate),
     [sorted, view.groupByDate],
   );
-  // The viewer steps through clips in the order shown.
-  const viewIndex = viewing && sorted ? sorted.findIndex((c) => c.path === viewing) : -1;
+  // The viewer steps through clips in the order shown (groups included).
+  const shown = useMemo(() => groups.flatMap((g) => g.clips), [groups]);
+  const viewIndex = viewing ? shown.findIndex((c) => c.path === viewing) : -1;
 
   return (
     <div className="page page-wide">
@@ -171,7 +172,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
             />
           </div>
           {groups.map((g, gi) => (
-            <section key={g.title ?? "all"} className="clip-group">
+            <section key={g.title ?? "all-clips"} className="clip-group">
               {g.title && <h2 className="clip-group-title">{g.title}</h2>}
               <div className={`clip-grid size-${view.size}`}>
                 {gi === 0 && featured && (
@@ -289,9 +290,9 @@ export function ClipsPage({ open }: { open?: string | null }) {
         </>
       )}
 
-      {sorted && viewIndex >= 0 && (
+      {viewIndex >= 0 && (
         <ClipViewer
-          clips={sorted}
+          clips={shown}
           index={viewIndex}
           onNavigate={setViewing}
           onClose={() => {
