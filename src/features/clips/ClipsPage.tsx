@@ -7,7 +7,7 @@ import {
   Button,
   Checkbox,
   ConfirmButton,
-  Segmented,
+  Slider,
   Select,
   Spinner,
 } from "../../components/ui";
@@ -21,9 +21,10 @@ import {
   groupClips,
   loadView,
   saveView,
-  SIZE_OPTIONS,
   SORT_OPTIONS,
   sortClips,
+  cardWidth,
+  GRID_STEPS,
   type ClipView,
 } from "./clipView";
 import { ClipViewer } from "./ClipViewer";
@@ -163,18 +164,29 @@ export function ClipsPage({ open }: { open?: string | null }) {
             <span className="muted small">
               {clips.length} clip{clips.length === 1 ? "" : "s"}
             </span>
-            <Segmented
-              value={view.size}
-              options={SIZE_OPTIONS}
-              onChange={(v) => {
-                setView({ size: v });
-              }}
-            />
+            <div className="grid-size" title="Card size">
+              <Icon name="gridSmall" size={14} />
+              <Slider
+                value={view.size}
+                min={1}
+                max={GRID_STEPS}
+                width={120}
+                onChange={(v) => {
+                  setView({ size: v });
+                }}
+              />
+              <Icon name="gridLarge" size={14} />
+            </div>
           </div>
           {groups.map((g, gi) => (
             <section key={g.title ?? "all-clips"} className="clip-group">
               {g.title && <h2 className="clip-group-title">{g.title}</h2>}
-              <div className={`clip-grid size-${view.size}`}>
+              <div
+                className="clip-grid"
+                style={{
+                  gridTemplateColumns: `repeat(auto-fill, minmax(${cardWidth(view.size)}px, 1fr))`,
+                }}
+              >
                 {gi === 0 && featured && (
                   <div className="clip-feature">
                     <ClipsHero
@@ -225,7 +237,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
                           <span className="spacer" />
                           <span>{formatBytes(c.sizeBytes)}</span>
                         </div>
-                        <div className="row" style={{ gap: 4, marginTop: 2 }}>
+                        <div className="clip-tags">
                           <Badge>
                             {c.height}p{Math.round(c.fps)}
                           </Badge>

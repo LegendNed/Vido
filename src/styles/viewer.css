@@ -334,15 +334,6 @@
 .clip-grid {
   grid-auto-flow: row dense;
 }
-.clip-grid.size-small {
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-}
-.clip-grid.size-medium {
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-}
-.clip-grid.size-large {
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-}
 /* The newest clip: the "Latest clip" banner style, the size of one card. */
 .clip-feature {
   min-height: 0;
@@ -387,4 +378,20 @@
   border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(6px);
+}
+
+/* Card size slider (1 = smallest cards). */
+.grid-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+/* Resolution / codec / tracks: wrap inside the card instead of spilling out. */
+.clip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+  min-width: 0;
 }

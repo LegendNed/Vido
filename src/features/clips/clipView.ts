@@ -3,12 +3,12 @@
 import type { ClipInfo } from "../../lib/tauri/types";
 
 export type ClipSort = "newest" | "oldest" | "longest" | "shortest" | "largest" | "name";
-export type GridSize = "small" | "medium" | "large";
 
 export interface ClipView {
   sort: ClipSort;
   groupByDate: boolean;
-  size: GridSize;
+  /** Grid size step, 1 (smallest cards) to `GRID_STEPS`. */
+  size: number;
 }
 
 export const SORT_OPTIONS: { value: ClipSort; label: string }[] = [
@@ -20,20 +20,30 @@ export const SORT_OPTIONS: { value: ClipSort; label: string }[] = [
   { value: "name", label: "Name" },
 ];
 
-export const SIZE_OPTIONS: { value: GridSize; label: string }[] = [
-  { value: "small", label: "S" },
-  { value: "medium", label: "M" },
-  { value: "large", label: "L" },
-];
+export const GRID_STEPS = 8;
+
+/** Minimum card width (px) for each grid size step. */
+const CARD_WIDTHS = [190, 220, 250, 280, 320, 360, 400, 450];
+
+export function cardWidth(step: number): number {
+  return CARD_WIDTHS[Math.min(Math.max(Math.round(step), 1), GRID_STEPS) - 1] ?? 250;
+}
 
 // v2: grouping by date became the default.
 const KEY = "vido.clips.view.v2";
-const DEFAULT_VIEW: ClipView = { sort: "newest", groupByDate: true, size: "medium" };
+const DEFAULT_VIEW: ClipView = { sort: "newest", groupByDate: true, size: 3 };
+/** Sizes saved before the slider (S / M / L). */
+const OLD_SIZES: Record<string, number> = { small: 1, medium: 3, large: 7 };
 
 export function loadView(): ClipView {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...DEFAULT_VIEW, ...(JSON.parse(raw) as Partial<ClipView>) };
+    if (raw) {
+      const v = { ...DEFAULT_VIEW, ...(JSON.parse(raw) as Partial<ClipView>) };
+      const size: unknown = v.size;
+      if (typeof size === "string") v.size = OLD_SIZES[size] ?? DEFAULT_VIEW.size;
+      return v;
+    }
   } catch {
     // Storage unavailable or garbage: defaults.
   }
