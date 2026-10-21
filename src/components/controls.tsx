@@ -597,7 +597,8 @@ export function Banner({
       className="banner"
     >
       <SeverityIcon severity={tone === "warn" ? "warning" : tone} />
-      <AlertDescription className="text-foreground/90">{children}</AlertDescription>
+      {/* Running text (with inline bold etc.), not shadcn's one-item-per-row grid. */}
+      <AlertDescription className="block text-foreground/90">{children}</AlertDescription>
     </Alert>
   );
 }
