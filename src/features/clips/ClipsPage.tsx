@@ -83,7 +83,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
 
   const canSave = status?.state === "buffering" || status?.state === "paused";
   const sorted = useMemo(() => (clips ? sortClips(clips, view.sort) : null), [clips, view.sort]);
-  // The newest clip is featured as a 2×2 tile, only when sorting newest first.
+  // The newest clip gets the "Latest clip" card (Play / Edit), only when sorting newest first.
   const featured = view.sort === "newest" ? sorted?.[0] : undefined;
   const groups = useMemo(
     () => groupClips(sorted ?? [], view.groupByDate),

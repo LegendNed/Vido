@@ -343,14 +343,10 @@
 .clip-grid.size-large {
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
 }
-/* The newest clip: a 2×2 tile at the top-left of the grid. */
+/* The newest clip: the "Latest clip" banner style, the size of one card. */
 .clip-feature {
-  grid-column: span 2;
-  grid-row: span 2;
   min-height: 0;
 }
-/* At least 16:9 (which also sizes the rows when the tile fills the whole row, e.g.
-   two columns); otherwise it stretches to the two rows of cards beside it. */
 .clip-feature .clips-hero {
   width: 100%;
   height: auto;
@@ -358,15 +354,26 @@
   min-height: 100%;
   max-height: none;
 }
-/* Only room for one column: a normal-sized tile. */
-@container (max-width: 520px) {
-  .clip-feature {
-    grid-column: span 1;
-    grid-row: span 1;
-  }
-  .clip-feature .clips-hero {
-    aspect-ratio: 16 / 10;
-  }
+.clip-feature .hero-body {
+  gap: 2px;
+  padding: 12px 14px;
+}
+.clip-feature .hero-body h2 {
+  font-size: 15px;
+}
+.clip-feature .hero-meta {
+  font-size: 11px;
+}
+.clip-feature .hero-actions {
+  margin-top: 6px;
+}
+.clip-feature .hero-actions .btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.clip-feature .hero-actions .btn.primary {
+  min-width: 0;
 }
 
 /* Open / folder / copy / delete on the featured clip, top-right over the image. */
