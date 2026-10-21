@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useState, type ReactNode } from "react";
 
-import { Button } from "../../components/ui";
+import { Button } from "../../components/controls";
 import { formatBytes, formatDate, formatDuration } from "../../lib/format";
 import type { ClipInfo } from "../../lib/tauri/types";
 import { clipSrc } from "./media";

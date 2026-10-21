@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon } from "../../components/Icon";
-import { Banner, Button, Spinner, Toggle } from "../../components/ui";
+import { Banner, Button, Spinner, Toggle } from "../../components/controls";
 import { clamp, formatTime } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import {

@@ -12,7 +12,7 @@ import {
   Select,
   Slider,
   Toggle,
-} from "../../components/ui";
+} from "../../components/controls";
 import { formatBitrate } from "../../lib/format";
 import {
   codecOptions,

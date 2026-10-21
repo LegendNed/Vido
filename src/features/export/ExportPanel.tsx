@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Banner, Button, Progress } from "../../components/ui";
+import { Banner, Button, Progress } from "../../components/controls";
 import { formatBitrate, formatBytes, formatDuration, formatTime } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";

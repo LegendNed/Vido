@@ -1,7 +1,7 @@
 import { memo, useCallback } from "react";
 
 import { Icon } from "../../components/Icon";
-import { Button, Slider } from "../../components/ui";
+import { Button, Slider } from "../../components/controls";
 import { paintWaveform, token, useCanvasPaint, type Paint } from "./canvas";
 import type { Lane } from "./model";
 
@@ -40,7 +40,7 @@ export const AudioLane = memo(function AudioLane({
   const paint = useCallback<Paint>(
     (g, w, h, css) => {
       if (!wave) return;
-      const color = token(css, "--muted", "rgba(170, 180, 200, 0.6)");
+      const color = token(css, "--text-muted", "rgba(170, 180, 200, 0.6)");
       // A derived mix is an estimate: never flag it as clipping.
       const clip = derived === undefined ? token(css, "--warn", "#fce100") : undefined;
       paintWaveform(g, w, h, wave, derived === undefined ? lane.volume : 1, color, clip);

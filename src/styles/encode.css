@@ -1,139 +1,142 @@
-/* ---------------------------------------------------------------- encode options
+/* In the `components` layer so Tailwind utilities (shadcn/ui) win over these. */
+@layer components {
+  /* ---------------------------------------------------------------- encode options
    Preset chips + "Advanced" expander (EncodeOptions), shared by the editor's
    Export panel, Saving → Re-encode and the Export settings page. */
 
-.encode {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-/* Selected preset: checked ToggleButton (accent fill). */
-.preset.on {
-  background: var(--accent);
-  border-color: var(--accent-stroke);
-  border-bottom-color: var(--accent-stroke-bottom);
-  color: var(--on-accent);
-}
-.preset.on:hover {
-  background: var(--accent-hover);
-}
-.preset.on:active {
-  background: var(--accent-pressed);
-  color: color-mix(in srgb, var(--on-accent) 75%, transparent);
-}
-.preset-hint {
-  min-height: 16px;
-  color: var(--muted);
-  font: 12px/16px var(--font-small);
-}
-
-.encode-card,
-.expander {
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-}
-.encode-card {
-  padding: 0 12px;
-}
-.encode-card > .field:first-child,
-.expander-body > .field:first-child {
-  border-top: none;
-}
-
-/* Fluent settings expander. */
-.expander-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 8px 8px 12px;
-  border: none;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.083s;
-}
-.expander-head:hover {
-  background: var(--subtle-hover);
-}
-.expander-head:active {
-  background: var(--subtle-pressed);
-}
-.expander.open .expander-head {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.expander-label {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.expander-label .desc {
-  color: var(--muted);
-  font: 12px/16px var(--font-small);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.expander-chevron {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  color: var(--text-2);
-  transform: rotate(90deg);
-  transition: transform 0.2s var(--ease);
-}
-.expander.open .expander-chevron {
-  transform: rotate(-90deg);
-}
-.expander-body {
-  padding: 0 12px;
-  border-top: 1px solid var(--border);
-  animation: expander-in 0.2s var(--ease);
-}
-@keyframes expander-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
+  .encode {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
   }
-}
 
-/* Inside a settings section (Saving → Re-encode, Export page): nested cards are recessed. */
-.section .encode {
-  padding: 4px 0 12px;
-}
-.section .encode-card,
-.section .expander {
-  background: var(--card-2);
-}
-.field-expansion {
-  margin-top: -4px;
-}
+  /* Selected preset: checked ToggleButton (accent fill). */
+  .preset.on {
+    background: var(--brand);
+    border-color: var(--accent-stroke);
+    border-bottom-color: var(--accent-stroke-bottom);
+    color: var(--on-accent);
+  }
+  .preset.on:hover {
+    background: var(--accent-hover);
+  }
+  .preset.on:active {
+    background: var(--accent-pressed);
+    color: color-mix(in srgb, var(--on-accent) 75%, transparent);
+  }
+  .preset-hint {
+    min-height: 16px;
+    color: var(--text-muted);
+    font: 12px/16px var(--font-small);
+  }
 
-/* Editor export: where the file goes. */
-.export-dest {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 8px 8px 12px;
-  border-radius: var(--radius);
-  background: var(--card);
-  border: 1px solid var(--stroke);
-}
-.export-dest-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  .encode-card,
+  .expander {
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+  }
+  .encode-card {
+    padding: 0 12px;
+  }
+  .encode-card > .field:first-child,
+  .expander-body > .field:first-child {
+    border-top: none;
+  }
+
+  /* Fluent settings expander. */
+  .expander-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 52px;
+    padding: 8px 8px 8px 12px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.083s;
+  }
+  .expander-head:hover {
+    background: var(--subtle-hover);
+  }
+  .expander-head:active {
+    background: var(--subtle-pressed);
+  }
+  .expander.open .expander-head {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .expander-label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .expander-label .desc {
+    color: var(--text-muted);
+    font: 12px/16px var(--font-small);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .expander-chevron {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    transform: rotate(90deg);
+    transition: transform 0.2s var(--ease);
+  }
+  .expander.open .expander-chevron {
+    transform: rotate(-90deg);
+  }
+  .expander-body {
+    padding: 0 12px;
+    border-top: 1px solid var(--border);
+    animation: expander-in 0.2s var(--ease);
+  }
+  @keyframes expander-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  /* Inside a settings section (Saving → Re-encode, Export page): nested cards are recessed. */
+  .section .encode {
+    padding: 4px 0 12px;
+  }
+  .section .encode-card,
+  .section .expander {
+    background: var(--card-2);
+  }
+  .field-expansion {
+    margin-top: -4px;
+  }
+
+  /* Editor export: where the file goes. */
+  .export-dest {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 12px;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--stroke);
+  }
+  .export-dest-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
 }

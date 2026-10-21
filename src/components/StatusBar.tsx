@@ -3,8 +3,9 @@ import { useState } from "react";
 import { formatBitrate, formatBytes, formatTime } from "../lib/format";
 import { commands } from "../lib/tauri/commands";
 import { errorMessage, type BufferStatus } from "../lib/tauri/types";
+import { cn } from "../lib/utils";
 import { useApp } from "../stores/app";
-import { Button } from "./ui";
+import { Button } from "./controls";
 
 const LABELS: Record<BufferStatus["state"], string> = {
   stopped: "Stopped",
@@ -15,12 +16,13 @@ const LABELS: Record<BufferStatus["state"], string> = {
   error: "Error",
 };
 
+/** Right side of the page header: buffer state and its buttons, then Save clip. */
 export function StatusBar() {
   const status = useApp((s) => s.status);
   const notify = useApp((s) => s.notify);
   const detailed = useApp((s) => s.settings?.general.detailedStatusBar ?? false);
   const [busy, setBusy] = useState(false);
-  if (!status) return <div className="statusbar" />;
+  if (!status) return null;
 
   const run = async (fn: () => Promise<unknown>, okMessage?: string) => {
     setBusy(true);
@@ -35,59 +37,56 @@ export function StatusBar() {
   };
 
   const live = status.state === "buffering";
-  const dotClass = live ? "live" : status.state === "stopped" ? "" : "warn";
   const canSave =
     status.state === "buffering" || status.state === "paused" || status.bufferedSeconds > 0;
+  const meta = detailed
+    ? [
+        status.source,
+        status.width > 0 ? `${status.width}×${status.height} @ ${Math.round(status.fps)}` : null,
+        status.encoder ? `${status.encoder}${status.zeroCopy ? " ⚡" : ""}` : null,
+        status.videoBitrateKbps > 0 ? formatBitrate(status.videoBitrateKbps) : null,
+        status.state !== "stopped"
+          ? `${Math.floor(status.bufferedSeconds)}/${status.targetSeconds} s · ${formatBytes(status.sizeBytes)} in ${status.storage}`
+          : null,
+        status.droppedFrames > 0 ? `${status.droppedFrames} dropped` : null,
+      ].filter(Boolean)
+    : [];
 
   return (
-    <div className="statusbar">
-      <span className="status-pill">
-        <span className={`dot ${dotClass}`} />
+    <div className="ml-auto flex min-w-0 items-center gap-1.5">
+      {meta.length > 0 && (
+        <span className="mr-2 hidden min-w-0 truncate text-xs text-muted-foreground lg:block">
+          {meta.join(" · ")}
+        </span>
+      )}
+      <span className="mr-1 inline-flex items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium">
+        <span
+          className={cn(
+            "size-2 rounded-full",
+            live || status.recording
+              ? "bg-rec"
+              : status.state === "stopped"
+                ? "bg-muted-foreground/50"
+                : "bg-warning",
+          )}
+        />
         {status.recording
           ? `REC ${formatTime(status.recording.elapsedSeconds, 0)}`
           : LABELS[status.state]}
-        {!detailed && !status.recording && status.state === "buffering" && (
-          <span className="status-seconds"> · {Math.floor(status.bufferedSeconds)} s</span>
+        {!status.recording && live && (
+          <span className="font-normal text-muted-foreground">
+            {Math.floor(status.bufferedSeconds)} s
+          </span>
         )}
       </span>
-      {detailed && (
-        <div className="status-meta">
-          {status.source && (
-            <span className="ellipsis" style={{ maxWidth: 220 }}>
-              {status.source}
-            </span>
-          )}
-          {status.width > 0 && (
-            <span>
-              {status.width}×{status.height} @ {Math.round(status.fps)}
-            </span>
-          )}
-          {status.encoder && (
-            <span title={status.zeroCopy ? "GPU zero-copy path" : "CPU copy path"}>
-              {status.encoder}
-              {status.zeroCopy ? " ⚡" : ""}
-            </span>
-          )}
-          {status.videoBitrateKbps > 0 && <span>{formatBitrate(status.videoBitrateKbps)}</span>}
-          {status.state !== "stopped" && (
-            <span>
-              {Math.floor(status.bufferedSeconds)}/{status.targetSeconds} s ·{" "}
-              {formatBytes(status.sizeBytes)} in {status.storage}
-            </span>
-          )}
-          {status.droppedFrames > 0 && (
-            <span style={{ color: "var(--warn)" }}>{status.droppedFrames} dropped</span>
-          )}
-        </div>
-      )}
-      <div className="grow" />
       {status.state === "stopped" || status.state === "error" ? (
-        <Button icon="record" disabled={busy} onClick={() => void run(commands.startBuffer)}>
+        <Button small icon="record" disabled={busy} onClick={() => void run(commands.startBuffer)}>
           Start buffer
         </Button>
       ) : (
         <>
           <Button
+            small
             icon={status.state === "paused" ? "play" : "pause"}
             variant="ghost"
             disabled={busy || status.state === "starting"}
@@ -97,6 +96,7 @@ export function StatusBar() {
             }
           />
           <Button
+            small
             icon="stop"
             variant="ghost"
             disabled={busy}
@@ -104,6 +104,7 @@ export function StatusBar() {
             onClick={() => void run(commands.stopBuffer)}
           />
           <Button
+            small
             icon="record"
             variant="ghost"
             disabled={busy || !live}
@@ -115,6 +116,7 @@ export function StatusBar() {
         </>
       )}
       <Button
+        small
         variant="primary"
         icon="save"
         disabled={busy || !canSave}

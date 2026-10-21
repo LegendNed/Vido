@@ -1,778 +1,781 @@
-/* ---------------------------------------------------------------- editor */
+/* In the `components` layer so Tailwind utilities (shadcn/ui) win over these. */
+@layer components {
+  /* ---------------------------------------------------------------- editor */
 
-/* Header row sits on Mica; the work area below is a content layer. */
-.editor {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100%;
-}
-.editor-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 8px 14px 8px 18px;
-  min-width: 0;
-}
-.editor-head > svg {
-  color: var(--accent-text);
-}
-.editor-main {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  min-height: 0;
-  background: var(--layer);
-  border-top: 1px solid var(--stroke);
-}
-.editor-stage {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  min-width: 0;
-  min-height: 0;
-}
-/* The video takes what the timeline leaves (the lanes scroll past ~40 % of the window). */
-.video-box {
-  position: relative;
-  flex: 1 1 0;
-  min-height: 160px;
-  background: #000;
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-.video-box video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  cursor: pointer;
-}
-.transport {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-/* Wraps as one group, kept on the right. */
-.transport-tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-.editor .tabular {
-  font-variant-numeric: tabular-nums;
-}
-.editor-hint {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 16px;
-  color: var(--muted);
-  font: 12px/16px var(--font-small);
-}
-.editor-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-2);
-}
-.editor-note svg {
-  flex: none;
-  color: var(--info);
-}
+  /* Header row sits on Mica; the work area below is a content layer. */
+  .editor {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100%;
+  }
+  .editor-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 8px 14px 8px 18px;
+    min-width: 0;
+  }
+  .editor-head > svg {
+    color: var(--accent-text);
+  }
+  .editor-main {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    min-height: 0;
+    background: var(--layer);
+    border-top: 1px solid var(--stroke);
+  }
+  .editor-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* The video takes what the timeline leaves (the lanes scroll past ~40 % of the window). */
+  .video-box {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 160px;
+    background: #000;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .video-box video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+  }
+  .transport {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  /* Wraps as one group, kept on the right. */
+  .transport-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .editor .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .editor-hint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 16px;
+    color: var(--text-muted);
+    font: 12px/16px var(--font-small);
+  }
+  .editor-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-2);
+  }
+  .editor-note svg {
+    flex: none;
+    color: var(--info);
+  }
 
-/* Crop toolbar under the video while the crop overlay is shown. */
-.crop-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding: 6px 8px 6px 12px;
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius-md);
-}
-.crop-bar-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-}
-.crop-bar-title svg {
-  color: var(--accent-text);
-}
-.editor-side {
-  border-left: 1px solid var(--border);
-  background: var(--card-2);
-  overflow-y: auto;
-  padding: 12px 16px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.editor-side .field {
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  min-height: 48px;
-  padding: 8px 0;
-}
-.editor-side .card > .field:first-child {
-  border-top: none;
-}
-.side-title {
-  font-weight: 600;
-  margin-top: 8px;
-}
+  /* Crop toolbar under the video while the crop overlay is shown. */
+  .crop-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 6px 8px 6px 12px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+  }
+  .crop-bar-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+  .crop-bar-title svg {
+    color: var(--accent-text);
+  }
+  .editor-side {
+    border-left: 1px solid var(--border);
+    background: var(--card-2);
+    overflow-y: auto;
+    padding: 12px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .editor-side .field {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    min-height: 48px;
+    padding: 8px 0;
+  }
+  .editor-side .card > .field:first-child {
+    border-top: none;
+  }
+  .side-title {
+    font-weight: 600;
+    margin-top: 8px;
+  }
 
-/* Timeline: ruler + video row on top, audio lanes below (scrolling when many).
+  /* Timeline: ruler + video row on top, audio lanes below (scrolling when many).
    Rows are [header | cell]; each cell's `.tl-track` (inset so the trim handles fit
    at both ends) is the time axis. Stable scrollbar gutters keep the axis aligned
    between the two panes. */
-.tl {
-  --tl-head: 220px;
-  --tl-pad: 7px;
-  flex: 0 1 auto;
-  display: flex;
-  flex-direction: column;
-  background: var(--card);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  touch-action: none;
-}
-.tl-pane {
-  flex: none;
-  overflow: hidden;
-  scrollbar-gutter: stable;
-}
-.tl-lanes {
-  flex: 0 1 auto;
-  min-height: 52px;
-  max-height: 42vh;
-  overflow-y: auto;
-  border-top: 1px solid var(--stroke);
-}
-.tl-body {
-  position: relative;
-}
-.tl-row {
-  display: grid;
-  grid-template-columns: var(--tl-head) minmax(0, 1fr);
-}
-.tl-row + .tl-row {
-  border-top: 1px solid var(--border);
-}
-.tl-row.ruler {
-  height: 22px;
-}
-.tl-row.video {
-  height: 44px;
-}
-.tl-row.lane {
-  height: 52px;
-}
-.tl-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 0 10px 0 6px;
-  background: var(--card-2);
-  border-right: 1px solid var(--border);
-}
-.tl-cell {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-  cursor: pointer;
-}
-.tl-track {
-  position: absolute;
-  inset: 0 var(--tl-pad);
-}
-.tl-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* Selection block, trim handles (video row) and the overlay spanning all rows. */
-.tl-sel {
-  position: absolute;
-  top: 6px;
-  bottom: 6px;
-  background: var(--accent-soft);
-  border-top: 2px solid var(--accent);
-  border-bottom: 2px solid var(--accent);
-}
-.tl-handle {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  width: 10px;
-  margin-left: -5px;
-  background: var(--accent);
-  border-radius: var(--radius-sm);
-  cursor: ew-resize;
-  z-index: 2;
-}
-.tl-handle::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 30%;
-  bottom: 30%;
-  width: 2px;
-  background: var(--on-accent);
-  opacity: 0.7;
-  border-radius: 1px;
-}
-.tl-overlay {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(var(--tl-head) + var(--tl-pad));
-  right: var(--tl-pad);
-  pointer-events: none;
-}
-.tl-dim {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: color-mix(in srgb, var(--bg) 62%, transparent);
-  z-index: 1;
-}
-.tl-edge {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: color-mix(in srgb, var(--accent) 70%, transparent);
-  z-index: 1;
-}
-.tl-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--text);
-  border-radius: 1px;
-  z-index: 3;
-}
-
-/* Lane headers. */
-.lane-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  color: var(--muted);
-}
-.video-head .lane-icon {
-  color: var(--accent-text);
-}
-.lane-meta {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.lane-title {
-  font-size: 13px;
-  line-height: 18px;
-}
-.lane-note {
-  color: var(--muted);
-  font: 12px/16px var(--font-small);
-}
-.video-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-.video-title > span {
-  color: var(--accent-text);
-  font: 600 12px/18px var(--font-small);
-}
-.lane-volume {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.lane-volume .slider {
-  flex: 1;
-  min-width: 0;
-  width: auto;
-  height: 18px;
-}
-.lane-pct {
-  flex: none;
-  width: 36px;
-  text-align: right;
-  color: var(--text-2);
-  font: 12px/16px var(--font-small);
-  font-variant-numeric: tabular-nums;
-}
-.lane-loading {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  translate: 0 -50%;
-  color: var(--faint);
-  font: 12px/16px var(--font-small);
-  pointer-events: none;
-}
-.lane.derived .lane-title {
-  color: var(--text-2);
-}
-.lane.silent .lane-title {
-  color: var(--muted);
-}
-.lane.silent .tl-cell {
-  opacity: 0.4;
-}
-
-@media (max-width: 1040px) {
   .tl {
-    --tl-head: 180px;
+    --tl-head: 220px;
+    --tl-pad: 7px;
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    touch-action: none;
   }
-}
-
-/* Crop handles sit on the (always dark) video. */
-.crop-layer {
-  position: absolute;
-  inset: 0;
-  touch-action: none;
-}
-.crop-shade {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.55);
-  pointer-events: none;
-}
-.crop-rect {
-  position: absolute;
-  border: 1px solid #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
-  cursor: move;
-}
-.crop-size {
-  position: absolute;
-  left: 4px;
-  top: 4px;
-  font-size: 11px;
-  padding: 1px 5px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 3px;
-  pointer-events: none;
-}
-.crop-handle {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background: #fff;
-  border-radius: 2px;
-  margin: -6px 0 0 -6px;
-}
-.crop-handle.nw {
-  left: 0;
-  top: 0;
-  cursor: nwse-resize;
-}
-.crop-handle.n {
-  left: 50%;
-  top: 0;
-  cursor: ns-resize;
-}
-.crop-handle.ne {
-  left: 100%;
-  top: 0;
-  cursor: nesw-resize;
-}
-.crop-handle.e {
-  left: 100%;
-  top: 50%;
-  cursor: ew-resize;
-}
-.crop-handle.se {
-  left: 100%;
-  top: 100%;
-  cursor: nwse-resize;
-}
-.crop-handle.s {
-  left: 50%;
-  top: 100%;
-  cursor: ns-resize;
-}
-.crop-handle.sw {
-  left: 0;
-  top: 100%;
-  cursor: nesw-resize;
-}
-.crop-handle.w {
-  left: 0;
-  top: 50%;
-  cursor: ew-resize;
-}
-
-/* Export presets: pill-shaped toggle-button chips. */
-.preset-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.preset {
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 14px;
-  border: 1px solid var(--control-stroke);
-  border-bottom-color: var(--control-stroke-bottom);
-  background: var(--control);
-  color: var(--text);
-  cursor: pointer;
-  font: 12px/16px var(--font-small);
-  transition: background 0.083s;
-}
-.preset:hover {
-  background: var(--control-hover);
-}
-.preset:active {
-  background: var(--control-pressed);
-  color: var(--text-2);
-}
-
-.estimate {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  background: var(--card);
-  border: 1px solid var(--stroke);
-}
-.estimate .big {
-  font: 600 20px/28px var(--font-display);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------------------------------------------------------------- region picker */
-
-html.win-region,
-html.win-region body,
-html.win-region #root {
-  background: transparent;
-}
-.region {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.38);
-  cursor: crosshair;
-}
-.region-rect {
-  position: absolute;
-  border: 2px solid var(--accent);
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.25);
-}
-.region-size {
-  position: absolute;
-  right: 0;
-  bottom: -28px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 12px;
-  font-weight: 600;
-}
-.region-bar {
-  position: fixed;
-  left: 50%;
-  top: 24px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 8px 8px 16px;
-  border-radius: var(--radius);
-  background: var(--bg-elev);
-  border: 1px solid var(--surface-stroke);
-  box-shadow: var(--shadow);
-  cursor: default;
-}
-
-/* ---------------------------------------------------------------- Overlay page */
-
-/* Position picker: a small 16:9 screen with six spots (2 rows × 3 columns). */
-.overlay-screen {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: 1fr 1fr 8px;
-  width: 224px;
-  aspect-ratio: 16 / 9;
-  padding: 4px 4px 0;
-  gap: 2px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--control);
-  overflow: hidden;
-}
-.overlay-screen .spot {
-  display: flex;
-  padding: 6px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  cursor: pointer;
-}
-.overlay-screen .spot:hover {
-  background: var(--subtle-hover);
-}
-.overlay-screen .spot:active {
-  background: var(--subtle-pressed);
-}
-.overlay-screen .spot.r0 {
-  align-items: flex-start;
-}
-.overlay-screen .spot.r1 {
-  align-items: flex-end;
-}
-.overlay-screen .spot.c0 {
-  justify-content: flex-start;
-}
-.overlay-screen .spot.c1 {
-  justify-content: center;
-}
-.overlay-screen .spot.c2 {
-  justify-content: flex-end;
-}
-.overlay-screen .mark {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--control-strong);
-  transition: border-color 0.15s var(--ease);
-}
-.overlay-screen .spot:hover .mark {
-  border-color: var(--text-2);
-}
-.overlay-screen .mini-pill {
-  display: flex;
-  align-items: center;
-  width: 34px;
-  height: 12px;
-  padding-left: 3px;
-  border-radius: 6px;
-  background: var(--accent);
-}
-.overlay-screen .mini-pill .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--on-accent);
-}
-.overlay-screen .taskbar {
-  grid-column: 1 / -1;
-  margin: 0 -4px;
-  background: var(--panel-3);
-}
-
-/* ---------------------------------------------------------------- overview */
-
-.overview-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 18px 20px;
-  margin-bottom: 16px;
-}
-.overview-status.live {
-  border-color: color-mix(in srgb, var(--rec) 35%, var(--stroke));
-}
-.overview-state {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-.overview-state .dot {
-  width: 12px;
-  height: 12px;
-  flex: none;
-}
-.overview-title {
-  font: 600 20px/28px var(--font-display);
-}
-.overview-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding-top: 8px;
-}
-.overview-clips-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.overview-clips-head h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-.overview-clips {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-}
-.overview-clip {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-.overview-clip .thumb {
-  position: relative;
-  display: grid;
-  place-items: center;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-md);
-  background: var(--card-2) center / cover no-repeat;
-  border: 1px solid var(--stroke);
-  color: var(--muted);
-}
-.overview-clip:hover .thumb {
-  border-color: var(--border-strong);
-}
-.overview-clip .duration {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-}
-.overview-clips-card {
-  padding: 14px 16px 16px;
-}
-
-/* ---------------------------------------------------------------- editor modal */
-
-.editor-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 46;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.55);
-  animation: viewer-fade 0.16s ease-out;
-}
-.editor-modal {
-  width: min(100%, 1680px);
-  height: min(100%, 1040px);
-  overflow: hidden;
-  border: 1px solid var(--surface-stroke);
-  border-radius: var(--radius);
-  background: var(--bg);
-  box-shadow: var(--shadow-dialog);
-}
-.editor-modal.fade-in {
-  animation: editor-in 0.2s var(--ease);
-}
-@keyframes editor-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
+  .tl-pane {
+    flex: none;
+    overflow: hidden;
+    scrollbar-gutter: stable;
   }
-}
-@media (prefers-reduced-motion: reduce) {
+  .tl-lanes {
+    flex: 0 1 auto;
+    min-height: 52px;
+    max-height: 42vh;
+    overflow-y: auto;
+    border-top: 1px solid var(--stroke);
+  }
+  .tl-body {
+    position: relative;
+  }
+  .tl-row {
+    display: grid;
+    grid-template-columns: var(--tl-head) minmax(0, 1fr);
+  }
+  .tl-row + .tl-row {
+    border-top: 1px solid var(--border);
+  }
+  .tl-row.ruler {
+    height: 22px;
+  }
+  .tl-row.video {
+    height: 44px;
+  }
+  .tl-row.lane {
+    height: 52px;
+  }
+  .tl-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 0 10px 0 6px;
+    background: var(--card-2);
+    border-right: 1px solid var(--border);
+  }
+  .tl-cell {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .tl-track {
+    position: absolute;
+    inset: 0 var(--tl-pad);
+  }
+  .tl-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Selection block, trim handles (video row) and the overlay spanning all rows. */
+  .tl-sel {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    background: var(--accent-soft);
+    border-top: 2px solid var(--brand);
+    border-bottom: 2px solid var(--brand);
+  }
+  .tl-handle {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    width: 10px;
+    margin-left: -5px;
+    background: var(--brand);
+    border-radius: var(--radius-sm);
+    cursor: ew-resize;
+    z-index: 2;
+  }
+  .tl-handle::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 30%;
+    bottom: 30%;
+    width: 2px;
+    background: var(--on-accent);
+    opacity: 0.7;
+    border-radius: 1px;
+  }
+  .tl-overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--tl-head) + var(--tl-pad));
+    right: var(--tl-pad);
+    pointer-events: none;
+  }
+  .tl-dim {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: color-mix(in srgb, var(--bg) 62%, transparent);
+    z-index: 1;
+  }
+  .tl-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in srgb, var(--brand) 70%, transparent);
+    z-index: 1;
+  }
+  .tl-playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--text);
+    border-radius: 1px;
+    z-index: 3;
+  }
+
+  /* Lane headers. */
+  .lane-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    color: var(--text-muted);
+  }
+  .video-head .lane-icon {
+    color: var(--accent-text);
+  }
+  .lane-meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .lane-title {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .lane-note {
+    color: var(--text-muted);
+    font: 12px/16px var(--font-small);
+  }
+  .video-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .video-title > span {
+    color: var(--accent-text);
+    font: 600 12px/18px var(--font-small);
+  }
+  .lane-volume {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lane-volume .slider {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: 18px;
+  }
+  .lane-pct {
+    flex: none;
+    width: 36px;
+    text-align: right;
+    color: var(--text-2);
+    font: 12px/16px var(--font-small);
+    font-variant-numeric: tabular-nums;
+  }
+  .lane-loading {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    translate: 0 -50%;
+    color: var(--faint);
+    font: 12px/16px var(--font-small);
+    pointer-events: none;
+  }
+  .lane.derived .lane-title {
+    color: var(--text-2);
+  }
+  .lane.silent .lane-title {
+    color: var(--text-muted);
+  }
+  .lane.silent .tl-cell {
+    opacity: 0.4;
+  }
+
+  @media (max-width: 1040px) {
+    .tl {
+      --tl-head: 180px;
+    }
+  }
+
+  /* Crop handles sit on the (always dark) video. */
+  .crop-layer {
+    position: absolute;
+    inset: 0;
+    touch-action: none;
+  }
+  .crop-shade {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+  }
+  .crop-rect {
+    position: absolute;
+    border: 1px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+    cursor: move;
+  }
+  .crop-size {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    font-size: 11px;
+    padding: 1px 5px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+  .crop-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 2px;
+    margin: -6px 0 0 -6px;
+  }
+  .crop-handle.nw {
+    left: 0;
+    top: 0;
+    cursor: nwse-resize;
+  }
+  .crop-handle.n {
+    left: 50%;
+    top: 0;
+    cursor: ns-resize;
+  }
+  .crop-handle.ne {
+    left: 100%;
+    top: 0;
+    cursor: nesw-resize;
+  }
+  .crop-handle.e {
+    left: 100%;
+    top: 50%;
+    cursor: ew-resize;
+  }
+  .crop-handle.se {
+    left: 100%;
+    top: 100%;
+    cursor: nwse-resize;
+  }
+  .crop-handle.s {
+    left: 50%;
+    top: 100%;
+    cursor: ns-resize;
+  }
+  .crop-handle.sw {
+    left: 0;
+    top: 100%;
+    cursor: nesw-resize;
+  }
+  .crop-handle.w {
+    left: 0;
+    top: 50%;
+    cursor: ew-resize;
+  }
+
+  /* Export presets: pill-shaped toggle-button chips. */
+  .preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .preset {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 14px;
+    border: 1px solid var(--control-stroke);
+    border-bottom-color: var(--control-stroke-bottom);
+    background: var(--control);
+    color: var(--text);
+    cursor: pointer;
+    font: 12px/16px var(--font-small);
+    transition: background 0.083s;
+  }
+  .preset:hover {
+    background: var(--control-hover);
+  }
+  .preset:active {
+    background: var(--control-pressed);
+    color: var(--text-2);
+  }
+
+  .estimate {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--stroke);
+  }
+  .estimate .big {
+    font: 600 20px/28px var(--font-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------------------------------------------------------------- region picker */
+
+  html.win-region,
+  html.win-region body,
+  html.win-region #root {
+    background: transparent;
+  }
+  .region {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.38);
+    cursor: crosshair;
+  }
+  .region-rect {
+    position: absolute;
+    border: 2px solid var(--brand);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.25);
+  }
+  .region-size {
+    position: absolute;
+    right: 0;
+    bottom: -28px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--brand);
+    color: var(--on-accent);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .region-bar {
+    position: fixed;
+    left: 50%;
+    top: 24px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 16px;
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+    border: 1px solid var(--surface-stroke);
+    box-shadow: var(--shadow);
+    cursor: default;
+  }
+
+  /* ---------------------------------------------------------------- Overlay page */
+
+  /* Position picker: a small 16:9 screen with six spots (2 rows × 3 columns). */
+  .overlay-screen {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 1fr 1fr 8px;
+    width: 224px;
+    aspect-ratio: 16 / 9;
+    padding: 4px 4px 0;
+    gap: 2px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--control);
+    overflow: hidden;
+  }
+  .overlay-screen .spot {
+    display: flex;
+    padding: 6px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+  }
+  .overlay-screen .spot:hover {
+    background: var(--subtle-hover);
+  }
+  .overlay-screen .spot:active {
+    background: var(--subtle-pressed);
+  }
+  .overlay-screen .spot.r0 {
+    align-items: flex-start;
+  }
+  .overlay-screen .spot.r1 {
+    align-items: flex-end;
+  }
+  .overlay-screen .spot.c0 {
+    justify-content: flex-start;
+  }
+  .overlay-screen .spot.c1 {
+    justify-content: center;
+  }
+  .overlay-screen .spot.c2 {
+    justify-content: flex-end;
+  }
+  .overlay-screen .mark {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--control-strong);
+    transition: border-color 0.15s var(--ease);
+  }
+  .overlay-screen .spot:hover .mark {
+    border-color: var(--text-2);
+  }
+  .overlay-screen .mini-pill {
+    display: flex;
+    align-items: center;
+    width: 34px;
+    height: 12px;
+    padding-left: 3px;
+    border-radius: 6px;
+    background: var(--brand);
+  }
+  .overlay-screen .mini-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--on-accent);
+  }
+  .overlay-screen .taskbar {
+    grid-column: 1 / -1;
+    margin: 0 -4px;
+    background: var(--panel-3);
+  }
+
+  /* ---------------------------------------------------------------- overview */
+
+  .overview-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .overview-status.live {
+    border-color: color-mix(in srgb, var(--rec) 35%, var(--stroke));
+  }
+  .overview-state {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .overview-state .dot {
+    width: 12px;
+    height: 12px;
+    flex: none;
+  }
+  .overview-title {
+    font: 600 20px/28px var(--font-display);
+  }
+  .overview-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-top: 8px;
+  }
+  .overview-clips-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .overview-clips-head h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .overview-clips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .overview-clip {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .overview-clip .thumb {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-md);
+    background: var(--card-2) center / cover no-repeat;
+    border: 1px solid var(--stroke);
+    color: var(--text-muted);
+  }
+  .overview-clip:hover .thumb {
+    border-color: var(--border-strong);
+  }
+  .overview-clip .duration {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .overview-clips-card {
+    padding: 14px 16px 16px;
+  }
+
+  /* ---------------------------------------------------------------- editor modal */
+
+  .editor-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 46;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.55);
+    animation: viewer-fade 0.16s ease-out;
+  }
+  .editor-modal {
+    width: min(100%, 1680px);
+    height: min(100%, 1040px);
+    overflow: hidden;
+    border: 1px solid var(--surface-stroke);
+    border-radius: var(--radius);
+    background: var(--bg);
+    box-shadow: var(--shadow-dialog);
+  }
   .editor-modal.fade-in {
-    animation: none;
+    animation: editor-in 0.2s var(--ease);
   }
-}
+  @keyframes editor-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .editor-modal.fade-in {
+      animation: none;
+    }
+  }
 
-/* ---------------------------------------------------------------- recording quality cards */
+  /* ---------------------------------------------------------------- recording quality cards */
 
-.quality-cards-row {
-  padding: 10px 0 12px;
-}
-.quality-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
-}
-.quality-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--control-stroke);
-  border-radius: var(--radius);
-  background: var(--control);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.083s,
-    border-color 0.083s;
-}
-.quality-card:hover {
-  background: var(--control-hover);
-}
-.quality-card.on {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.qc-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  font-weight: 600;
-}
-.qc-title svg {
-  color: var(--accent-text);
-}
-.qc-hint {
-  color: var(--text-2);
-  font: 12px/16px var(--font-small);
-}
-.qc-spec {
-  margin-top: 2px;
-  color: var(--muted);
-  font: 12px/16px var(--font-small);
-}
-.qc-badge {
-  margin-top: 6px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font: 600 11px/16px var(--font-small);
-}
-.wizard-sub {
-  margin: 16px 0 8px;
-  font-size: 14px;
-  font-weight: 600;
+  .quality-cards-row {
+    padding: 10px 0 12px;
+  }
+  .quality-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .quality-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--control-stroke);
+    border-radius: var(--radius);
+    background: var(--control);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background 0.083s,
+      border-color 0.083s;
+  }
+  .quality-card:hover {
+    background: var(--control-hover);
+  }
+  .quality-card.on {
+    border-color: var(--brand);
+    background: var(--accent-soft);
+  }
+  .qc-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-weight: 600;
+  }
+  .qc-title svg {
+    color: var(--accent-text);
+  }
+  .qc-hint {
+    color: var(--text-2);
+    font: 12px/16px var(--font-small);
+  }
+  .qc-spec {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font: 12px/16px var(--font-small);
+  }
+  .qc-badge {
+    margin-top: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--brand);
+    color: var(--on-accent);
+    font: 600 11px/16px var(--font-small);
+  }
+  .wizard-sub {
+    margin: 16px 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
 }

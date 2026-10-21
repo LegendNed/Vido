@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { captureKey } from "../lib/keys";
 import { commands } from "../lib/tauri/commands";
+import { cn } from "../lib/utils";
 import { Icon } from "./Icon";
-import { Keys } from "./ui";
+import { Button as UiButton } from "./ui/button";
+import { Keys } from "./controls";
 
 /**
  * Click, then press a key combination. Global hotkeys are suspended in Rust
@@ -55,9 +57,14 @@ export function HotkeyRecorder({
 
   return (
     <span className="row">
-      <button
+      <UiButton
         type="button"
-        className={`btn recorder${listening ? " listening" : ""}`}
+        variant="outline"
+        size="sm"
+        className={cn(
+          "min-w-[170px] justify-start",
+          listening && "border-ring ring-[3px] ring-ring/50",
+        )}
         onClick={() => {
           setListening(!listening);
         }}
@@ -72,13 +79,14 @@ export function HotkeyRecorder({
         ) : value ? (
           <Keys accelerator={value} />
         ) : (
-          <span className="faint">Not set</span>
+          <span className="text-muted-foreground">Not set</span>
         )}
-      </button>
+      </UiButton>
       {value && !listening && (
-        <button
+        <UiButton
           type="button"
-          className="btn ghost small icon"
+          variant="ghost"
+          size="icon-sm"
           title="Clear"
           aria-label="Clear shortcut"
           onClick={() => {
@@ -86,7 +94,7 @@ export function HotkeyRecorder({
           }}
         >
           <Icon name="x" size={14} />
-        </button>
+        </UiButton>
       )}
     </span>
   );

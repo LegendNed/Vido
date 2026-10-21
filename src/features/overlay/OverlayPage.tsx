@@ -1,6 +1,6 @@
 import { useRef, type KeyboardEvent } from "react";
 
-import { Banner, Button, Field, Section, Toggle } from "../../components/ui";
+import { Banner, Button, Field, Section, Toggle } from "../../components/controls";
 import { HUD_POSITIONS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage, type HudPosition } from "../../lib/tauri/types";

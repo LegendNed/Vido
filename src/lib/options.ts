@@ -1,4 +1,4 @@
-import type { Option } from "../components/ui";
+import type { Option } from "../components/controls";
 import type {
   AudioCodec,
   BufferQuality,
@@ -81,8 +81,8 @@ export const HUD_POSITIONS: Option<HudPosition>[] = [
 
 export const SIDEBAR_OPTIONS: Option<SidebarMode>[] = [
   { value: "full", label: "Full" },
-  { value: "small", label: "Small" },
-  { value: "none", label: "None" },
+  { value: "small", label: "Icons only" },
+  { value: "none", label: "Hidden" },
 ];
 
 export const LOG_LEVELS: Option<LogLevel>[] = [

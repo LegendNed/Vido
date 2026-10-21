@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 import { initAppearance } from "./lib/theme";
+import "./styles/index.css";
 import "./styles/global.css";
 import "./styles/views.css";
 import "./styles/audio.css";

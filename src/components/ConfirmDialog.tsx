@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-import { Button } from "./ui";
+import { Button } from "./controls";
 
 /**
  * Modal confirmation for actions that replace or remove files. Enter confirms,

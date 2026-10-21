@@ -1,3 +1,7 @@
+// The app's form controls, built on shadcn/ui (`./ui`). Screens use these small
+// wrappers (value + onChange, settings-search aware) rather than the primitives.
+
+import { CircleAlert, CircleCheck, CircleX, Info, LoaderCircle } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import {
@@ -7,7 +11,29 @@ import {
   useSearchRow,
   useSearchScope,
 } from "../lib/settingsSearch";
+import { cn } from "../lib/utils";
 import { Icon, type IconName } from "./Icon";
+import { Button as UiButton } from "./ui/button";
+import { Checkbox as UiCheckbox } from "./ui/checkbox";
+import {
+  Alert,
+  AlertDescription,
+  Badge as UiBadge,
+  Input,
+  Kbd,
+  Progress as UiProgress,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "./ui/misc";
+import {
+  Select as UiSelect,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Slider as UiSlider } from "./ui/slider";
+import { Switch } from "./ui/switch";
 
 export function Button({
   children,
@@ -18,6 +44,7 @@ export function Button({
   disabled,
   title,
   type = "button",
+  className,
 }: {
   children?: ReactNode;
   onClick?: () => void;
@@ -27,22 +54,31 @@ export function Button({
   disabled?: boolean;
   title?: string;
   type?: "button" | "submit";
+  className?: string;
 }) {
-  const cls = ["btn", variant, small && "small", icon && !children && "icon"]
-    .filter(Boolean)
-    .join(" ");
+  const iconOnly = icon !== undefined && children === undefined;
   return (
-    <button
+    <UiButton
       type={type}
-      className={cls}
+      variant={
+        variant === "primary"
+          ? "default"
+          : variant === "ghost"
+            ? "ghost"
+            : variant === "danger"
+              ? "destructive"
+              : "outline"
+      }
+      size={iconOnly ? (small ? "icon-sm" : "icon") : small ? "sm" : "default"}
       onClick={onClick}
       disabled={disabled}
       title={title}
       aria-label={title}
+      className={className}
     >
       {icon && <Icon name={icon} size={small ? 14 : 16} />}
       {children}
-    </button>
+    </UiButton>
   );
 }
 
@@ -70,18 +106,13 @@ export function ConfirmButton({
       clearTimeout(t);
     };
   }, [armed]);
+  const iconOnly = icon !== undefined && children === undefined && !armed;
   return (
-    <button
+    <UiButton
       type="button"
-      className={[
-        "btn",
-        "danger",
-        small && "small",
-        armed && "armed",
-        icon && !children && !armed && "icon",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      variant={armed ? "destructive" : "ghost"}
+      size={iconOnly ? (small ? "icon-sm" : "icon") : small ? "sm" : "default"}
+      className={armed ? undefined : "text-destructive hover:text-destructive"}
       title={armed ? "Click again to confirm" : title}
       aria-label={title}
       onClick={() => {
@@ -93,7 +124,7 @@ export function ConfirmButton({
     >
       {icon && <Icon name={icon} size={small ? 14 : 16} />}
       {armed ? "Confirm" : children}
-    </button>
+    </UiButton>
   );
 }
 
@@ -109,21 +140,11 @@ export function Toggle({
   label?: string;
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={value}
-      aria-label={label}
-      disabled={disabled}
-      className={`toggle${value ? " on" : ""}`}
-      onClick={() => {
-        onChange(!value);
-      }}
-    />
+    <Switch checked={value} onCheckedChange={onChange} disabled={disabled} aria-label={label} />
   );
 }
 
-/** Checkbox; `children` is its clickable label. Styled in styles/audio.css. */
+/** Checkbox; `children` is its clickable label. */
 export function Checkbox({
   checked,
   onChange,
@@ -138,18 +159,20 @@ export function Checkbox({
   children?: ReactNode;
 }) {
   return (
-    <label className={`checkbox${disabled ? " disabled" : ""}`} title={title}>
-      <input
-        type="checkbox"
+    <label
+      className={cn(
+        "checkbox inline-flex cursor-pointer items-center gap-2 text-sm",
+        disabled && "disabled cursor-not-allowed opacity-50",
+      )}
+      title={title}
+    >
+      <UiCheckbox
         checked={checked}
         disabled={disabled}
-        onChange={(e) => {
-          onChange(e.target.checked);
+        onCheckedChange={(v) => {
+          onChange(v === true);
         }}
       />
-      <span className="box" aria-hidden="true">
-        <Icon name="check" size={12} />
-      </span>
       {children}
     </label>
   );
@@ -176,26 +199,33 @@ export function Select<T extends string | number>({
   width?: number;
   id?: string;
 }) {
+  // Radix wants string values: options are addressed by index.
   const idx = options.findIndex((o) => o.value === value);
   return (
-    <select
-      id={id}
-      className="select"
+    <UiSelect
       value={idx < 0 ? "" : String(idx)}
       disabled={disabled}
-      style={width ? { width } : undefined}
-      onChange={(e) => {
-        const o = options[Number(e.target.value)];
+      onValueChange={(v) => {
+        const o = options[Number(v)];
         if (o) onChange(o.value);
       }}
     >
-      {idx < 0 && <option value="">-</option>}
-      {options.map((o, i) => (
-        <option key={String(o.value)} value={String(i)} disabled={o.disabled}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger
+        id={id}
+        size="sm"
+        className="min-w-[8rem] justify-between"
+        style={width ? { width } : undefined}
+      >
+        <SelectValue placeholder="-" />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o, i) => (
+          <SelectItem key={String(o.value)} value={String(i)} disabled={o.disabled}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </UiSelect>
   );
 }
 
@@ -208,24 +238,23 @@ export function Segmented<T extends string | number>({
   options: Option<T>[];
   onChange: (v: T) => void;
 }) {
+  const idx = options.findIndex((o) => o.value === value);
   return (
-    <div className="segmented" role="radiogroup">
-      {options.map((o) => (
-        <button
-          type="button"
-          key={String(o.value)}
-          role="radio"
-          aria-checked={o.value === value}
-          className={o.value === value ? "on" : ""}
-          disabled={o.disabled}
-          onClick={() => {
-            onChange(o.value);
-          }}
-        >
+    <ToggleGroup
+      type="single"
+      value={idx < 0 ? "" : String(idx)}
+      onValueChange={(v) => {
+        // Clicking the selected item deselects it in Radix: keep the selection.
+        const o = v === "" ? undefined : options[Number(v)];
+        if (o) onChange(o.value);
+      }}
+    >
+      {options.map((o, i) => (
+        <ToggleGroupItem key={String(o.value)} value={String(i)} disabled={o.disabled}>
           {o.label}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }
 
@@ -252,23 +281,22 @@ export function Slider({
   title?: string;
   width?: number;
 }) {
-  const pct = ((value - min) / (max - min)) * 100;
   return (
-    <input
-      type="range"
+    <UiSlider
       className="slider"
+      value={[value]}
       min={min}
       max={max}
       step={step}
-      value={value}
       title={title}
+      // No width: fills its container (shadcn's `w-full`), e.g. a player's seek bar.
+      style={width ? { width } : undefined}
       onDoubleClick={onDoubleClick}
-      style={{ "--pct": `${pct}%`, ...(width ? { width } : {}) } as React.CSSProperties}
-      onChange={(e) => {
-        onChange(Number(e.target.value));
+      onValueChange={(v) => {
+        const n = v[0];
+        if (n !== undefined) onChange(n);
       }}
-      onPointerUp={onCommit}
-      onKeyUp={onCommit}
+      onValueCommit={onCommit}
     />
   );
 }
@@ -308,10 +336,11 @@ export function NumberInput({
     onChange(Number(rounded.toFixed(decimals)));
   };
   return (
-    <span className="row" style={{ gap: 4 }}>
-      <input
-        className={`input num${invalid ? " invalid" : ""}`}
-        style={width ? { width } : undefined}
+    <span className="inline-flex items-center gap-2">
+      <Input
+        className="h-8 text-right tabular-nums"
+        style={{ width: width ?? 80 }}
+        aria-invalid={invalid || undefined}
         value={draft ?? value.toFixed(decimals)}
         inputMode="decimal"
         title={`${min}–${max}`}
@@ -329,7 +358,7 @@ export function NumberInput({
           }
         }}
       />
-      {suffix && <span className="muted small">{suffix}</span>}
+      {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
     </span>
   );
 }
@@ -354,8 +383,8 @@ export function TextInput({
     setDraft(null);
   };
   return (
-    <input
-      className={`input${mono ? " mono" : ""}`}
+    <Input
+      className={cn("h-8", mono && "font-mono text-xs")}
       style={{ width: width ?? 280 }}
       value={draft ?? value}
       placeholder={placeholder}
@@ -372,6 +401,7 @@ export function TextInput({
   );
 }
 
+/** A settings card: title, description and rows (`Field`s). */
 export function Section({
   title,
   description,
@@ -386,12 +416,17 @@ export function Section({
 }) {
   const s = useSearchScope(`${title}\n${description ?? ""}\n${keywords ?? ""}`);
   return (
-    <section className="card section" hidden={!s.visible}>
-      <header>
-        <h2>{highlight(title, s.terms)}</h2>
-        {description && <p>{highlight(description, s.terms)}</p>}
+    <section
+      className="section rounded-xl border bg-card text-card-foreground shadow-xs"
+      hidden={!s.visible}
+    >
+      <header className="px-5 pb-1 pt-4">
+        <h2 className="text-sm font-semibold leading-none">{highlight(title, s.terms)}</h2>
+        {description && (
+          <p className="mt-1.5 text-sm text-muted-foreground">{highlight(description, s.terms)}</p>
+        )}
       </header>
-      <div className="body">
+      <div className="body px-5 pb-1">
         <SettingsSearchContext value={s.value}>{children}</SettingsSearchContext>
       </div>
     </section>
@@ -415,16 +450,19 @@ export function SearchBlock({
 }) {
   const s = useSearchScope(`${title}\n${nodeText(description)}\n${keywords ?? ""}`);
   return (
-    <div className="search-block" hidden={!s.visible}>
+    <div className="search-block flex flex-col gap-3" hidden={!s.visible}>
       <header>
-        <h2>{highlight(title, s.terms)}</h2>
-        {description && <p>{highlight(description, s.terms)}</p>}
+        <h2 className="text-sm font-semibold">{highlight(title, s.terms)}</h2>
+        {description && (
+          <p className="mt-1 text-sm text-muted-foreground">{highlight(description, s.terms)}</p>
+        )}
       </header>
       <SettingsSearchContext value={s.value}>{children}</SettingsSearchContext>
     </div>
   );
 }
 
+/** One settings row: label + description on the left, the control on the right. */
 export function Field({
   label,
   description,
@@ -441,15 +479,22 @@ export function Field({
 }) {
   const { hidden, terms } = useSearchRow(`${label}\n${nodeText(description)}\n${keywords ?? ""}`);
   return (
-    <div className={`field${error ? " error" : ""}`} hidden={hidden}>
+    <div className={cn("field", error && "error")} hidden={hidden}>
       <div className="label">
-        <span>{highlight(label, terms)}</span>
-        {description && <span className="desc">{highlight(description, terms)}</span>}
+        <span className="text-sm font-medium">{highlight(label, terms)}</span>
+        {description && (
+          <span
+            className={cn("desc text-xs", error ? "text-destructive" : "text-muted-foreground")}
+          >
+            {highlight(description, terms)}
+          </span>
+        )}
       </div>
       <div className="control">{children}</div>
     </div>
   );
 }
+
 export function Badge({
   children,
   tone,
@@ -457,14 +502,24 @@ export function Badge({
   children: ReactNode;
   tone?: "ok" | "warn" | "err" | "accent";
 }) {
-  return <span className={`badge${tone ? ` ${tone}` : ""}`}>{children}</span>;
+  const variant =
+    tone === "ok"
+      ? "success"
+      : tone === "warn"
+        ? "warning"
+        : tone === "err"
+          ? "destructive"
+          : tone === "accent"
+            ? "default"
+            : "secondary";
+  return <UiBadge variant={variant}>{children}</UiBadge>;
 }
 
 export function Keys({ accelerator }: { accelerator: string }) {
   return (
-    <span className="kbd">
+    <span className="inline-flex items-center gap-1">
       {accelerator.split("+").map((k) => (
-        <kbd key={k}>{k}</kbd>
+        <Kbd key={k}>{k}</Kbd>
       ))}
     </span>
   );
@@ -478,48 +533,57 @@ export function Meter({ level, peak, width }: { level: number; peak: number; wid
     return Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
   };
   return (
-    <div className="meter" style={width ? { width } : undefined}>
-      <div className="fill" style={{ width: `${toPct(level)}%` }} />
-      <div className="peak" style={{ left: `calc(${toPct(peak)}% - 2px)` }} />
+    <div
+      className="meter relative h-1.5 overflow-hidden rounded-full bg-muted"
+      style={{ width: width ?? 120 }}
+    >
+      <div
+        className="absolute inset-y-0 left-0 rounded-full bg-success transition-[width] duration-75"
+        style={{ width: `${toPct(level)}%` }}
+      />
+      <div
+        className="absolute inset-y-0 w-0.5 bg-foreground/70"
+        style={{ left: `calc(${toPct(peak)}% - 1px)` }}
+      />
     </div>
   );
 }
 
 export function Spinner() {
-  return <span className="spinner" aria-label="Loading" />;
+  return (
+    <LoaderCircle
+      className="spinner size-5 animate-spin text-muted-foreground"
+      aria-label="Loading"
+    />
+  );
 }
 
 export function Progress({ value }: { value: number }) {
   return (
-    <div
-      className="progress"
-      role="progressbar"
+    <UiProgress
+      className="progress h-1.5"
+      value={Math.max(0, Math.min(100, value))}
       aria-valuenow={Math.round(value)}
-      aria-valuemin={0}
-      aria-valuemax={100}
-    >
-      <div style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
-    </div>
+    />
   );
 }
 
-const SEVERITY_GLYPH = {
-  info: "glyphInfo",
-  warning: "glyphWarning",
-  error: "glyphError",
-  success: "glyphSuccess",
-} as const satisfies Record<string, IconName>;
-
-/** Filled round status icon, as in Fluent InfoBars. */
-export function SeverityIcon({ severity }: { severity: keyof typeof SEVERITY_GLYPH }) {
-  return (
-    <span className={`sev ${severity}`}>
-      <Icon name={SEVERITY_GLYPH[severity]} size={10} />
-    </span>
-  );
+/** Round status icon (info / warning / error / success). */
+export function SeverityIcon({ severity }: { severity: "info" | "warning" | "error" | "success" }) {
+  const cls = "size-4 shrink-0";
+  switch (severity) {
+    case "success":
+      return <CircleCheck className={cn(cls, "text-success")} />;
+    case "warning":
+      return <CircleAlert className={cn(cls, "text-warning")} />;
+    case "error":
+      return <CircleX className={cn(cls, "text-destructive")} />;
+    default:
+      return <Info className={cn(cls, "text-info")} />;
+  }
 }
 
-/** Inline InfoBar. */
+/** Inline alert. */
 export function Banner({
   tone = "warn",
   children,
@@ -528,9 +592,12 @@ export function Banner({
   children: ReactNode;
 }) {
   return (
-    <div className={`banner${tone === "warn" ? "" : ` ${tone}`}`}>
+    <Alert
+      variant={tone === "error" ? "destructive" : tone === "warn" ? "warning" : "default"}
+      className="banner"
+    >
       <SeverityIcon severity={tone === "warn" ? "warning" : tone} />
-      <div>{children}</div>
-    </div>
+      <AlertDescription className="text-foreground/90">{children}</AlertDescription>
+    </Alert>
   );
 }

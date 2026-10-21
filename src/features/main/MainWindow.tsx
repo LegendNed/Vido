@@ -1,9 +1,11 @@
+import { PanelLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Icon, type IconName } from "../../components/Icon";
 import { Notices } from "../../components/Notices";
 import { StatusBar } from "../../components/StatusBar";
-import { Banner, Spinner } from "../../components/ui";
+import { Banner, Spinner } from "../../components/controls";
+import { Button as UiButton } from "../../components/ui/button";
+import { Separator } from "../../components/ui/misc";
 import { windowInit } from "../../lib/init";
 import { useEvent } from "../../lib/tauri/events";
 import { errorMessage } from "../../lib/tauri/types";
@@ -14,19 +16,23 @@ import { ClipsPage } from "../clips/ClipsPage";
 import { EditorModal } from "../editor/EditorModal";
 import { OverviewPage } from "../overview/OverviewPage";
 import { FirstRun } from "../settings/FirstRun";
-import { settingsGroupOf, type SettingsGroupId, type SettingsTarget } from "../settings/groups";
+import {
+  SETTINGS_GROUPS,
+  settingsGroupOf,
+  type SettingsGroupId,
+  type SettingsTarget,
+} from "../settings/groups";
 import { SettingsPage } from "../settings/SettingsPage";
+import { AppSidebar, type PageId } from "./AppSidebar";
 
-const PAGES = [
-  { id: "overview", label: "Overview", icon: "home" },
-  { id: "clips", label: "Clips", icon: "film" },
-  { id: "settings", label: "Settings", icon: "cog" },
-] as const satisfies readonly { id: string; label: string; icon: IconName }[];
-
-type PageId = (typeof PAGES)[number]["id"];
+const PAGE_TITLES: Record<PageId, string> = {
+  overview: "Overview",
+  clips: "Clips",
+  settings: "Settings",
+};
 
 function isPage(p: string | null | undefined): p is PageId {
-  return PAGES.some((x) => x.id === p);
+  return p === "overview" || p === "clips" || p === "settings";
 }
 
 /**
@@ -42,80 +48,12 @@ function resolvePage(
   return group ? { page: "settings", group } : null;
 }
 
-/**
- * Store-style navigation rail: icon above a label ("full") or icons only ("small").
- * Overview and Clips at the top, Settings at the bottom, like in Windows apps.
- */
-function Rail({
-  page,
-  small,
-  onSelect,
-}: {
-  page: PageId;
-  small: boolean;
-  onSelect: (p: PageId) => void;
-}) {
-  const info = useApp((s) => s.info);
-  const item = (p: (typeof PAGES)[number]) => (
-    <button
-      key={p.id}
-      type="button"
-      className={`nav-item${page === p.id ? " active" : ""}`}
-      aria-current={page === p.id ? "page" : undefined}
-      // Small rails show no labels, and the selected item drops its label (Store style).
-      title={small || page === p.id ? p.label : undefined}
-      onClick={() => {
-        onSelect(p.id);
-      }}
-    >
-      <Icon name={p.icon} size={20} />
-      <span className="nav-label">{p.label}</span>
-    </button>
-  );
-  return (
-    <nav className="sidebar" aria-label="Pages">
-      {PAGES.filter((p) => p.id !== "settings").map(item)}
-      <div className="nav-fill" />
-      {PAGES.filter((p) => p.id === "settings").map(item)}
-      {!small && info && (
-        <div
-          className="foot"
-          title={`Vido ${info.version}${info.portable ? " (portable)" : ""} · local only, no telemetry`}
-        >
-          v{info.version}
-          {info.portable && <div>portable</div>}
-        </div>
-      )}
-    </nav>
-  );
-}
-
-/** Tab strip above the content when the rail is turned off. */
-function Pivot({ page, onSelect }: { page: PageId; onSelect: (p: PageId) => void }) {
-  return (
-    <nav className="pivot" aria-label="Pages">
-      {PAGES.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          className={`pivot-item${page === p.id ? " active" : ""}`}
-          aria-current={page === p.id ? "page" : undefined}
-          onClick={() => {
-            onSelect(p.id);
-          }}
-        >
-          {p.label}
-        </button>
-      ))}
-    </nav>
-  );
-}
-
 export function MainWindow() {
   const init = useApp((s) => s.init);
   const settings = useApp((s) => s.settings);
   const status = useApp((s) => s.status);
   const redoSetup = useApp((s) => s.redoSetup);
+  const update = useApp((s) => s.update);
   const [page, setPage] = useState<PageId>(() => resolvePage(windowInit().page)?.page ?? "clips");
   const [target, setTarget] = useState<SettingsTarget | null>(() => {
     const group = resolvePage(windowInit().page)?.group;
@@ -185,21 +123,72 @@ export function MainWindow() {
   }
 
   const sidebar = settings.general.sidebar;
+  const collapsed = sidebar === "small";
+  const group: SettingsGroupId = target?.group ?? SETTINGS_GROUPS[0].id;
+  const groupLabel = SETTINGS_GROUPS.find((g) => g.id === group)?.label;
+  const toggleSidebar = () => {
+    update(
+      (d) => {
+        d.general.sidebar = d.general.sidebar === "full" ? "small" : "full";
+      },
+      { immediate: true },
+    );
+  };
   return (
-    <div className="shell" data-sidebar={sidebar}>
-      <StatusBar />
-      {sidebar !== "none" && <Rail page={page} small={sidebar === "small"} onSelect={select} />}
-      <main className={`content${page === "settings" ? " fill" : ""}`}>
-        {sidebar === "none" && <Pivot page={page} onSelect={select} />}
-        {status?.warnings.map((w) => (
-          <div key={w} className="content-banner">
-            <Banner>{w}</Banner>
-          </div>
-        ))}
-        {page === "overview" && <OverviewPage go={go} openClip={openClip} />}
-        {page === "clips" && <ClipsPage key={openPath ?? ""} open={openPath} />}
-        {page === "settings" && <SettingsPage key={target?.seq ?? 0} target={target} />}
-      </main>
+    <div className="flex h-full overflow-hidden">
+      {sidebar !== "none" && (
+        <AppSidebar
+          page={page}
+          group={page === "settings" ? group : null}
+          collapsed={collapsed}
+          onPage={select}
+          onSettings={(g) => {
+            go(g);
+          }}
+        />
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+          <UiButton
+            variant="ghost"
+            size="icon-sm"
+            title={sidebar === "full" ? "Collapse sidebar" : "Expand sidebar"}
+            aria-label="Toggle sidebar"
+            onClick={toggleSidebar}
+          >
+            <PanelLeft />
+          </UiButton>
+          <Separator orientation="vertical" className="mr-1 !h-4" />
+          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
+            <span className={page === "settings" ? "text-muted-foreground" : "font-medium"}>
+              {PAGE_TITLES[page]}
+            </span>
+            {page === "settings" && groupLabel && (
+              <>
+                <span className="text-muted-foreground">/</span>
+                <span className="truncate font-medium">{groupLabel}</span>
+              </>
+            )}
+          </nav>
+          <StatusBar />
+        </header>
+        <main
+          className={
+            page === "settings"
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+              : "min-h-0 flex-1 overflow-y-auto px-6 pb-10 pt-6"
+          }
+        >
+          {status?.warnings.map((w) => (
+            <div key={w} className="mx-auto mb-3 max-w-3xl">
+              <Banner>{w}</Banner>
+            </div>
+          ))}
+          {page === "overview" && <OverviewPage go={go} openClip={openClip} />}
+          {page === "clips" && <ClipsPage key={openPath ?? ""} open={openPath} />}
+          {page === "settings" && <SettingsPage key={target?.seq ?? 0} target={target} />}
+        </main>
+      </div>
       <EditorModal />
       {(!settings.firstRunCompleted || redoSetup) && <FirstRun />}
       <Notices />

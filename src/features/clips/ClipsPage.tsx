@@ -10,7 +10,7 @@ import {
   Slider,
   Select,
   Spinner,
-} from "../../components/ui";
+} from "../../components/controls";
 import { formatBytes, formatDate, formatDuration } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";

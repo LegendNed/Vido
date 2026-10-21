@@ -1,397 +1,405 @@
-/* Clip viewer, Clips hero banner, editor save actions and the confirm dialog.
+/* In the `components` layer so Tailwind utilities (shadcn/ui) win over these. */
+@layer components {
+  /* Clip viewer, Clips hero banner, editor save actions and the confirm dialog.
    Colors come from the theme tokens; only the video backdrop and the scrims over
    media are fixed. */
 
-/* Surfaces drawn over video or a thumbnail are always dark, whatever the theme:
+  /* Surfaces drawn over video or a thumbnail are always dark, whatever the theme:
    they carry `.theme-dark` (global.css); these slightly stronger fills read
    better over moving video. */
-.viewer,
-.clips-hero {
-  --text: #fff;
-  --text-2: rgba(255, 255, 255, 0.82);
-  --muted: rgba(255, 255, 255, 0.64);
-  --faint: rgba(255, 255, 255, 0.42);
-  --panel: rgba(255, 255, 255, 0.06);
-  --panel-2: rgba(255, 255, 255, 0.12);
-  --panel-3: rgba(255, 255, 255, 0.2);
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.2);
-  color-scheme: dark;
-  color: var(--text);
-}
-
-@keyframes viewer-fade {
-  from {
-    opacity: 0;
+  .viewer,
+  .clips-hero {
+    --text: #fff;
+    --text-2: rgba(255, 255, 255, 0.82);
+    --text-muted: rgba(255, 255, 255, 0.64);
+    --faint: rgba(255, 255, 255, 0.42);
+    --panel: rgba(255, 255, 255, 0.06);
+    --panel-2: rgba(255, 255, 255, 0.12);
+    --panel-3: rgba(255, 255, 255, 0.2);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.2);
+    color-scheme: dark;
+    color: var(--text);
   }
-}
 
-/* ---------------------------------------------------------------- viewer */
+  @keyframes viewer-fade {
+    from {
+      opacity: 0;
+    }
+  }
 
-.viewer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 45;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.6);
-  animation: viewer-fade 0.16s ease-out;
-}
-/* A floating 16:9 dialog, as large as the window allows. */
-.viewer {
-  position: relative;
-  width: min(100%, calc((100vh - 48px) * 16 / 9));
-  aspect-ratio: 16 / 9;
-  max-height: 100%;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius);
-  background: #000;
-  box-shadow: var(--shadow-dialog);
-}
-.viewer-backdrop.full {
-  padding: 0;
-  background: #000;
-}
-.viewer-backdrop.full .viewer {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-}
-.viewer.idle {
-  cursor: none;
-}
-.viewer-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #000;
-}
+  /* ---------------------------------------------------------------- viewer */
 
-.viewer-top,
-.viewer-bottom,
-.viewer-nav {
-  transition: opacity 0.25s ease;
-}
-.viewer.idle .viewer-top,
-.viewer.idle .viewer-bottom,
-.viewer.idle .viewer-nav {
-  opacity: 0;
-  pointer-events: none;
-}
+  .viewer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.6);
+    animation: viewer-fade 0.16s ease-out;
+  }
+  /* A floating 16:9 dialog, as large as the window allows. */
+  .viewer {
+    position: relative;
+    width: min(100%, calc((100vh - 48px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    max-height: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius);
+    background: #000;
+    box-shadow: var(--shadow-dialog);
+  }
+  .viewer-backdrop.full {
+    padding: 0;
+    background: #000;
+  }
+  .viewer-backdrop.full .viewer {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .viewer.idle {
+    cursor: none;
+  }
+  .viewer-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
 
-.viewer-top {
-  position: absolute;
-  inset: 0 0 auto;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 14px 16px 52px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
-}
-.viewer-title {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-right: 8px;
-}
-.viewer-title .name {
-  font-size: 15px;
-  font-weight: 600;
-}
-.viewer-title .meta,
-.hero-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 8px;
-  font-size: 12px;
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-}
-.viewer-title .meta span + span::before,
-.hero-meta span + span::before {
-  content: "·";
-  margin-right: 8px;
-  color: var(--faint);
-}
+  .viewer-top,
+  .viewer-bottom,
+  .viewer-nav {
+    transition: opacity 0.25s ease;
+  }
+  .viewer.idle .viewer-top,
+  .viewer.idle .viewer-bottom,
+  .viewer.idle .viewer-nav {
+    opacity: 0;
+    pointer-events: none;
+  }
 
-.viewer-bottom {
-  position: absolute;
-  inset: auto 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 52px 16px 12px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
-}
-.viewer-seek .slider {
-  display: block;
-  width: 100%;
-}
-.viewer-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.viewer-time {
-  margin-left: 6px;
-  font-size: 12px;
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-}
-.viewer-volume .slider {
-  width: 100px;
-}
+  .viewer-top {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 14px 16px 52px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+  }
+  .viewer-title {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: 8px;
+  }
+  .viewer-title .name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .viewer-title .meta,
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .viewer-title .meta span + span::before,
+  .hero-meta span + span::before {
+    content: "·";
+    margin-right: 8px;
+    color: var(--faint);
+  }
 
-.viewer-nav {
-  position: absolute;
-  top: 50%;
-  translate: 0 -50%;
-  width: 44px;
-  height: 72px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius);
-  background: rgba(0, 0, 0, 0.4);
-  color: var(--text);
-  cursor: pointer;
-}
-.viewer-nav:hover {
-  background: rgba(0, 0, 0, 0.65);
-}
-.viewer-nav.prev {
-  left: 12px;
-}
-.viewer-nav.next {
-  right: 12px;
-}
+  .viewer-bottom {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 52px 16px 12px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+  }
+  .viewer-seek .slider {
+    display: block;
+    width: 100%;
+  }
+  .viewer-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .viewer-time {
+    margin-left: 6px;
+    font-size: 12px;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .viewer-volume .slider {
+    width: 100px;
+  }
 
-.viewer-message {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  text-align: center;
-  color: var(--text-2);
-  pointer-events: none;
-}
-.viewer-message .btn {
-  pointer-events: auto;
-}
+  .viewer-nav {
+    position: absolute;
+    top: 50%;
+    translate: 0 -50%;
+    width: 44px;
+    height: 72px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius);
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .viewer-nav:hover {
+    background: rgba(0, 0, 0, 0.65);
+  }
+  .viewer-nav.prev {
+    left: 12px;
+  }
+  .viewer-nav.next {
+    right: 12px;
+  }
 
-/* ---------------------------------------------------------------- clips hero */
+  .viewer-message {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    color: var(--text-2);
+    pointer-events: none;
+  }
+  .viewer-message .btn {
+    pointer-events: auto;
+  }
 
-.clips-hero {
-  position: relative;
-  flex: none;
-  width: 100%;
-  aspect-ratio: 16 / 6;
-  max-height: 260px;
-  min-height: 180px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #000 center / cover no-repeat;
-}
-.hero-frame {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  pointer-events: none;
-}
-.hero-frame.ready {
-  opacity: 1;
-}
-.hero-scrim {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.25) 55%, rgba(0, 0, 0, 0) 100%),
-    linear-gradient(to right, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 65%);
-}
-.hero-body {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  max-width: min(640px, 100%);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 20px 24px;
-}
-.hero-eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-2);
-}
-.hero-body h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-.hero-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-.hero-actions .btn {
-  height: 36px;
-  padding: 0 18px;
-  font-size: 14px;
-}
-.hero-actions .btn.primary {
-  min-width: 120px;
-}
+  /* ---------------------------------------------------------------- clips hero */
 
-/* ---------------------------------------------------------------- editor save */
+  .clips-hero {
+    position: relative;
+    flex: none;
+    width: 100%;
+    aspect-ratio: 16 / 6;
+    max-height: 260px;
+    min-height: 180px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #000 center / cover no-repeat;
+  }
+  .hero-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .hero-frame.ready {
+    opacity: 1;
+  }
+  .hero-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.8) 0%,
+        rgba(0, 0, 0, 0.25) 55%,
+        rgba(0, 0, 0, 0) 100%
+      ),
+      linear-gradient(to right, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 65%);
+  }
+  .hero-body {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    max-width: min(640px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 24px;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .hero-body h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .hero-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .hero-actions .btn {
+    height: 36px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+  .hero-actions .btn.primary {
+    min-width: 120px;
+  }
 
-.editor-head-sep {
-  align-self: stretch;
-  width: 1px;
-  margin: 2px 4px;
-  background: var(--border);
-}
-.save-progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.save-progress .progress {
-  width: 120px;
-}
+  /* ---------------------------------------------------------------- editor save */
 
-/* ---------------------------------------------------------------- confirm dialog */
+  .editor-head-sep {
+    align-self: stretch;
+    width: 1px;
+    margin: 2px 4px;
+    background: var(--border);
+  }
+  .save-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .save-progress .progress {
+    width: 120px;
+  }
 
-.confirm-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  background: var(--smoke);
-  animation: viewer-fade 0.12s ease-out;
-}
-.confirm-dialog {
-  width: min(420px, calc(100vw - 48px));
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 20px 22px 16px;
-  background: var(--bg-elev);
-  border: 1px solid var(--surface-stroke);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-dialog);
-}
-.confirm-dialog h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.confirm-dialog .body {
-  color: var(--text-2);
-}
-.confirm-dialog .row {
-  margin-top: 6px;
-}
+  /* ---------------------------------------------------------------- confirm dialog */
 
-/* ---------------------------------------------------------------- clips grid */
+  .confirm-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    background: var(--smoke);
+    animation: viewer-fade 0.12s ease-out;
+  }
+  .confirm-dialog {
+    width: min(420px, calc(100vw - 48px));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 22px 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--surface-stroke);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-dialog);
+  }
+  .confirm-dialog h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .confirm-dialog .body {
+    color: var(--text-2);
+  }
+  .confirm-dialog .row {
+    margin-top: 6px;
+  }
 
-.clips-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.clip-group {
-  container-type: inline-size;
-}
-.clip-group-title {
-  margin: 8px 0 10px;
-  font: 600 14px/20px var(--font);
-  color: var(--text-2);
-}
-.clip-grid {
-  grid-auto-flow: row dense;
-}
-/* The newest clip: the "Latest clip" banner style, the size of one card. */
-.clip-feature {
-  min-height: 0;
-}
-.clip-feature .clips-hero {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
-  min-height: 100%;
-  max-height: none;
-}
-.clip-feature .hero-body {
-  gap: 2px;
-  padding: 12px 14px;
-}
-.clip-feature .hero-body h2 {
-  font-size: 15px;
-}
-.clip-feature .hero-meta {
-  font-size: 11px;
-}
-.clip-feature .hero-actions {
-  margin-top: 6px;
-}
-.clip-feature .hero-actions .btn {
-  height: 30px;
-  padding: 0 12px;
-  font-size: 13px;
-}
-.clip-feature .hero-actions .btn.primary {
-  min-width: 0;
-}
+  /* ---------------------------------------------------------------- clips grid */
 
-/* Open / folder / copy / delete on the featured clip, top-right over the image. */
-.hero-tools {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-}
+  .clips-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .clip-group {
+    container-type: inline-size;
+  }
+  .clip-group-title {
+    margin: 8px 0 10px;
+    font: 600 14px/20px var(--font);
+    color: var(--text-2);
+  }
+  .clip-grid {
+    grid-auto-flow: row dense;
+  }
+  /* The newest clip: the "Latest clip" banner style, the size of one card. */
+  .clip-feature {
+    min-height: 0;
+  }
+  .clip-feature .clips-hero {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    min-height: 100%;
+    max-height: none;
+  }
+  .clip-feature .hero-body {
+    gap: 2px;
+    padding: 12px 14px;
+  }
+  .clip-feature .hero-body h2 {
+    font-size: 15px;
+  }
+  .clip-feature .hero-meta {
+    font-size: 11px;
+  }
+  .clip-feature .hero-actions {
+    margin-top: 6px;
+  }
+  .clip-feature .hero-actions .btn {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .clip-feature .hero-actions .btn.primary {
+    min-width: 0;
+  }
 
-/* Card size slider (1 = smallest cards). */
-.grid-size {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--muted);
-}
-/* Resolution / codec / tracks: wrap inside the card instead of spilling out. */
-.clip-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 2px;
-  min-width: 0;
+  /* Open / folder / copy / delete on the featured clip, top-right over the image. */
+  .hero-tools {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+  }
+
+  /* Card size slider (1 = smallest cards). */
+  .grid-size {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+  }
+  /* Resolution / codec / tracks: wrap inside the card instead of spilling out. */
+  .clip-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+    min-width: 0;
+  }
 }

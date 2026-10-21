@@ -2,7 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useState } from "react";
 
 import { Icon } from "../../components/Icon";
-import { Badge, Button, Field, Keys, Section, Segmented, Toggle } from "../../components/ui";
+import { Badge, Button, Field, Keys, Section, Segmented, Toggle } from "../../components/controls";
 import { formatBytes, formatTime } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";

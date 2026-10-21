@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { HotkeyRecorder } from "../../components/HotkeyRecorder";
 import { Icon } from "../../components/Icon";
-import { Badge, Button, Field } from "../../components/ui";
+import { Badge, Button, Field } from "../../components/controls";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import {

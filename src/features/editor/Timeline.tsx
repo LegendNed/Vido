@@ -194,7 +194,7 @@ function Ruler({ duration }: { duration: number }) {
         const major = i % sub === 0;
         g.fillRect(x, major ? h - 7 : h - 4, 1, major ? 7 : 4);
       }
-      g.fillStyle = token(css, "--muted", "rgba(255, 255, 255, 0.62)");
+      g.fillStyle = token(css, "--text-muted", "rgba(255, 255, 255, 0.62)");
       g.font = `11px ${token(css, "--font-small", "system-ui")}`;
       g.textBaseline = "top";
       const digits = step < 1 ? 1 : 0;

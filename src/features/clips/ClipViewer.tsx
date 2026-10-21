@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon } from "../../components/Icon";
-import { Button, ConfirmButton, Slider } from "../../components/ui";
+import { Button, ConfirmButton, Slider } from "../../components/controls";
 import { clamp, formatBytes, formatDate, formatDuration, formatTime } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage, type ClipInfo } from "../../lib/tauri/types";
@@ -442,6 +442,7 @@ export function ClipViewer({
             />
             <div className="viewer-volume">
               <Slider
+                width={100}
                 value={muted ? 0 : Math.round(volume * 100)}
                 min={0}
                 max={100}

@@ -1,6 +1,7 @@
 import { useApp } from "../stores/app";
 import { Icon } from "./Icon";
-import { Button, SeverityIcon } from "./ui";
+import { Button as UiButton } from "./ui/button";
+import { Button, SeverityIcon } from "./controls";
 
 export function Notices() {
   const notices = useApp((s) => s.notices);
@@ -30,16 +31,17 @@ export function Notices() {
               </div>
             )}
           </div>
-          <button
+          <UiButton
             type="button"
-            className="btn ghost small icon"
+            variant="ghost"
+            size="icon-sm"
             aria-label="Dismiss"
             onClick={() => {
               dismiss(n.id);
             }}
           >
             <Icon name="x" size={14} />
-          </button>
+          </UiButton>
         </div>
       ))}
     </div>

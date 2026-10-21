@@ -1,4 +1,12 @@
-import { Badge, Button, Field, Section, Segmented, TextInput, Toggle } from "../../components/ui";
+import {
+  Badge,
+  Button,
+  Field,
+  Section,
+  Segmented,
+  TextInput,
+  Toggle,
+} from "../../components/controls";
 import { commands } from "../../lib/tauri/commands";
 import {
   errorMessage,

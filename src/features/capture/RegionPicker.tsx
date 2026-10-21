@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { Button } from "../../components/ui";
+import { Button } from "../../components/controls";
 import { windowInit } from "../../lib/init";
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage } from "../../lib/tauri/types";

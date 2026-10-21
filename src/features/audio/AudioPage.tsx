@@ -11,7 +11,7 @@ import {
   Slider,
   TextInput,
   Toggle,
-} from "../../components/ui";
+} from "../../components/controls";
 import { AUDIO_CODEC_OPTIONS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";

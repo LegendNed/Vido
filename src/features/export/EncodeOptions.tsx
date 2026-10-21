@@ -1,7 +1,8 @@
 import { useState } from "react";
 
 import { Expander } from "../../components/Expander";
-import { Field, NumberInput, Segmented, Select, Toggle } from "../../components/ui";
+import { Field, NumberInput, Segmented, Select, Toggle } from "../../components/controls";
+import { Input } from "../../components/ui/misc";
 import { formatBitrate, parseSizeMb } from "../../lib/format";
 import {
   AUDIO_CODEC_OPTIONS,
@@ -330,8 +331,9 @@ function TargetSizeInput({ mb, onCommit }: { mb: number; onCommit: (mb: number) 
   const [draft, setDraft] = useState<string | null>(null);
   const text = draft ?? `${mb} MB`;
   return (
-    <input
-      className={`input${parseSizeMb(text) === null ? " invalid" : ""}`}
+    <Input
+      className="h-8"
+      aria-invalid={parseSizeMb(text) === null || undefined}
       style={{ width: 110 }}
       value={text}
       aria-label="Target size"

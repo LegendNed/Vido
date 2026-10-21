@@ -1,4 +1,4 @@
-import { Section } from "../../components/ui";
+import { Section } from "../../components/controls";
 import { useApp } from "../../stores/app";
 import { EncodeOptions } from "./EncodeOptions";
 

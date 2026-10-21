@@ -19,7 +19,8 @@
     "resolveJsonModule": true,
     "allowJs": false,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"]
 }

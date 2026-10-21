@@ -10,7 +10,7 @@ import {
   Select,
   TextInput,
   Toggle,
-} from "../../components/ui";
+} from "../../components/controls";
 import { LOG_LEVELS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage } from "../../lib/tauri/types";

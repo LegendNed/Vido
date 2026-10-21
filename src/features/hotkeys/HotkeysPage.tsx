@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { HotkeyRecorder } from "../../components/HotkeyRecorder";
-import { Badge, Banner, Button, Field, Section } from "../../components/ui";
+import { Badge, Banner, Button, Field, Section } from "../../components/controls";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import type { HotkeyAction, HotkeySettings, HotkeyStatus } from "../../lib/tauri/types";

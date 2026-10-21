@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 
 import { Icon } from "../../components/Icon";
-import { Badge, Banner, Button, Checkbox, Meter } from "../../components/ui";
+import { Badge, Banner, Button, Checkbox, Meter } from "../../components/controls";
 import type {
   AudioDeviceInfo,
   AudioSettings,

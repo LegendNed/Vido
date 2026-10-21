@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Button, Progress } from "../../components/ui";
+import { Button, Progress } from "../../components/controls";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import {

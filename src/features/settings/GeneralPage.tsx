@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Button, Field, Section, Segmented, Toggle } from "../../components/ui";
+import { Button, Field, Section, Segmented, Toggle } from "../../components/controls";
 import { SIDEBAR_OPTIONS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage } from "../../lib/tauri/types";
@@ -26,11 +26,11 @@ export function GeneralPage() {
       <Section
         title="Appearance"
         keywords="theme dark light mode accent color navigation tabs"
-        description="Light or dark mode and the accent color follow Windows (Settings → Personalization → Colors)."
+        description="Light or dark follows Windows (Settings → Personalization → Colors)."
       >
         <Field
           label="Sidebar"
-          description="Full shows names under the icons, Small only icons, None moves the pages into tabs above the content."
+          description="Full shows names next to the icons, Icons only is narrow, Hidden leaves just the page (the button at the top left brings it back)."
         >
           <Segmented
             value={g.sidebar}

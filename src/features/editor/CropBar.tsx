@@ -1,5 +1,5 @@
 import { Icon } from "../../components/Icon";
-import { Button, Segmented } from "../../components/ui";
+import { Button, Segmented } from "../../components/controls";
 import type { CropRect } from "../../lib/tauri/types";
 
 const ASPECTS: { label: string; value: number | null }[] = [
