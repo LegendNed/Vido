@@ -79,29 +79,31 @@ function Item({
   );
 }
 
-/** Buffer state and capture details (source, encoder, bitrate, memory) in the sidebar footer. */
+/** Buffer state and memory, capture source, resolution and bitrate in the sidebar footer. */
 function BufferStatus({ collapsed }: { collapsed: boolean }) {
   const status = useApp((s) => s.status);
   if (!status) return null;
   const live = status.state === "buffering";
-  const text = status.recording
-    ? `Recording ${formatTime(status.recording.elapsedSeconds, 0)}`
-    : live
-      ? `Buffering · ${Math.floor(status.bufferedSeconds)} s`
-      : status.state === "stopped"
-        ? "Buffer off"
-        : status.state.charAt(0).toUpperCase() + status.state.slice(1);
-  const details = [
-    status.source,
+  const memory = status.state !== "stopped" && status.sizeBytes > 0;
+  const text = [
+    status.recording
+      ? `Recording ${formatTime(status.recording.elapsedSeconds, 0)}`
+      : live
+        ? `Buffering · ${Math.floor(status.bufferedSeconds)} s`
+        : status.state === "stopped"
+          ? "Buffer off"
+          : status.state.charAt(0).toUpperCase() + status.state.slice(1),
+    memory ? formatBytes(status.sizeBytes) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const video = [
     status.width > 0 ? `${status.width}×${status.height} @ ${Math.round(status.fps)} fps` : null,
-    status.encoder
-      ? `${status.encoder.replace(/_/g, " ")}${status.zeroCopy ? " · zero-copy" : ""}`
-      : null,
     status.videoBitrateKbps > 0 ? formatBitrate(status.videoBitrateKbps) : null,
-    status.state !== "stopped"
-      ? `${Math.floor(status.bufferedSeconds)}/${status.targetSeconds} s · ${formatBytes(status.sizeBytes)} in ${status.storage}`
-      : null,
-  ].filter((d): d is string => !!d);
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const details = [status.source, video].filter((d): d is string => !!d);
   const dot = (
     <span
       className={cn(
@@ -125,7 +127,12 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
       {dot}
       {!collapsed && (
         <div className="min-w-0">
-          <div className="truncate font-medium">{text}</div>
+          <div
+            className="truncate font-medium"
+            title={memory ? `Buffer memory in ${status.storage}` : undefined}
+          >
+            {text}
+          </div>
           {details.map((d) => (
             <div key={d} className="truncate text-muted-foreground" title={d}>
               {d}
