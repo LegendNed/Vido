@@ -6,7 +6,7 @@
  * components is searchable without extra work.
  *
  * A row matches when every word of the query appears in its own text (label,
- * description, keywords) or in the text of a group/section around it — so "audio
+ * description, keywords) or in the text of a group/section around it - so "audio
  * codec" finds Codec under Audio format, and a section whose title matches shows
  * all of its rows. Containers stay hidden unless they match or a row inside does;
  * they stay mounted (only `hidden`) so their rows can report matches.

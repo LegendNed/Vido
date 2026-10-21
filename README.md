@@ -1,6 +1,6 @@
 # Vido
 
-A lightweight, **local-first** replay-buffer clipper for Windows — like Medal.tv, minus the account,
+A lightweight, **local-first** replay-buffer clipper for Windows - like Medal.tv, minus the account,
 cloud, ads, watermark and telemetry. Vido keeps the last moments of your screen and audio in a
 rolling buffer; press **Save clip** and the buffer (5 s – 10 min, your choice) is saved as an MP4 in
 milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips to a target size.
@@ -199,10 +199,10 @@ Vido never updates itself and does not start with Windows unless you enable it
 
 On first launch a short setup appears in the main window:
 
-1. **Display** — pick the monitor to record (window/region capture can be chosen later).
-2. **Audio** — desktop output device; microphone is _off_ unless you enable it.
-3. **Buffer** — how much to keep (15 s – 5 min presets), which is the length of your clips, and quality.
-4. **Save clip hotkey** — defaults to **Ctrl+Shift+F6** (saves the whole buffer).
+1. **Display** - pick the monitor to record (window/region capture can be chosen later).
+2. **Audio** - desktop output device; microphone is _off_ unless you enable it.
+3. **Buffer** - how much to keep (15 s – 5 min presets), which is the length of your clips, and quality.
+4. **Save clip hotkey** - defaults to **Ctrl+Shift+F6** (saves the whole buffer).
 
 “Start buffering” saves the choices and starts the buffer. Afterwards Vido starts minimized in
 the tray (configurable). The red tray dot means “buffering”; left-click opens the window.
@@ -268,7 +268,7 @@ failures (another app owns the shortcut) are shown per action. Editor shortcuts:
 
 ## Windows APIs & permissions
 
-Vido runs as a normal user — **no administrator rights and no drivers**.
+Vido runs as a normal user - **no administrator rights and no drivers**.
 
 | Feature                    | API                                                 | Requirement                                                                                                   |
 | -------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -277,8 +277,8 @@ Vido runs as a normal user — **no administrator rights and no drivers**.
 | GPU conversion             | D3D11 video processor                               | any D3D11 GPU                                                                                                 |
 | Encoding                   | FFmpeg: NVENC / AMF / QSV / x264 / x265 / SVT-AV1   | current GPU driver for hardware encoders                                                                      |
 | Audio                      | WASAPI shared mode (loopback for outputs)           | microphone: _Settings → Privacy & security → Microphone → Let desktop apps access your microphone_ must be on |
-| Device changes             | `IMMNotificationClient`                             | —                                                                                                             |
-| Global hotkeys             | `RegisterHotKey` (via tauri-plugin-global-shortcut) | games running **as administrator** only see hotkeys from elevated apps — run Vido elevated in that case       |
+| Device changes             | `IMMNotificationClient`                             | -                                                                                                             |
+| Global hotkeys             | `RegisterHotKey` (via tauri-plugin-global-shortcut) | games running **as administrator** only see hotkeys from elevated apps - run Vido elevated in that case       |
 | HUD hidden from recordings | `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`  | Windows 10 2004+                                                                                              |
 | UI                         | WebView2                                            | evergreen runtime                                                                                             |
 | Mica, accent color         | DWM system backdrop, `UISettings` (WinRT)           | Mica on Windows 11; Windows 10 gets a solid background                                                        |
@@ -347,12 +347,12 @@ src-tauri/src/            Rust capture engine
   hotkeys/ settings/      validated accelerators, settings model + JSON store
   av/                     RAII wrappers over FFmpeg (ffmpeg-sys-next) + D3D11 hw contexts
   commands.rs events.rs   the IPC surface
-  tray.rs ui.rs theme.rs  tray menu, windows (main — editor is a modal in it — and region picker), Mica + accent
+  tray.rs ui.rs theme.rs  tray menu, windows (main - editor is a modal in it - and region picker), Mica + accent
   hud.rs                  overlay pill + popups, drawn natively (GDI layered window)
 ```
 
 The webview never captures, encodes, writes files or registers hotkeys; it calls typed commands
-and receives typed events. Raw frames never cross IPC — the editor plays saved files through
+and receives typed events. Raw frames never cross IPC - the editor plays saved files through
 Tauri's asset protocol (scoped to the clips folder and opened files). See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

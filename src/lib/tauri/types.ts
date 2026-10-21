@@ -1,5 +1,5 @@
 // Shared IPC types. Everything here mirrors a Rust type; the definitions in
-// ./bindings are generated from Rust with ts-rs (`pnpm bindings`) — do not edit them.
+// ./bindings are generated from Rust with ts-rs (`pnpm bindings`) - do not edit them.
 
 export type { AccentColors } from "./bindings/AccentColors";
 export type { AdvancedSettings } from "./bindings/AdvancedSettings";

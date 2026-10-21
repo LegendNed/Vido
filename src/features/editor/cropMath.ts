@@ -1,7 +1,7 @@
 import { clamp } from "../../lib/format";
 import type { CropRect } from "../../lib/tauri/types";
 
-/** Even, in-bounds, at least 64 px — matches the Rust validator. */
+/** Even, in-bounds, at least 64 px - matches the Rust validator. */
 export function normalizeCrop(c: CropRect, vw: number, vh: number): CropRect {
   const width = clamp(Math.round(c.width / 2) * 2, 64, vw);
   const height = clamp(Math.round(c.height / 2) * 2, 64, vh);

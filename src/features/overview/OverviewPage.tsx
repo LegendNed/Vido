@@ -144,7 +144,7 @@ export function OverviewPage({
           </Button>
         </div>
         {clips.length === 0 ? (
-          <p className="muted small">No clips yet — press the Save clip hotkey in a game.</p>
+          <p className="muted small">No clips yet - press the Save clip hotkey in a game.</p>
         ) : (
           <div className="overview-clips">
             {clips.map((c) => (

@@ -20,7 +20,7 @@ if (-not $SkipBuild) {
 }
 
 $exe = Join-Path $root "src-tauri\target\release\vido.exe"
-if (-not (Test-Path $exe)) { throw "Missing $exe — run without -SkipBuild" }
+if (-not (Test-Path $exe)) { throw "Missing $exe - run without -SkipBuild" }
 
 $name = "Vido-$version-portable-x64"
 $outDir = Join-Path $root "release\$name"
@@ -31,7 +31,7 @@ $userData = Join-Path $outDir "data"
 $stash = $null
 if (Test-Path $userData) {
     if (Get-Process -Name vido -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$outDir*" }) {
-        throw "Vido is running from $outDir — quit it (tray → Quit) and run this script again."
+        throw "Vido is running from $outDir - quit it (tray → Quit) and run this script again."
     }
     $stash = Join-Path $root "release\.$name-data-$(Get-Date -Format yyyyMMddHHmmss)"
     Move-Item -LiteralPath $userData -Destination $stash

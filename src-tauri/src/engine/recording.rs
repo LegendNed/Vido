@@ -67,7 +67,7 @@ impl Recording {
 
     /// Cuts at the newest buffered frame: packets after it are dropped, and the
     /// recorder waits (briefly) until audio, which is encoded ~150 ms behind
-    /// video, has caught up to it — so all tracks end together.
+    /// video, has caught up to it - so all tracks end together.
     fn request_stop(&self) {
         let end = self.buffer.stats().newest_us;
         let _ = self

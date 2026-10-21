@@ -13,7 +13,7 @@ const ACTIONS: { action: HotkeyAction; key: keyof HotkeySettings; label: string;
       action: "saveClip",
       key: "saveClip",
       label: "Save clip",
-      desc: "Saves everything in the buffer — set its length on the Overview page.",
+      desc: "Saves everything in the buffer - set its length on the Overview page.",
     },
     {
       action: "toggleRecording",
@@ -79,7 +79,7 @@ export function HotkeysPage() {
       </div>
       <Banner tone="info">
         Hotkeys work while games are focused. If a game runs as administrator, run Vido as
-        administrator too — Windows blocks shortcuts from reaching more privileged apps.
+        administrator too - Windows blocks shortcuts from reaching more privileged apps.
       </Banner>
       <Section
         title="Shortcuts"

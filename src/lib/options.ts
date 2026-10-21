@@ -135,7 +135,7 @@ export function encoderOptions(
   ];
   return opts.map(([value, label]) => {
     const ok = value === "auto" || avail(value);
-    return { value, label: ok ? label : `${label} — not available`, disabled: !ok };
+    return { value, label: ok ? label : `${label} - not available`, disabled: !ok };
   });
 }
 

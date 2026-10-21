@@ -189,7 +189,7 @@ export function Select<T extends string | number>({
         if (o) onChange(o.value);
       }}
     >
-      {idx < 0 && <option value="">—</option>}
+      {idx < 0 && <option value="">-</option>}
       {options.map((o, i) => (
         <option key={String(o.value)} value={String(i)} disabled={o.disabled}>
           {o.label}

@@ -1,4 +1,4 @@
-// Small inline SVG icon set (stroke icons, 24x24 viewBox) — no icon font dependency.
+// Small inline SVG icon set (stroke icons, 24x24 viewBox) - no icon font dependency.
 
 const PATHS = {
   home: "M3 11l9-7 9 7M5 9.5V20h5v-6h4v6h5V9.5",

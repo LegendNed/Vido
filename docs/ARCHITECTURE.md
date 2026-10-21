@@ -92,7 +92,7 @@ Packets are grouped into segments that start at a video keyframe (target ≈2 s,
 | ------------------------------------------------------- | ------------------------------ | ------------------------------ |
 | Trim only, compatible container, stream copy on         | **copy** from keyframe ≤ start | copy                           |
 | Crop / scale / speed / fps / target size / codec change | encode (exact start)           | copy if unchanged, else encode |
-| Track volume/mute/fades, or mixing tracks               | —                              | encode that output track       |
+| Track volume/mute/fades, or mixing tracks               | -                              | encode that output track       |
 
 Audio outputs: `mixAudio` mixes the kept tracks (muted ones left out) into one "Mix" track;
 with `keepMixedTracks` the mix is followed by every kept track on its own (muted ones silent),
@@ -130,7 +130,7 @@ only the recorded Mix track when the clip has one, else mixes the tracks.
 
 **Copy the video** (`saving.postSave.copyVideo`, on by default) runs on the save worker thread:
 `win::copy_file_to_clipboard` puts the file on the clipboard like Explorer's Copy (`CF_HDROP` with
-a wide `DROPFILES` list + `Preferred DropEffect` = copy) with plain Win32 clipboard calls — no COM,
+a wide `DROPFILES` list + `Preferred DropEffect` = copy) with plain Win32 clipboard calls - no COM,
 so the STA main thread is never involved. If a re-encode later gives the file a new name, the
 clipboard follows it unless something else was copied meanwhile (clipboard sequence number).
 
@@ -142,7 +142,7 @@ own small file in one pass (AAC → `.m4a`, Opus → `.webm`; timestamps kept so
 the video), cached in `cache\preview` by path, size and date and pruned after a day. The editor
 (`useLaneAudio`) plays them as hidden `<audio>` elements, each through a Web Audio `GainNode`
 set from its lane (an untouched recorded mix plays as recorded; once a lane changes, the sources
-play instead — the same rule as exports), muting the video and following its play, pause and
+play instead - the same rule as exports), muting the video and following its play, pause and
 seeks with drift correction. The asset protocol sends CORS headers for the app origin, which Web
 Audio requires. If a track can't be prepared, the preview falls back to the video's own audio.
 

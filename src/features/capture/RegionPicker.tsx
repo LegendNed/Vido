@@ -92,7 +92,7 @@ export function RegionPicker() {
       <div className="region-bar">
         <span>
           Drag to select the capture area on <b>{display.name}</b>
-          {error ? <span style={{ color: "var(--danger)" }}> — {error}</span> : null}
+          {error ? <span style={{ color: "var(--danger)" }}> - {error}</span> : null}
         </span>
         <Button
           small

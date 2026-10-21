@@ -250,7 +250,7 @@ export function ExportPanel({
                 : ""}
             {job.result.attempts > 1 ? ` (${job.result.attempts} passes)` : ""}.
             {job.result.overTarget &&
-              " The target size could not be reached — try a lower resolution."}
+              " The target size could not be reached - try a lower resolution."}
           </div>
           <div className="row" style={{ marginTop: 6 }}>
             <Button

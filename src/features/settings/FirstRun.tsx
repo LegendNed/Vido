@@ -164,7 +164,7 @@ export function FirstRun() {
           <>
             <h2>How much to keep</h2>
             <p className="muted">
-              Save clip keeps this much of what just happened — it is the length of your clips.
+              Save clip keeps this much of what just happened - it is the length of your clips.
             </p>
             <div className="row wrap" style={{ margin: "16px 0" }}>
               {LENGTHS.map((s) => (
@@ -206,7 +206,7 @@ export function FirstRun() {
           <>
             <h2>Save clip</h2>
             <p className="muted">
-              Press this anytime — even in a game — to save everything in the buffer as a clip (the
+              Press this anytime - even in a game - to save everything in the buffer as a clip (the
               last {formatLength(draft.capture.bufferSeconds)}, chosen in the previous step).
             </p>
             <div className="card" style={{ padding: "0 14px", margin: "14px 0" }}>

@@ -131,7 +131,7 @@ export function CaptureSettings() {
                 },
                 ...displays.map((d) => ({
                   value: d.id,
-                  label: `${d.name} — ${d.width}×${d.height}${d.primary ? " (primary)" : ""}`,
+                  label: `${d.name} - ${d.width}×${d.height}${d.primary ? " (primary)" : ""}`,
                 })),
               ]}
               onChange={(v) => {
@@ -148,7 +148,7 @@ export function CaptureSettings() {
             label="Window"
             description={
               c.window && !savedWindowFound
-                ? `"${c.window.title}" is not running — capture starts when it appears.`
+                ? `"${c.window.title}" is not running - capture starts when it appears.`
                 : "Matched by program name, so it is found again after restarts."
             }
           >
@@ -341,7 +341,7 @@ export function CaptureSettings() {
       >
         <Field
           label="Buffer length"
-          description="How much Save clip keeps — the length of your clips (5 seconds to 10 minutes)."
+          description="How much Save clip keeps - the length of your clips (5 seconds to 10 minutes)."
           error={err("capture.bufferSeconds")}
         >
           <Slider
@@ -458,7 +458,7 @@ export function CaptureSettings() {
       {status?.captureApi && (
         <Banner tone="info">
           Capturing with <b>{status.captureApi}</b> using <b>{status.encoder}</b>
-          {status.zeroCopy ? " — frames stay on the GPU (zero-copy)." : "."} Exclusive-fullscreen
+          {status.zeroCopy ? " - frames stay on the GPU (zero-copy)." : "."} Exclusive-fullscreen
           games may show black frames; use borderless/windowed mode for those.
         </Banner>
       )}

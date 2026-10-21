@@ -1,6 +1,6 @@
 //! The HUD pill, drawn natively: a click-through, always-on-top layered window
 //! excluded from screen capture, on its own thread. (A webview HUD kept the whole
-//! WebView2 runtime — ~150–200 MB — loaded while Vido sat in the tray.)
+//! WebView2 runtime - ~150–200 MB - loaded while Vido sat in the tray.)
 //!
 //! Two things share the window: the permanent overlay (buffer state, optional) and
 //! short popups ("Clip saved", recording, errors), which appear in the same spot

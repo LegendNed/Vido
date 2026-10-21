@@ -148,7 +148,7 @@ export function AudioSettings() {
     <>
       <SearchBlock
         title="Audio devices"
-        description="Tick every device you want in your clips — each one is recorded on its own track. Changing the selection restarts the replay buffer."
+        description="Tick every device you want in your clips - each one is recorded on its own track. Changing the selection restarts the replay buffer."
         keywords="microphone mic speakers headphones desktop sound output input track volume mute gain mono stereo noise suppression"
       >
         <div className="row audio-summary">
@@ -215,7 +215,7 @@ export function AudioSettings() {
         </Field>
         <Field
           label="Mixed track"
-          description="Track 1 contains everything — what players and Discord play."
+          description="Track 1 contains everything - what players and Discord play."
         >
           <Toggle
             value={a.mixedTrack}

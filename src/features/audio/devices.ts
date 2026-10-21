@@ -117,7 +117,7 @@ function newTrackId(audio: AudioSettings, direction: DeviceKind): string {
 
 /**
  * Ticks or unticks a device (mutates `audio`). Unticking keeps the track, disabled, so
- * ticking again restores its name/volume/gain — except for devices that are not
+ * ticking again restores its name/volume/gain - except for devices that are not
  * connected, which would otherwise linger invisibly. When the list is full, the
  * oldest remembered (unticked) track makes room for a new one.
  */
@@ -169,7 +169,7 @@ export function recordedTwice(rows: DeviceRow[]): DeviceRow | undefined {
   return rows.find((r) => r.deviceId !== null && r.checked && r.isDefault);
 }
 
-/** "4 tracks: mix + 3 sources" — mirrors the stream layout of the audio engine. */
+/** "4 tracks: mix + 3 sources" - mirrors the stream layout of the audio engine. */
 export function trackSummary(audio: AudioSettings): string {
   const on = audio.tracks.filter((t) => t.enabled);
   const n = on.length;
