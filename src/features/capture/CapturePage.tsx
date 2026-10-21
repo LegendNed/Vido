@@ -386,10 +386,9 @@ export function CaptureSettings() {
               setConfirmDisk(false);
             }}
           >
-            The buffer is written to your drive non-stop while Vido runs — at your current quality
-            that can be tens of gigabytes per hour of play. On an SSD this adds wear and can shorten
-            its life, and it uses disk bandwidth games may want. RAM (or Auto) avoids this; choose
-            disk only if you're short on memory or need a very long buffer.
+            The buffer is written to your drive non-stop.{" "}
+            <b>This wears out SSDs and can damage your drive over time.</b> Use RAM unless you need
+            it.
           </ConfirmDialog>
         )}
         <Field
