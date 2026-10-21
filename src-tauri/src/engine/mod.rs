@@ -161,7 +161,8 @@ pub fn restart_required(old: &Settings, new: &Settings) -> bool {
         || oc.encoder != nc.encoder
         || oc.quality != nc.quality
         || oc.custom_bitrate_kbps != nc.custom_bitrate_kbps
-        || oc.keyframe_interval_sec != nc.keyframe_interval_sec;
+        || oc.keyframe_interval_sec != nc.keyframe_interval_sec
+        || oc.encoder_speed != nc.encoder_speed;
     let (oa, na) = (&old.audio, &new.audio);
     // Enabled tracks define the session's audio streams (count, order, titles);
     // unchecked devices kept in the list only remember their settings.

@@ -1,5 +1,10 @@
+import { useState } from "react";
+
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Button, Field, Section, Segmented, Toggle } from "../../components/ui";
 import { SIDEBAR_OPTIONS } from "../../lib/options";
+import { commands } from "../../lib/tauri/commands";
+import { errorMessage } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 
 /** Settings most people touch: appearance, the setup wizard, startup and tray. */
@@ -7,6 +12,9 @@ export function GeneralPage() {
   const settings = useApp((s) => s.settings);
   const update = useApp((s) => s.update);
   const setRedoSetup = useApp((s) => s.setRedoSetup);
+  const setSettings = useApp((s) => s.setSettingsFromBackend);
+  const notify = useApp((s) => s.notify);
+  const [confirmReset, setConfirmReset] = useState(false);
   if (!settings) return null;
   const g = settings.general;
 
@@ -53,6 +61,43 @@ export function GeneralPage() {
             Run setup
           </Button>
         </Field>
+        <Field
+          label="Reset settings and run setup"
+          description="Puts every setting back to its default (recommended quality for this PC included), then walks through setup. Clips are not touched."
+        >
+          <Button
+            icon="refresh"
+            onClick={() => {
+              setConfirmReset(true);
+            }}
+          >
+            Reset & run setup
+          </Button>
+        </Field>
+        {confirmReset && (
+          <ConfirmDialog
+            title="Reset all settings?"
+            confirmLabel="Reset"
+            onConfirm={() => {
+              setConfirmReset(false);
+              commands.resetSettings().then(
+                (s) => {
+                  setSettings(s);
+                  setRedoSetup("fresh");
+                },
+                (e: unknown) => {
+                  notify("error", "Could not reset settings", errorMessage(e));
+                },
+              );
+            }}
+            onCancel={() => {
+              setConfirmReset(false);
+            }}
+          >
+            Every setting goes back to its default, then setup starts. Your clips stay where they
+            are.
+          </ConfirmDialog>
+        )}
       </Section>
 
       <Section title="Startup & tray" keywords="autostart boot minimize close quit">

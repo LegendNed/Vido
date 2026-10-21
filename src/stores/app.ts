@@ -39,9 +39,12 @@ interface AppStore {
   editor: EditorRequest | null;
   openEditor: (path: string, from?: EditorRequest["from"], at?: number) => void;
   closeEditor: () => void;
-  /** The setup wizard was reopened from Advanced (not persisted). */
-  redoSetup: boolean;
-  setRedoSetup: (v: boolean) => void;
+  /**
+   * The setup wizard was reopened (not persisted): `true` keeps the current settings
+   * as its starting point, `"fresh"` follows a reset (it suggests a quality again).
+   */
+  redoSetup: boolean | "fresh";
+  setRedoSetup: (v: boolean | "fresh") => void;
   init: () => Promise<void>;
   setStatus: (s: BufferStatus) => void;
   setSettingsFromBackend: (s: Settings) => void;

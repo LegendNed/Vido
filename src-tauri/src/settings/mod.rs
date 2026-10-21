@@ -96,6 +96,54 @@ pub enum BufferStorage {
     Disk,
 }
 
+/// How much work the GPU encoder spends per frame while buffering.
+#[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum EncoderSpeed {
+    /// Fastest preset: lightest on the GPU, slightly larger files for the same quality.
+    #[default]
+    Performance,
+    Balanced,
+    /// Slowest preset: best quality per bit, most encoder load.
+    Quality,
+}
+
+impl EncoderSpeed {
+    pub fn preset(self) -> QualityPreset {
+        match self {
+            Self::Performance => QualityPreset::Speed,
+            Self::Balanced => QualityPreset::Balanced,
+            Self::Quality => QualityPreset::Quality,
+        }
+    }
+}
+
+/// A recording quality the PC is suggested to use (first run).
+#[derive(Serialize, TS, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum QualityTier {
+    /// 720p 30 fps: no hardware encoder.
+    Low,
+    /// 1080p 60 fps.
+    Standard,
+    /// 1440p 60 fps: strong GPU and a 1440p+ display.
+    High,
+}
+
+/// Suggests a recording quality from what the PC has: a hardware encoder, the
+/// GPU's dedicated memory (GB) and the primary display's height.
+pub fn recommend_tier(hardware_encoder: bool, vram_gb: f64, display_height: u32) -> QualityTier {
+    if !hardware_encoder {
+        QualityTier::Low
+    } else if vram_gb >= 10.0 && display_height >= 1440 {
+        QualityTier::High
+    } else {
+        QualityTier::Standard
+    }
+}
+
 #[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -362,6 +410,7 @@ pub struct CaptureSettings {
     pub custom_bitrate_kbps: u32,
     /// Keyframe spacing; also the granularity of instant saves.
     pub keyframe_interval_sec: u32,
+    pub encoder_speed: EncoderSpeed,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
@@ -574,17 +623,19 @@ impl Default for CaptureSettings {
             monitor_id: None,
             window: None,
             region: None,
+            // "Standard": 1080p 60 fps at 15 Mbps (first run may suggest another tier).
             fps: 60,
-            scale: ScalePreset::Native,
+            scale: ScalePreset::P1080,
             capture_cursor: true,
             buffer_seconds: 30,
             buffer_storage: BufferStorage::Auto,
             buffer_max_mb: Some(4096),
             video_codec: VideoCodec::H264,
             encoder: EncoderPreference::Auto,
-            quality: BufferQuality::High,
-            custom_bitrate_kbps: 30_000,
+            quality: BufferQuality::Custom,
+            custom_bitrate_kbps: 15_000,
             keyframe_interval_sec: 1,
+            encoder_speed: EncoderSpeed::Performance,
         }
     }
 }
@@ -1783,7 +1834,10 @@ mod tests {
 
     #[test]
     fn buffer_bitrate_estimates_are_sane() {
-        let c = CaptureSettings::default();
+        let c = CaptureSettings {
+            quality: BufferQuality::High,
+            ..Default::default()
+        };
         let k1080 = c.video_bitrate_kbps(1920, 1080, 60.0);
         let k1440 = c.video_bitrate_kbps(2560, 1440, 60.0);
         assert!((15_000..=30_000).contains(&k1080), "{k1080}");
@@ -1794,5 +1848,13 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(custom.video_bitrate_kbps(1920, 1080, 60.0), 12_345);
+    }
+
+    #[test]
+    fn recommended_quality_follows_the_hardware() {
+        assert_eq!(recommend_tier(false, 24.0, 2160), QualityTier::Low);
+        assert_eq!(recommend_tier(true, 8.0, 1440), QualityTier::Standard);
+        assert_eq!(recommend_tier(true, 32.0, 1080), QualityTier::Standard);
+        assert_eq!(recommend_tier(true, 32.0, 1440), QualityTier::High);
     }
 }

@@ -28,6 +28,8 @@ export type { EditorOpen } from "./bindings/EditorOpen";
 export type { EncoderCapabilities } from "./bindings/EncoderCapabilities";
 export type { EncoderInfo } from "./bindings/EncoderInfo";
 export type { EncoderPreference } from "./bindings/EncoderPreference";
+export type { EncoderSpeed } from "./bindings/EncoderSpeed";
+export type { QualityTier } from "./bindings/QualityTier";
 export type { ErrorCode } from "./bindings/ErrorCode";
 export type { ExportAudioTrack } from "./bindings/ExportAudioTrack";
 export type { ExportDefaults } from "./bindings/ExportDefaults";

@@ -14,6 +14,7 @@ import type {
   CropRect,
   DisplayInfo,
   EncoderCapabilities,
+  QualityTier,
   ExportEstimate,
   ExportRequest,
   FolderKind,
@@ -42,6 +43,8 @@ export const commands = {
   listAudioDevices: () => invoke<AudioDeviceInfo[]>("list_audio_devices"),
   getEncoderCapabilities: (refresh = false) =>
     invoke<EncoderCapabilities>("get_encoder_capabilities", { refresh }),
+  /** A recording quality suited to this PC (hardware encoder, GPU memory, display). */
+  recommendQuality: () => invoke<QualityTier>("recommend_quality"),
 
   // Replay buffer
   startBuffer: () => invoke<BufferStatus>("start_buffer"),

@@ -167,16 +167,19 @@ export function Select<T extends string | number>({
   onChange,
   disabled,
   width,
+  id,
 }: {
   value: T;
   options: Option<T>[];
   onChange: (v: T) => void;
   disabled?: boolean;
   width?: number;
+  id?: string;
 }) {
   const idx = options.findIndex((o) => o.value === value);
   return (
     <select
+      id={id}
       className="select"
       value={idx < 0 ? "" : String(idx)}
       disabled={disabled}

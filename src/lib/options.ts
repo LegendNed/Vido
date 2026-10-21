@@ -6,6 +6,7 @@ import type {
   Container,
   EncoderCapabilities,
   EncoderPreference,
+  EncoderSpeed,
   HudPosition,
   LogLevel,
   QualityPreset,
@@ -139,3 +140,15 @@ export function encoderOptions(
 }
 
 export const CODEC_NAMES = CODEC_LABEL;
+
+export const ENCODER_SPEED_OPTIONS: Option<EncoderSpeed>[] = [
+  { value: "performance", label: "Performance" },
+  { value: "balanced", label: "Balanced" },
+  { value: "quality", label: "Quality" },
+];
+
+/** Buffer bitrate: "auto" follows the resolution (`quality: high`), numbers are kbps. */
+export const BITRATE_OPTIONS: Option<"auto" | number>[] = [
+  { value: "auto", label: "Auto" },
+  ...[5, 8, 10, 15, 20, 25, 30, 40, 50, 60].map((m) => ({ value: m * 1000, label: `${m} Mbps` })),
+];

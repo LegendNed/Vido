@@ -3,6 +3,7 @@ import type { BufferQuality } from "./BufferQuality";
 import type { BufferStorage } from "./BufferStorage";
 import type { CaptureMode } from "./CaptureMode";
 import type { EncoderPreference } from "./EncoderPreference";
+import type { EncoderSpeed } from "./EncoderSpeed";
 import type { RegionRect } from "./RegionRect";
 import type { ScalePreset } from "./ScalePreset";
 import type { VideoCodec } from "./VideoCodec";
@@ -28,4 +29,4 @@ customBitrateKbps: number,
 /**
  * Keyframe spacing; also the granularity of instant saves.
  */
-keyframeIntervalSec: number, };
+keyframeIntervalSec: number, encoderSpeed: EncoderSpeed, };

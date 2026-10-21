@@ -708,3 +708,71 @@ html.win-region #root {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------- recording quality cards */
+
+.quality-cards-row {
+  padding: 10px 0 12px;
+}
+.quality-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+.quality-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--control-stroke);
+  border-radius: var(--radius);
+  background: var(--control);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.083s,
+    border-color 0.083s;
+}
+.quality-card:hover {
+  background: var(--control-hover);
+}
+.quality-card.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.qc-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-weight: 600;
+}
+.qc-title svg {
+  color: var(--accent-text);
+}
+.qc-hint {
+  color: var(--text-2);
+  font: 12px/16px var(--font-small);
+}
+.qc-spec {
+  margin-top: 2px;
+  color: var(--muted);
+  font: 12px/16px var(--font-small);
+}
+.qc-badge {
+  margin-top: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 11px/16px var(--font-small);
+}
+.wizard-sub {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}

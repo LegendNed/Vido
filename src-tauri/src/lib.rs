@@ -292,6 +292,7 @@ pub fn run() {
             commands::open_clip_external,
             commands::copy_clip_path,
             commands::get_waveform,
+            commands::recommend_quality,
             commands::prepare_audio_preview,
             commands::take_screenshot,
             commands::estimate_export,

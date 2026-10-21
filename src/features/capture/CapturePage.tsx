@@ -17,8 +17,9 @@ import { formatBitrate } from "../../lib/format";
 import {
   codecOptions,
   encoderOptions,
+  BITRATE_OPTIONS,
+  ENCODER_SPEED_OPTIONS,
   FPS_OPTIONS,
-  QUALITY_OPTIONS,
   SCALE_OPTIONS,
   STORAGE_OPTIONS,
 } from "../../lib/options";
@@ -30,6 +31,8 @@ import {
   type WindowInfo,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import { QualityCards } from "./QualityCards";
+import { applyPreset } from "./recordingPresets";
 
 const BUFFER_PRESETS = [15, 30, 60, 120, 300, 600];
 
@@ -218,8 +221,37 @@ export function CaptureSettings() {
 
       <Section
         title="Video quality"
-        description="Hardware encoders keep CPU and GPU overhead minimal."
+        description="Higher settings use more GPU encoder time and bigger files. If games stutter, pick a lower one."
+        keywords="quality preset low standard high native custom bitrate resolution fps"
       >
+        <div className="quality-cards-row">
+          <QualityCards
+            value={c}
+            nativeSize={
+              selectedDisplay ? `${selectedDisplay.width}×${selectedDisplay.height}` : undefined
+            }
+            onPick={(p) => {
+              update((d) => {
+                applyPreset(d.capture, p);
+              });
+            }}
+            onCustom={() => {
+              document.getElementById("capture-resolution")?.focus();
+            }}
+          />
+        </div>
+        <Field label="Resolution" description="Downscaling never upscales smaller sources.">
+          <Select
+            id="capture-resolution"
+            value={c.scale}
+            options={SCALE_OPTIONS}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.scale = v;
+              });
+            }}
+          />
+        </Field>
         <Field label="Frame rate" error={err("capture.fps")}>
           <Select
             value={c.fps}
@@ -231,13 +263,47 @@ export function CaptureSettings() {
             }}
           />
         </Field>
-        <Field label="Resolution" description="Downscaling never upscales smaller sources.">
-          <Select
-            value={c.scale}
-            options={SCALE_OPTIONS}
+        <Field
+          label="Bitrate"
+          description={
+            status?.videoBitrateKbps
+              ? `Auto follows the resolution · currently ${formatBitrate(status.videoBitrateKbps)}`
+              : "Auto follows the resolution."
+          }
+          error={err("capture.customBitrateKbps")}
+        >
+          <Select<"auto" | number>
+            value={c.quality === "custom" ? c.customBitrateKbps : "auto"}
+            options={
+              c.quality === "custom" &&
+              !BITRATE_OPTIONS.some((o) => o.value === c.customBitrateKbps)
+                ? [
+                    ...BITRATE_OPTIONS,
+                    { value: c.customBitrateKbps, label: formatBitrate(c.customBitrateKbps) },
+                  ]
+                : BITRATE_OPTIONS
+            }
             onChange={(v) => {
               update((d) => {
-                d.capture.scale = v;
+                if (v === "auto") d.capture.quality = "high";
+                else {
+                  d.capture.quality = "custom";
+                  d.capture.customBitrateKbps = v;
+                }
+              });
+            }}
+          />
+        </Field>
+        <Field
+          label="Encoder speed"
+          description="Performance is lightest on the GPU; Quality squeezes more detail into the same bitrate."
+        >
+          <Segmented
+            value={c.encoderSpeed}
+            options={ENCODER_SPEED_OPTIONS}
+            onChange={(v) => {
+              update((d) => {
+                d.capture.encoderSpeed = v;
               });
             }}
           />
@@ -263,38 +329,6 @@ export function CaptureSettings() {
             onChange={(v) => {
               update((d) => {
                 d.capture.encoder = v;
-              });
-            }}
-          />
-        </Field>
-        <Field
-          label="Quality"
-          description={
-            status?.videoBitrateKbps
-              ? `Currently ${formatBitrate(status.videoBitrateKbps)}`
-              : undefined
-          }
-        >
-          {c.quality === "custom" && (
-            <NumberInput
-              value={c.customBitrateKbps}
-              min={1000}
-              max={200000}
-              step={500}
-              suffix="kbps"
-              onChange={(v) => {
-                update((d) => {
-                  d.capture.customBitrateKbps = v;
-                });
-              }}
-            />
-          )}
-          <Select
-            value={c.quality}
-            options={QUALITY_OPTIONS}
-            onChange={(v) => {
-              update((d) => {
-                d.capture.quality = v;
               });
             }}
           />

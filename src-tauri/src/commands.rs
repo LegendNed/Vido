@@ -187,6 +187,34 @@ pub async fn list_audio_devices() -> AppResult<Vec<AudioDeviceInfo>> {
     .await
 }
 
+/// A recording quality suited to this PC (used by the first-run wizard).
+#[tauri::command]
+pub async fn recommend_quality(app: AppHandle) -> AppResult<crate::settings::QualityTier> {
+    blocking(move || {
+        let caps = app.state::<AppState>().caps.get_or_probe(false);
+        let hardware = caps
+            .encoders
+            .iter()
+            .any(|e| e.available && e.hardware && e.codec == crate::settings::VideoCodec::H264);
+        #[cfg(windows)]
+        let (vram, height) = (
+            crate::capture::d3d::max_vram_gb(),
+            enumerate::list_displays()
+                .iter()
+                .find(|d| d.primary)
+                .map_or(1080, |d| d.height),
+        );
+        #[cfg(not(windows))]
+        let (vram, height) = (0.0, 1080);
+        let tier = crate::settings::recommend_tier(hardware, vram, height);
+        tracing::info!(
+            "recommended quality: {tier:?} (hw encoder {hardware}, {vram:.0} GB, {height}p)"
+        );
+        Ok(tier)
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn get_encoder_capabilities(
     app: AppHandle,

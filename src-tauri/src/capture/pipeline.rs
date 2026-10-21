@@ -34,7 +34,7 @@ use crate::buffer::{NewPacket, ReplayBuffer};
 use crate::encode::video::{InputKind, Rate, VideoEncoder, VideoEncoderConfig};
 use crate::encode::EncoderCapabilities;
 use crate::error::{AppError, AppResult, ErrorCode};
-use crate::settings::{AdvancedSettings, CaptureSettings, QualityPreset};
+use crate::settings::{AdvancedSettings, CaptureSettings};
 
 #[derive(Debug, Clone)]
 pub enum TargetSpec {
@@ -259,7 +259,7 @@ fn init(cfg: &VideoConfig) -> AppResult<(Running, VideoInfo)> {
             max_kbps: kbps * 3 / 2,
             bufsize_kbps: kbps * 2,
         },
-        preset: QualityPreset::Balanced,
+        preset: cfg.capture.encoder_speed.preset(),
         realtime: true,
         gop,
         cpu_threads: cfg.advanced.cpu_encoder_threads,

@@ -22,16 +22,17 @@
     "window": null,
     "region": null,
     "fps": 60,
-    "scale": "native",
+    "scale": "1080p",
     "captureCursor": true,
     "bufferSeconds": 30,
     "bufferStorage": "auto",
     "bufferMaxMb": 4096,
     "videoCodec": "h264",
     "encoder": "auto",
-    "quality": "high",
-    "customBitrateKbps": 30000,
-    "keyframeIntervalSec": 1
+    "quality": "custom",
+    "customBitrateKbps": 15000,
+    "keyframeIntervalSec": 1,
+    "encoderSpeed": "performance"
   },
   "audio": {
     "sampleRate": 48000,

@@ -2,19 +2,21 @@ import { useEffect, useState } from "react";
 
 import { HotkeyRecorder } from "../../components/HotkeyRecorder";
 import { Icon } from "../../components/Icon";
-import { Badge, Button, Field, Select } from "../../components/ui";
-import { QUALITY_OPTIONS } from "../../lib/options";
+import { Badge, Button, Field } from "../../components/ui";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import {
   errorMessage,
   type AudioDeviceInfo,
   type DisplayInfo,
+  type QualityTier,
   type Settings,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 import { AudioDeviceChecklist } from "../audio/AudioDeviceChecklist";
 import { trackSummary } from "../audio/devices";
+import { QualityCards } from "../capture/QualityCards";
+import { applyPreset, RECORDING_PRESETS } from "../capture/recordingPresets";
 
 const STEPS = ["Display", "Audio", "Buffer", "Hotkey"] as const;
 const LENGTHS = [15, 30, 60, 120, 300];
@@ -36,6 +38,27 @@ export function FirstRun() {
   const [displays, setDisplays] = useState<DisplayInfo[]>([]);
   const [devices, setDevices] = useState<AudioDeviceInfo[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recommended, setRecommended] = useState<QualityTier | null>(null);
+
+  // Suggest a recording quality for this PC; a fresh install starts on it.
+  useEffect(() => {
+    commands.recommendQuality().then(
+      (tier) => {
+        setRecommended(tier);
+        // "Run setup again" keeps your quality; first run and resets start on the suggestion.
+        if (redo === true) return;
+        const preset = RECORDING_PRESETS.find((p) => p.id === tier);
+        if (!preset) return;
+        setDraft((d) => {
+          if (!d) return d;
+          const next = structuredClone(d);
+          applyPreset(next.capture, preset);
+          return next;
+        });
+      },
+      () => undefined,
+    );
+  }, [redo]);
 
   useEffect(() => {
     void commands.listDisplays().then(setDisplays);
@@ -158,19 +181,24 @@ export function FirstRun() {
                 </Button>
               ))}
             </div>
-            <div className="card" style={{ padding: "0 14px" }}>
-              <Field label="Quality">
-                <Select
-                  value={draft.capture.quality}
-                  options={QUALITY_OPTIONS.filter((o) => o.value !== "custom")}
-                  onChange={(v) => {
-                    edit((d) => {
-                      d.capture.quality = v;
-                    });
-                  }}
-                />
-              </Field>
-            </div>
+            <h3 className="wizard-sub">Recording quality</h3>
+            <QualityCards
+              value={draft.capture}
+              recommended={recommended}
+              nativeSize={(() => {
+                const d = displays.find((x) => x.primary);
+                return d ? `${d.width}×${d.height}` : undefined;
+              })()}
+              onPick={(p) => {
+                edit((d) => {
+                  applyPreset(d.capture, p);
+                });
+              }}
+            />
+            <p className="muted small">
+              Higher settings use more GPU encoder time and bigger files. Fine-tune everything later
+              in Settings → Video.
+            </p>
           </>
         )}
 

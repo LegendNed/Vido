@@ -181,6 +181,26 @@ pub fn adapter_fingerprint() -> String {
     out.join(",")
 }
 
+/// Dedicated video memory (GB) of the largest hardware GPU (0 if unknown).
+pub fn max_vram_gb() -> f64 {
+    let mut best = 0usize;
+    unsafe {
+        let Ok(factory) = CreateDXGIFactory1::<IDXGIFactory1>() else {
+            return 0.0;
+        };
+        let mut i = 0;
+        while let Ok(a) = factory.EnumAdapters1(i) {
+            if let Ok(d) = a.GetDesc1() {
+                if d.VendorId != 0x1414 {
+                    best = best.max(d.DedicatedVideoMemory);
+                }
+            }
+            i += 1;
+        }
+    }
+    best as f64 / (1024.0 * 1024.0 * 1024.0)
+}
+
 pub fn adapter_names() -> Vec<String> {
     let mut out = Vec::new();
     unsafe {
