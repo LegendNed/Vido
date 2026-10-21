@@ -1,6 +1,6 @@
 import { Icon, type IconName } from "../../components/Icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/misc";
-import { formatTime } from "../../lib/format";
+import { formatBitrate, formatBytes, formatTime } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import { useApp } from "../../stores/app";
 import type { SettingsGroupId } from "../settings/groups";
@@ -79,7 +79,7 @@ function Item({
   );
 }
 
-/** Buffer state in the sidebar footer. */
+/** Buffer state and capture details (source, encoder, bitrate, memory) in the sidebar footer. */
 function BufferStatus({ collapsed }: { collapsed: boolean }) {
   const status = useApp((s) => s.status);
   if (!status) return null;
@@ -91,10 +91,21 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
       : status.state === "stopped"
         ? "Buffer off"
         : status.state.charAt(0).toUpperCase() + status.state.slice(1);
+  const details = [
+    status.source,
+    status.width > 0 ? `${status.width}×${status.height} @ ${Math.round(status.fps)} fps` : null,
+    status.encoder
+      ? `${status.encoder.replace(/_/g, " ")}${status.zeroCopy ? " · zero-copy" : ""}`
+      : null,
+    status.videoBitrateKbps > 0 ? formatBitrate(status.videoBitrateKbps) : null,
+    status.state !== "stopped"
+      ? `${Math.floor(status.bufferedSeconds)}/${status.targetSeconds} s · ${formatBytes(status.sizeBytes)} in ${status.storage}`
+      : null,
+  ].filter((d): d is string => !!d);
   const dot = (
     <span
       className={cn(
-        "size-2 shrink-0 rounded-full",
+        "mt-1.5 size-2 shrink-0 rounded-full",
         live || status.recording
           ? "bg-rec shadow-[0_0_0_3px] shadow-rec/20"
           : status.state === "stopped"
@@ -106,7 +117,7 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-md border bg-background/50 px-2.5 py-2 text-xs",
+        "flex items-start gap-2 rounded-md border bg-background/50 px-2.5 py-2 text-xs leading-5",
         collapsed && "justify-center px-0",
       )}
       title={collapsed ? text : undefined}
@@ -115,11 +126,13 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
       {!collapsed && (
         <div className="min-w-0">
           <div className="truncate font-medium">{text}</div>
-          {status.width > 0 && (
-            <div className="truncate text-muted-foreground">
-              {status.height}p{Math.round(status.fps)}
-              {status.encoder ? ` · ${status.encoder.replace(/_/g, " ")}` : ""}
+          {details.map((d) => (
+            <div key={d} className="truncate text-muted-foreground" title={d}>
+              {d}
             </div>
+          ))}
+          {status.droppedFrames > 0 && (
+            <div className="truncate text-warning">{status.droppedFrames} frames dropped</div>
           )}
         </div>
       )}

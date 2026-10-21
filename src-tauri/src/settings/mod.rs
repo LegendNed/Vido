@@ -329,9 +329,6 @@ pub struct GeneralSettings {
     pub sound_on_save: bool,
     pub hud: HudSettings,
     pub sidebar: SidebarMode,
-    /// Top bar with source, resolution, encoder, bitrate and buffer memory
-    /// (otherwise just the state and the buttons).
-    pub detailed_status_bar: bool,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
@@ -594,12 +591,11 @@ impl Default for GeneralSettings {
         Self {
             start_minimized: true,
             close_to_tray: true,
-            start_with_windows: false,
+            start_with_windows: true,
             start_buffer_on_launch: true,
             sound_on_save: true,
             hud: HudSettings::default(),
             sidebar: SidebarMode::Full,
-            detailed_status_bar: false,
         }
     }
 }
@@ -607,7 +603,7 @@ impl Default for GeneralSettings {
 impl Default for HudSettings {
     fn default() -> Self {
         Self {
-            overlay: true,
+            overlay: false,
             position: HudPosition::TopRight,
             show_details: true,
             clip_popup: true,
@@ -1429,7 +1425,13 @@ mod tests {
             }
         );
         let (s, _) = load(r#"{ "general": { "hud": { "enabled": true } } }"#);
-        assert_eq!(s.general.hud, HudSettings::default());
+        assert_eq!(
+            s.general.hud,
+            HudSettings {
+                overlay: true,
+                ..Default::default()
+            }
+        );
         // Written back under the new names only.
         let json = serde_json::to_string(&s.general.hud).unwrap();
         assert!(json.contains("\"overlay\":true"), "{json}");

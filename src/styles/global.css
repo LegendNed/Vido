@@ -319,6 +319,10 @@
     text-align: center;
     color: var(--text-muted);
   }
+  /* Tailwind's preflight makes SVGs blocks; centre the icon like the text. */
+  .empty > svg {
+    margin-inline: auto;
+  }
   .empty h3 {
     color: var(--text);
     margin: 12px 0 4px;

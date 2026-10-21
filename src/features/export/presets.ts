@@ -38,9 +38,26 @@ const H264: Partial<ExportDefaults> = {
  * Basic choices for people who don't want to think about codecs. Each preset sets
  * every quality-related option, so changing one of them under Advanced shows
  * "Custom". "High quality" matches `ExportDefaults::high_quality()` in Rust (the
- * re-encode-on-save default).
+ * re-encode-on-save default). Discord comes first: it is the most common upload.
  */
 export const PRESETS: Preset[] = [
+  {
+    id: "discord",
+    label: "Discord (no Nitro)",
+    hint: "Fits Discord's 20 MB upload limit without Nitro · H.264, 1080p.",
+    apply: (v) =>
+      set(
+        v,
+        {
+          ...H264,
+          rateMode: "targetSize",
+          targetSizeMb: 20,
+          audioBitrateKbps: 128,
+          scale: "1080p",
+        },
+        false,
+      ),
+  },
   {
     id: "original",
     label: "Original",

@@ -86,6 +86,69 @@ fn export_events(app: tauri::AppHandle) -> crate::export::manager::EventSink {
     })
 }
 
+/// Refreshes the clip lists when files in the clips folder are added, removed or
+/// renamed (Explorer, another app). Rechecks the folder setting every few seconds
+/// so a new folder is picked up.
+#[cfg(windows)]
+fn watch_output_dir(app: &tauri::AppHandle) {
+    use std::time::Duration;
+    use windows::core::HSTRING;
+    use windows::Win32::Foundation::{WAIT_OBJECT_0, WAIT_TIMEOUT};
+    use windows::Win32::Storage::FileSystem::{
+        FindCloseChangeNotification, FindFirstChangeNotificationW, FindNextChangeNotification,
+        FILE_NOTIFY_CHANGE_FILE_NAME,
+    };
+    use windows::Win32::System::Threading::WaitForSingleObject;
+
+    let Some(state) = app.try_state::<AppState>() else {
+        return;
+    };
+    loop {
+        let dir = state.output_dir();
+        let handle = unsafe {
+            FindFirstChangeNotificationW(
+                &HSTRING::from(dir.as_os_str()),
+                false,
+                FILE_NOTIFY_CHANGE_FILE_NAME,
+            )
+        };
+        let Ok(handle) = handle else {
+            // Missing folder: it is created on the next save.
+            std::thread::sleep(Duration::from_secs(5));
+            continue;
+        };
+        while state.output_dir() == dir {
+            let r = unsafe { WaitForSingleObject(handle, 3000) };
+            if r == WAIT_TIMEOUT {
+                continue;
+            }
+            if r != WAIT_OBJECT_0 {
+                break;
+            }
+            // Let a burst of changes (a save, a multi-file delete) settle, then
+            // drop the ones recorded meanwhile: one refresh covers them all.
+            std::thread::sleep(Duration::from_millis(400));
+            let mut ok = true;
+            loop {
+                if unsafe { FindNextChangeNotification(handle) }.is_err() {
+                    ok = false;
+                    break;
+                }
+                if unsafe { WaitForSingleObject(handle, 0) } != WAIT_OBJECT_0 {
+                    break;
+                }
+            }
+            events::emit(app, events::CLIPS_CHANGED, ());
+            if !ok {
+                break;
+            }
+        }
+        unsafe {
+            let _ = FindCloseChangeNotification(handle);
+        }
+    }
+}
+
 fn setup(
     app: &mut tauri::App,
     paths: AppPaths,
@@ -132,7 +195,7 @@ fn setup(
         }
     }
 
-    // Keep the autostart entry in sync with the setting (never enabled silently).
+    // Keep the autostart entry in sync with the setting.
     let al = handle.autolaunch();
     if al.is_enabled().unwrap_or(false) != settings.general.start_with_windows {
         let _ = if settings.general.start_with_windows {
@@ -172,6 +235,15 @@ fn setup(
                 Err(e) => tracing::warn!("audio device notifications unavailable: {}", e.message),
             }
         })?;
+
+    // Files added, deleted or renamed in the clips folder outside Vido.
+    #[cfg(windows)]
+    {
+        let h2 = handle.clone();
+        std::thread::Builder::new()
+            .name("vido-clip-watch".into())
+            .spawn(move || watch_output_dir(&h2))?;
+    }
 
     // Accent color + light/dark mode, read before the first window so it starts
     // with the right colors.

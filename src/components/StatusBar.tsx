@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { formatBitrate, formatBytes, formatTime } from "../lib/format";
+import { formatTime } from "../lib/format";
 import { commands } from "../lib/tauri/commands";
 import { errorMessage, type BufferStatus } from "../lib/tauri/types";
 import { cn } from "../lib/utils";
@@ -16,11 +16,14 @@ const LABELS: Record<BufferStatus["state"], string> = {
   error: "Error",
 };
 
-/** Right side of the page header: buffer state and its buttons, then Save clip. */
+/**
+ * Right side of the page header: buffer state and its buttons, then Save clip.
+ * The state badge is left out while the full sidebar shows it (with the details).
+ */
 export function StatusBar() {
   const status = useApp((s) => s.status);
   const notify = useApp((s) => s.notify);
-  const detailed = useApp((s) => s.settings?.general.detailedStatusBar ?? false);
+  const sidebar = useApp((s) => s.settings?.general.sidebar ?? "full");
   const [busy, setBusy] = useState(false);
   if (!status) return null;
 
@@ -39,46 +42,30 @@ export function StatusBar() {
   const live = status.state === "buffering";
   const canSave =
     status.state === "buffering" || status.state === "paused" || status.bufferedSeconds > 0;
-  const meta = detailed
-    ? [
-        status.source,
-        status.width > 0 ? `${status.width}×${status.height} @ ${Math.round(status.fps)}` : null,
-        status.encoder ? `${status.encoder}${status.zeroCopy ? " ⚡" : ""}` : null,
-        status.videoBitrateKbps > 0 ? formatBitrate(status.videoBitrateKbps) : null,
-        status.state !== "stopped"
-          ? `${Math.floor(status.bufferedSeconds)}/${status.targetSeconds} s · ${formatBytes(status.sizeBytes)} in ${status.storage}`
-          : null,
-        status.droppedFrames > 0 ? `${status.droppedFrames} dropped` : null,
-      ].filter(Boolean)
-    : [];
-
   return (
     <div className="ml-auto flex min-w-0 items-center gap-1.5">
-      {meta.length > 0 && (
-        <span className="mr-2 hidden min-w-0 truncate text-xs text-muted-foreground lg:block">
-          {meta.join(" · ")}
+      {sidebar !== "full" && (
+        <span className="mr-1 inline-flex items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium">
+          <span
+            className={cn(
+              "size-2 rounded-full",
+              live || status.recording
+                ? "bg-rec"
+                : status.state === "stopped"
+                  ? "bg-muted-foreground/50"
+                  : "bg-warning",
+            )}
+          />
+          {status.recording
+            ? `REC ${formatTime(status.recording.elapsedSeconds, 0)}`
+            : LABELS[status.state]}
+          {!status.recording && live && (
+            <span className="font-normal text-muted-foreground">
+              {Math.floor(status.bufferedSeconds)} s
+            </span>
+          )}
         </span>
       )}
-      <span className="mr-1 inline-flex items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium">
-        <span
-          className={cn(
-            "size-2 rounded-full",
-            live || status.recording
-              ? "bg-rec"
-              : status.state === "stopped"
-                ? "bg-muted-foreground/50"
-                : "bg-warning",
-          )}
-        />
-        {status.recording
-          ? `REC ${formatTime(status.recording.elapsedSeconds, 0)}`
-          : LABELS[status.state]}
-        {!status.recording && live && (
-          <span className="font-normal text-muted-foreground">
-            {Math.floor(status.bufferedSeconds)} s
-          </span>
-        )}
-      </span>
       {status.state === "stopped" || status.state === "error" ? (
         <Button small icon="record" disabled={busy} onClick={() => void run(commands.startBuffer)}>
           Start buffer

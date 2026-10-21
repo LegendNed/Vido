@@ -4,17 +4,16 @@
   "general": {
     "startMinimized": true,
     "closeToTray": true,
-    "startWithWindows": false,
+    "startWithWindows": true,
     "startBufferOnLaunch": true,
     "soundOnSave": true,
     "hud": {
-      "overlay": true,
+      "overlay": false,
       "position": "topRight",
       "showDetails": true,
       "clipPopup": true
     },
-    "sidebar": "full",
-    "detailedStatusBar": false
+    "sidebar": "full"
   },
   "capture": {
     "mode": "monitor",
