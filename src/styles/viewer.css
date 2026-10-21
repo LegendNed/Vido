@@ -348,13 +348,15 @@
   grid-column: span 2;
   grid-row: span 2;
   min-height: 0;
-  display: flex;
 }
+/* At least 16:9 (which also sizes the rows when the tile fills the whole row, e.g.
+   two columns); otherwise it stretches to the two rows of cards beside it. */
 .clip-feature .clips-hero {
-  height: 100%;
-  min-height: 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  min-height: 100%;
   max-height: none;
-  aspect-ratio: auto;
 }
 /* Only room for one column: a normal-sized tile. */
 @container (max-width: 520px) {
@@ -364,7 +366,6 @@
   }
   .clip-feature .clips-hero {
     aspect-ratio: 16 / 10;
-    height: auto;
   }
 }
 
