@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   Badge,
   Banner,
@@ -34,6 +35,7 @@ const BUFFER_PRESETS = [15, 30, 60, 120, 300, 600];
 
 /** Video source, quality and replay buffer: the video half of the Recording page. */
 export function CaptureSettings() {
+  const [confirmDisk, setConfirmDisk] = useState(false);
   const settings = useApp((s) => s.settings);
   const update = useApp((s) => s.update);
   const caps = useApp((s) => s.caps);
@@ -356,12 +358,40 @@ export function CaptureSettings() {
             value={c.bufferStorage}
             options={STORAGE_OPTIONS}
             onChange={(v) => {
+              // Disk wears SSDs: confirm first.
+              if (v === "disk") {
+                setConfirmDisk(true);
+                return;
+              }
               update((d) => {
                 d.capture.bufferStorage = v;
               });
             }}
           />
         </Field>
+        {confirmDisk && (
+          <ConfirmDialog
+            title="Keep the replay buffer on disk?"
+            confirmLabel="Use disk"
+            onConfirm={() => {
+              setConfirmDisk(false);
+              update(
+                (d) => {
+                  d.capture.bufferStorage = "disk";
+                },
+                { immediate: true },
+              );
+            }}
+            onCancel={() => {
+              setConfirmDisk(false);
+            }}
+          >
+            The buffer is written to your drive non-stop while Vido runs — at your current quality
+            that can be tens of gigabytes per hour of play. On an SSD this adds wear and can shorten
+            its life, and it uses disk bandwidth games may want. RAM (or Auto) avoids this; choose
+            disk only if you're short on memory or need a very long buffer.
+          </ConfirmDialog>
+        )}
         <Field
           label="Size limit"
           description="Oldest footage is dropped when the limit is reached."
