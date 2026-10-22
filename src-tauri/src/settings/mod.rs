@@ -1880,6 +1880,23 @@ mod tests {
     }
 
     #[test]
+    fn clips_and_cache_folders_must_be_specific() {
+        let ok = |p: &str| check_folder(&Some(p.into()), "f").is_ok();
+        assert!(ok(r"D:\Clips"));
+        assert!(!ok(r"C:\"));
+        assert!(!ok(r"D:\"));
+        assert!(check_folder(&None, "f").is_ok());
+        if let Ok(home) = std::env::var("USERPROFILE") {
+            assert!(!ok(&home));
+            assert!(ok(&format!(r"{home}\Videos\Vido")));
+        }
+        if let Ok(win) = std::env::var("SystemRoot") {
+            assert!(!ok(&win));
+            assert!(!ok(&format!(r"{win}\Temp\clips")));
+        }
+    }
+
+    #[test]
     fn filename_template_validation() {
         assert!(validate_filename_template("Vido_{date}_{time}").is_ok());
         assert!(validate_filename_template("{source} - {duration}").is_ok());
