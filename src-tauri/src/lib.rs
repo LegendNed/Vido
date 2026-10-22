@@ -317,6 +317,9 @@ fn setup(
 }
 
 pub fn run() {
+    // After a portable update: let the previous copy exit first.
+    update::wait_for_previous();
+
     // Tauri's async runtime only routes IPC (slow commands run on the blocking pool),
     // so a couple of workers suffice instead of one per CPU thread.
     if let Ok(rt) = tokio::runtime::Builder::new_multi_thread()

@@ -34,7 +34,8 @@ fn filter_for(level: LogLevel) -> EnvFilter {
     };
     // Keep noisy dependencies quiet unless explicitly tracing.
     EnvFilter::new(format!(
-        "{lvl},tao=warn,wry=warn,tauri=warn,tracing=warn,vido_lib={lvl}"
+        "{lvl},tao=warn,wry=warn,tauri=warn,tracing=warn,hyper=warn,hyper_util=warn,\
+         reqwest=warn,h2=warn,rustls=warn,tauri_plugin_updater=info,vido_lib={lvl}"
     ))
 }
 

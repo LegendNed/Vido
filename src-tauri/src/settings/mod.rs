@@ -859,6 +859,53 @@ fn check_abs_path(p: &Option<String>, field: &str) -> AppResult<()> {
     Ok(())
 }
 
+/// The clips and cache folders: Vido reads, lists and cleans up inside them (and
+/// the webview may load files from the clips folder), so a drive root, the
+/// Windows or Program Files folders, or the user folder itself are refused.
+fn check_folder(p: &Option<String>, field: &str) -> AppResult<()> {
+    check_abs_path(p, field)?;
+    let Some(p) = p else {
+        return Ok(());
+    };
+    let path = std::path::Path::new(p.trim_end_matches(['\\', '/']));
+    check(
+        path.parent().is_some(),
+        field,
+        "choose a folder, not a whole drive",
+    )?;
+    let norm = |s: &str| s.trim_end_matches(['\\', '/']).to_lowercase();
+    let target = norm(&path.to_string_lossy());
+    let env = |k: &str| {
+        std::env::var(k)
+            .ok()
+            .filter(|v| !v.is_empty())
+            .map(|v| norm(&v))
+    };
+    if let Some(home) = env("USERPROFILE") {
+        check(
+            target != home,
+            field,
+            "choose a folder inside your user folder, not the user folder itself",
+        )?;
+    }
+    for k in [
+        "SystemRoot",
+        "ProgramFiles",
+        "ProgramFiles(x86)",
+        "ProgramData",
+    ] {
+        if let Some(sys) = env(k) {
+            let inside = target == sys || target.starts_with(&format!("{sys}\\"));
+            check(
+                !inside,
+                field,
+                "choose a folder outside Windows' system and program folders",
+            )?;
+        }
+    }
+    Ok(())
+}
+
 impl Settings {
     /// Validates everything; returns the first problem with its field path.
     pub fn validate(&self) -> AppResult<()> {
@@ -1206,7 +1253,7 @@ pub fn validate_filename_template(t: &str) -> AppResult<()> {
 
 impl SavingSettings {
     pub fn validate(&self) -> AppResult<()> {
-        check_abs_path(&self.output_dir, "saving.outputDir")?;
+        check_folder(&self.output_dir, "saving.outputDir")?;
         validate_filename_template(&self.filename_template)?;
         check(
             self.container != Container::Webm,
@@ -1296,7 +1343,7 @@ pub fn parse_encoder_options(s: &str) -> AppResult<Vec<(String, String)>> {
 
 impl AdvancedSettings {
     pub fn validate(&self) -> AppResult<()> {
-        check_abs_path(&self.cache_dir, "advanced.cacheDir")?;
+        check_folder(&self.cache_dir, "advanced.cacheDir")?;
         check_range(
             self.cpu_encoder_threads,
             0,

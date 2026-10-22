@@ -74,7 +74,8 @@ jobs:
           Copy-Item $setup.FullName Vido-setup.exe
           Copy-Item "$($setup.FullName).sig" Vido-setup.exe.sig
           Copy-Item $zip.FullName Vido-portable-x64.zip
-          pnpm tauri signer sign Vido-portable-x64.zip
+          # The version goes into the signature (the app requires it: requireSignedVersion).
+          pnpm tauri signer sign --app-version ($tag.TrimStart("v")) Vido-portable-x64.zip
           if ($LASTEXITCODE -ne 0) { throw "signing the portable zip failed" }
           $base = "https://github.com/${{ github.repository }}/releases/download/$tag"
           $latest = [ordered]@{

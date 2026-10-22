@@ -375,23 +375,43 @@ pub fn clean_old_files(dir: &Path) {
     }
 }
 
-/// Starts `exe` a moment after this process exits (a second instance would
-/// otherwise just hand over to this one and quit).
+/// Starts the updated `exe`. It waits for this process to exit first (see
+/// [`wait_for_previous`]); otherwise it would hand over to this instance and quit.
 fn restart_later(exe: &Path) {
-    let mut cmd = std::process::Command::new("cmd");
+    let arg = format!("{WAIT_PID_ARG}{}", std::process::id());
+    if let Err(e) = std::process::Command::new(exe).arg(arg).spawn() {
+        tracing::warn!("could not restart after the update: {e}");
+    }
+}
+
+/// `--wait-pid=<pid>`: passed to the restarted copy after a portable update.
+const WAIT_PID_ARG: &str = "--wait-pid=";
+
+/// Called first thing at start: after a portable update, waits (up to 15 s) for
+/// the previous copy to exit so the single-instance check doesn't hand over to it.
+pub fn wait_for_previous() {
+    let Some(pid) = std::env::args().find_map(|a| {
+        a.strip_prefix(WAIT_PID_ARG)
+            .and_then(|p| p.parse::<u32>().ok())
+    }) else {
+        return;
+    };
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.raw_arg(format!(
-            "/C ping -n 3 127.0.0.1 >NUL & start \"\" \"{}\"",
-            exe.display()
-        ))
-        .creation_flags(CREATE_NO_WINDOW);
+        use windows::Win32::Foundation::CloseHandle;
+        use windows::Win32::System::Threading::{
+            OpenProcess, WaitForSingleObject, PROCESS_SYNCHRONIZE,
+        };
+        // SAFETY: waits on a process handle that is closed right after.
+        unsafe {
+            if let Ok(h) = OpenProcess(PROCESS_SYNCHRONIZE, false, pid) {
+                WaitForSingleObject(h, 15_000);
+                let _ = CloseHandle(h);
+            }
+        }
     }
-    if let Err(e) = cmd.spawn() {
-        tracing::warn!("could not schedule the restart: {e}");
-    }
+    #[cfg(not(windows))]
+    let _ = pid;
 }
 
 #[cfg(test)]

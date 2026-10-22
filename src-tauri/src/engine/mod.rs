@@ -352,8 +352,14 @@ impl Engine {
         let root = self.buffer_root(&s);
         if root.is_dir() {
             if let Ok(rd) = std::fs::read_dir(&root) {
+                // Only session folders Vido made (named by their epoch number):
+                // anything else in a user-chosen cache folder is left alone.
                 for e in rd.flatten() {
-                    let _ = std::fs::remove_dir_all(e.path());
+                    let name = e.file_name().to_string_lossy().into_owned();
+                    let ours = !name.is_empty() && name.bytes().all(|b| b.is_ascii_digit());
+                    if ours && e.file_type().is_ok_and(|t| t.is_dir()) {
+                        let _ = std::fs::remove_dir_all(e.path());
+                    }
                 }
             }
         }

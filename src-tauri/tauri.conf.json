@@ -73,7 +73,8 @@
       "endpoints": ["https://github.com/LegendNed/Vido/releases/latest/download/latest.json"],
       "windows": {
         "installMode": "passive"
-      }
+      },
+      "requireSignedVersion": true
     }
   }
 }

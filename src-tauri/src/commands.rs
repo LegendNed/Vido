@@ -28,6 +28,87 @@ use crate::settings::{Container, RegionRect, SaveSound, Settings};
 use crate::state::AppState;
 use crate::ui;
 
+/// Paths chosen in the "Save as…" dialog: the only places outside the clips
+/// folder that saves may write to, and that the clip actions may open afterwards.
+static PICKED_PATHS: parking_lot::Mutex<Vec<PathBuf>> = parking_lot::Mutex::new(Vec::new());
+
+fn remember_picked(p: &Path) {
+    let mut v = PICKED_PATHS.lock();
+    v.retain(|x| x != p);
+    v.push(p.to_path_buf());
+    if v.len() > 64 {
+        v.remove(0);
+    }
+}
+
+fn was_picked(p: &Path) -> bool {
+    let canon = crate::paths::dunce_canonical(p);
+    PICKED_PATHS
+        .lock()
+        .iter()
+        .any(|x| x == p || canon.is_some() && crate::paths::dunce_canonical(x) == canon)
+}
+
+/// A clip the frontend may work with: a video in the clips folder, or a file
+/// saved to a "Save as…" path.
+fn ensure_clip(app: &AppHandle, path: &str) -> AppResult<PathBuf> {
+    let p = ensure_media_file(path)?;
+    let root = app.state::<AppState>().output_dir();
+    if crate::paths::is_within(&p, &root) || was_picked(&p) {
+        Ok(p)
+    } else {
+        Err(AppError::invalid(
+            "path",
+            "the file is outside the clips folder",
+        ))
+    }
+}
+
+/// A save or export may only write outside the clip's folder where the user
+/// chose to in the "Save as…" dialog.
+fn check_output_path(req: &ExportRequest) -> AppResult<()> {
+    match &req.output_path {
+        Some(p) if !was_picked(Path::new(p)) => Err(AppError::invalid(
+            "outputPath",
+            "choose where to save with Save as…",
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// A new or changed post-save command runs on every save, so it needs a yes
+/// in a native dialog (the webview alone can't turn it on).
+fn confirm_run_command(app: &AppHandle, old: &Settings, new: &mut Settings) {
+    use tauri_plugin_dialog::{MessageDialogButtons, MessageDialogKind};
+    let cmd = new
+        .saving
+        .post_save
+        .run_command
+        .clone()
+        .filter(|c| !c.trim().is_empty());
+    let Some(cmd) = cmd else {
+        return;
+    };
+    if old.saving.post_save.run_command.as_deref() == Some(cmd.as_str()) {
+        return;
+    }
+    let allowed = app
+        .dialog()
+        .message(format!(
+            "Vido will run this command after every saved clip:\n\n{cmd}\n\nOnly allow commands you wrote or trust."
+        ))
+        .title("Run a command after saving?")
+        .kind(MessageDialogKind::Warning)
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            "Allow".into(),
+            "Cancel".into(),
+        ))
+        .blocking_show();
+    if !allowed {
+        new.saving.post_save.run_command = old.saving.post_save.run_command.clone();
+    }
+}
+
 type AppStateRef<'a> = State<'a, AppState>;
 
 async fn blocking<T, F>(f: F) -> AppResult<T>
@@ -134,7 +215,13 @@ pub fn apply_settings_change(app: &AppHandle, new: Settings) -> AppResult<Settin
 
 #[tauri::command]
 pub async fn update_settings(app: AppHandle, settings: Settings) -> AppResult<Settings> {
-    blocking(move || apply_settings_change(&app, settings)).await
+    blocking(move || {
+        let mut settings = settings;
+        let old = app.state::<AppState>().settings.get();
+        confirm_run_command(&app, &old, &mut settings);
+        apply_settings_change(&app, settings)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -302,7 +389,7 @@ pub async fn list_clips(app: AppHandle) -> AppResult<Vec<ClipInfo>> {
 
 #[tauri::command]
 pub async fn get_clip_details(app: AppHandle, path: String) -> AppResult<ClipDetails> {
-    let p = ensure_media_file(&path)?;
+    let p = ensure_clip(&app, &path)?;
     blocking(move || {
         let state = app.state::<AppState>();
         // Let the editor's <video> element load exactly this file.
@@ -326,7 +413,7 @@ pub async fn delete_clip(app: AppHandle, path: String) -> AppResult<()> {
 
 #[tauri::command]
 pub fn reveal_clip(app: AppHandle, path: String) -> AppResult<()> {
-    let p = ensure_media_file(&path)?;
+    let p = ensure_clip(&app, &path)?;
     app.opener()
         .reveal_item_in_dir(&p)
         .map_err(|e| AppError::new(ErrorCode::Io, e.to_string()))
@@ -334,7 +421,7 @@ pub fn reveal_clip(app: AppHandle, path: String) -> AppResult<()> {
 
 #[tauri::command]
 pub fn open_clip_external(app: AppHandle, path: String) -> AppResult<()> {
-    let p = ensure_media_file(&path)?;
+    let p = ensure_clip(&app, &path)?;
     app.opener()
         .open_path(p.to_string_lossy(), None::<&str>)
         .map_err(|e| AppError::new(ErrorCode::Io, e.to_string()))
@@ -342,15 +429,20 @@ pub fn open_clip_external(app: AppHandle, path: String) -> AppResult<()> {
 
 #[tauri::command]
 pub fn copy_clip_path(app: AppHandle, path: String) -> AppResult<()> {
-    let p = ensure_media_file(&path)?;
+    let p = ensure_clip(&app, &path)?;
     app.clipboard()
         .write_text(p.to_string_lossy().into_owned())
         .map_err(|e| AppError::internal(e.to_string()))
 }
 
 #[tauri::command]
-pub async fn get_waveform(path: String, track: u32, buckets: u32) -> AppResult<Vec<f32>> {
-    let p = ensure_media_file(&path)?;
+pub async fn get_waveform(
+    app: AppHandle,
+    path: String,
+    track: u32,
+    buckets: u32,
+) -> AppResult<Vec<f32>> {
+    let p = ensure_clip(&app, &path)?;
     if !(16..=4096).contains(&buckets) {
         return Err(AppError::invalid("buckets", "must be 16–4096"));
     }
@@ -361,7 +453,7 @@ pub async fn get_waveform(path: String, track: u32, buckets: u32) -> AppResult<V
 /// can't play that codec), so the editor can mix the lanes live while previewing.
 #[tauri::command]
 pub async fn prepare_audio_preview(app: AppHandle, path: String) -> AppResult<Vec<Option<String>>> {
-    let p = ensure_media_file(&path)?;
+    let p = ensure_clip(&app, &path)?;
     blocking(move || {
         let dir = crate::state::preview_dir(&app.state::<AppState>().paths);
         let files = export::preview::audio_tracks(&p, &dir)?;
@@ -376,11 +468,12 @@ pub async fn prepare_audio_preview(app: AppHandle, path: String) -> AppResult<Ve
 /// Saves the frame at `timeSec` as a PNG next to the clip; returns its path.
 #[tauri::command]
 pub async fn take_screenshot(
+    app: AppHandle,
     path: String,
     time_sec: f64,
     crop: Option<CropRect>,
 ) -> AppResult<String> {
-    let p = ensure_media_file(&path)?;
+    let p = ensure_clip(&app, &path)?;
     if !time_sec.is_finite() || time_sec < 0.0 {
         return Err(AppError::invalid("timeSec", "invalid time"));
     }
@@ -399,8 +492,11 @@ pub async fn take_screenshot(
 // Export
 // ---------------------------------------------------------------------------
 
-fn load_for_export(req: &ExportRequest) -> AppResult<(export::probe::MediaInfo, Vec<f64>)> {
-    let p = ensure_media_file(&req.input_path)?;
+fn load_for_export(
+    app: &AppHandle,
+    req: &ExportRequest,
+) -> AppResult<(export::probe::MediaInfo, Vec<f64>)> {
+    let p = ensure_clip(app, &req.input_path)?;
     let dmx = crate::av::Demuxer::open(&p)?;
     let info = export::probe::describe(&dmx)?;
     let kf = info
@@ -412,9 +508,9 @@ fn load_for_export(req: &ExportRequest) -> AppResult<(export::probe::MediaInfo, 
 }
 
 #[tauri::command]
-pub async fn estimate_export(request: ExportRequest) -> AppResult<ExportEstimate> {
+pub async fn estimate_export(app: AppHandle, request: ExportRequest) -> AppResult<ExportEstimate> {
     blocking(move || {
-        let (info, kf) = load_for_export(&request)?;
+        let (info, kf) = load_for_export(&app, &request)?;
         export::estimate(&request, &info, &kf)
     })
     .await
@@ -424,7 +520,8 @@ pub async fn estimate_export(request: ExportRequest) -> AppResult<ExportEstimate
 #[tauri::command]
 pub async fn export_clip(app: AppHandle, request: ExportRequest) -> AppResult<String> {
     blocking(move || {
-        let (info, kf) = load_for_export(&request)?;
+        check_output_path(&request)?;
+        let (info, kf) = load_for_export(&app, &request)?;
         let plan = export::plan(&request, &info, &kf)?;
         let _ = app.asset_protocol_scope().allow_file(&plan.output);
         Ok(app
@@ -454,8 +551,11 @@ pub async fn save_edit(
     mode: SaveEditMode,
 ) -> AppResult<String> {
     blocking(move || {
-        let input = ensure_media_file(&request.input_path)?;
-        let (info, kf) = load_for_export(&request)?;
+        let input = ensure_clip(&app, &request.input_path)?;
+        if mode == SaveEditMode::New {
+            check_output_path(&request)?;
+        }
+        let (info, kf) = load_for_export(&app, &request)?;
         let req = export::edit::save_request(&input, &request, &info, mode)?;
         let plan = export::plan(&req, &info, &kf)?;
         let finish = match mode {
@@ -477,7 +577,7 @@ pub async fn save_edit(
 #[tauri::command]
 pub async fn open_editor(app: AppHandle, path: Option<String>) -> AppResult<()> {
     let p = match path {
-        Some(p) => Some(ensure_media_file(&p)?),
+        Some(p) => Some(ensure_clip(&app, &p)?),
         None => None,
     };
     blocking(move || {
@@ -615,7 +715,10 @@ pub async fn pick_export_path(
                     p.with_extension(ext)
                 }
             })
-            .map(|p| p.to_string_lossy().into_owned()))
+            .map(|p| {
+                remember_picked(&p);
+                p.to_string_lossy().into_owned()
+            }))
     })
     .await
 }
