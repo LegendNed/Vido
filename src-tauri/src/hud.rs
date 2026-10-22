@@ -275,7 +275,7 @@ unsafe fn run() {
     if hud().model.lock().toast.is_some() {
         arm_toast_timer();
     }
-    render(hwnd);
+    safe_render(hwnd);
     let mut msg = MSG::default();
     while GetMessageW(&mut msg, None, 0, 0).as_bool() {
         let _ = TranslateMessage(&msg);
@@ -286,17 +286,25 @@ unsafe fn run() {
 unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match msg {
         WM_REDRAW | WM_DISPLAYCHANGE | WM_DPICHANGED => {
-            render(hwnd);
+            safe_render(hwnd);
             LRESULT(0)
         }
         WM_TIMER if wp.0 == TOAST_TIMER => {
             let _ = KillTimer(Some(hwnd), TOAST_TIMER);
             hud().model.lock().toast = None;
-            render(hwnd);
+            safe_render(hwnd);
             LRESULT(0)
         }
         _ => DefWindowProcW(hwnd, msg, wp, lp),
     }
+}
+
+/// `render` from the window procedure: a panic must not unwind into Windows.
+unsafe fn safe_render(hwnd: HWND) {
+    crate::util::catch_panic("overlay", || {
+        // SAFETY: called on the HUD thread that owns `hwnd`.
+        unsafe { render(hwnd) }
+    });
 }
 
 /// What the window shows.

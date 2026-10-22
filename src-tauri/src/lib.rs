@@ -279,7 +279,10 @@ fn setup(
         let h2 = handle.clone();
         std::thread::Builder::new()
             .name("vido-clip-watch".into())
-            .spawn(move || watch_output_dir(&h2))?;
+            .spawn(move || loop {
+                crate::util::catch_panic("clips folder watch", || watch_output_dir(&h2));
+                std::thread::sleep(std::time::Duration::from_secs(5));
+            })?;
     }
 
     // Accent color + light/dark mode, read before the first window so it starts

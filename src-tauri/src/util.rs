@@ -61,6 +61,25 @@ pub fn render_filename(
     sanitize_component(&name, 150)
 }
 
+/// Runs `f`, logging a panic instead of passing it on. For long-lived background
+/// loops (overlay, game detection, update checks, folder watching): one bad
+/// iteration must not end the feature for the rest of the session, and a panic
+/// must never unwind out of a Windows callback (that aborts the process).
+pub fn catch_panic<R>(what: &str, f: impl FnOnce() -> R) -> Option<R> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(r) => Some(r),
+        Err(e) => {
+            let msg = e
+                .downcast_ref::<&str>()
+                .map(|s| (*s).to_owned())
+                .or_else(|| e.downcast_ref::<String>().cloned())
+                .unwrap_or_default();
+            tracing::error!("{what} panicked: {msg}");
+            None
+        }
+    }
+}
+
 /// `dir/stem.ext`, or `dir/stem (2).ext`, `(3)`, ... if taken.
 pub fn unique_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
     let first = dir.join(format!("{stem}.{ext}"));

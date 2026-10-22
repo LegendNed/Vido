@@ -114,8 +114,10 @@ pub fn start_sampler(data_dir: &Path, after: impl Fn() + Send + 'static) {
     let _ = std::thread::Builder::new()
         .name("vido-games".into())
         .spawn(move || loop {
-            sample();
-            after();
+            crate::util::catch_panic("game detection", || {
+                sample();
+                after();
+            });
             std::thread::sleep(SAMPLE);
         });
 }

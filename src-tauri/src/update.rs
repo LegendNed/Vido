@@ -115,6 +115,7 @@ pub async fn check(app: &AppHandle) -> AppResult<Option<UpdateInfo>> {
         *PENDING.lock() = Some(update.clone());
         tracing::info!("update available: {}", update.version);
     }
+    let i = info(&update, STAGED.load(Ordering::SeqCst));
     let auto = app.state::<AppState>().settings.get().general.auto_update;
     if auto && !STAGED.load(Ordering::SeqCst) {
         let app2 = app.clone();
@@ -124,10 +125,6 @@ pub async fn check(app: &AppHandle) -> AppResult<Option<UpdateInfo>> {
             }
         });
     }
-    let i = info(
-        PENDING.lock().as_ref().expect("set above"),
-        STAGED.load(Ordering::SeqCst),
-    );
     events::emit(app, events::UPDATE_AVAILABLE, i.clone());
     Ok(Some(i))
 }
@@ -144,7 +141,10 @@ pub fn start_checks(app: &AppHandle) {
                     .try_state::<AppState>()
                     .is_some_and(|s| s.settings.get().general.check_updates);
                 if on {
-                    if let Err(e) = tauri::async_runtime::block_on(check(&app)) {
+                    let checked = crate::util::catch_panic("update check", || {
+                        tauri::async_runtime::block_on(check(&app))
+                    });
+                    if let Some(Err(e)) = checked {
                         tracing::info!("{}", e.message);
                     }
                 }
