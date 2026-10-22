@@ -19,22 +19,25 @@ use crate::error::{AppError, ErrorCode};
 
 pub enum ExportEvent {
     Progress(ExportProgress),
-    Completed(ExportResult),
+    /// `toast`: show "Export finished" (jobs with an `OnDone` report themselves).
+    Completed {
+        result: ExportResult,
+        toast: bool,
+    },
     Failed(ExportFailed),
 }
 
 pub type EventSink = Arc<dyn Fn(ExportEvent) + Send + Sync>;
 
-/// Runs on the export worker when a job succeeded, right before its completion event.
-pub type OnDone = Box<dyn FnOnce(&ExportResult) + Send>;
+/// Runs on the export worker when a job ends (succeeded, failed or cancelled),
+/// right before its completion or failure event.
+pub type OnDone = Box<dyn FnOnce(Result<&ExportResult, &AppError>) + Send>;
 
 /// What happens to the output file once the export succeeded.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Finish {
     /// Leave it at the planned output path.
     Keep,
-    /// Re-encode-on-save: replace the input file with the result.
-    ReplaceInput,
     /// Editor "Save & override": the output is a temporary file next to the
     /// input; it takes the input's name and the input goes to the Recycle Bin.
     Override,
@@ -83,20 +86,11 @@ impl ExportManager {
         Self { tx, cancels }
     }
 
-    pub fn submit(&self, plan: Plan, replace_input: bool) -> String {
-        let finish = if replace_input {
-            Finish::ReplaceInput
-        } else {
-            Finish::Keep
-        };
-        self.submit_with(plan, finish)
-    }
-
     pub fn submit_with(&self, plan: Plan, finish: Finish) -> String {
         self.submit_then(plan, finish, None)
     }
 
-    /// Like [`Self::submit_with`]; `on_done` runs once the job succeeded.
+    /// Like [`Self::submit_with`]; `on_done` runs once the job has ended.
     pub fn submit_then(&self, plan: Plan, finish: Finish, on_done: Option<OnDone>) -> String {
         let id = uuid::Uuid::new_v4().simple().to_string();
         let cancel = Arc::new(AtomicBool::new(false));
@@ -128,6 +122,13 @@ impl ExportManager {
     }
 }
 
+fn fail(sink: &EventSink, job_id: String, error: AppError, on_done: Option<OnDone>) {
+    if let Some(f) = on_done {
+        f(Err(&error));
+    }
+    sink(ExportEvent::Failed(ExportFailed { job_id, error }));
+}
+
 fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
     let Job {
         id,
@@ -137,10 +138,8 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
         on_done,
     } = job;
     if cancel.load(Ordering::SeqCst) {
-        sink(ExportEvent::Failed(ExportFailed {
-            job_id: id,
-            error: AppError::new(ErrorCode::Cancelled, "export cancelled"),
-        }));
+        let e = AppError::new(ErrorCode::Cancelled, "export cancelled");
+        fail(sink, id, e, on_done);
         return;
     }
     let caps_now = caps.cached();
@@ -217,14 +216,6 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
                 let mut output: PathBuf = plan.output.clone();
                 match finish {
                     Finish::Keep => {}
-                    Finish::ReplaceInput => {
-                        let target = plan.input.with_extension(plan.container.extension());
-                        if (std::fs::remove_file(&plan.input).is_ok() || !plan.input.exists())
-                            && std::fs::rename(&plan.output, &target).is_ok()
-                        {
-                            output = target;
-                        }
-                    }
                     Finish::Override => {
                         sink(ExportEvent::Progress(ExportProgress {
                             job_id: id.clone(),
@@ -241,10 +232,7 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
                             edit::RETRY_DELAY,
                         ) {
                             tracing::error!("export {id}: override failed: {}", e.message);
-                            sink(ExportEvent::Failed(ExportFailed {
-                                job_id: id,
-                                error: e,
-                            }));
+                            fail(sink, id, e, on_done);
                             return;
                         }
                         output = plan.input.clone();
@@ -261,20 +249,18 @@ fn run_job(job: Job, caps: &CapabilityCache, sink: &EventSink) {
                     attempts: attempt,
                     over_target,
                 };
+                let toast = on_done.is_none();
                 if let Some(f) = on_done {
-                    f(&result);
+                    f(Ok(&result));
                 }
-                sink(ExportEvent::Completed(result));
+                sink(ExportEvent::Completed { result, toast });
                 return;
             }
             Err(e) => {
                 if e.code != ErrorCode::Cancelled {
                     tracing::error!("export {id} failed: {}", e.message);
                 }
-                sink(ExportEvent::Failed(ExportFailed {
-                    job_id: id,
-                    error: e,
-                }));
+                fail(sink, id, e, on_done);
                 return;
             }
         }

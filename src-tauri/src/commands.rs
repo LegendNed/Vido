@@ -426,7 +426,10 @@ pub async fn export_clip(app: AppHandle, request: ExportRequest) -> AppResult<St
         let (info, kf) = load_for_export(&request)?;
         let plan = export::plan(&request, &info, &kf)?;
         let _ = app.asset_protocol_scope().allow_file(&plan.output);
-        Ok(app.state::<AppState>().exports.submit(plan, false))
+        Ok(app
+            .state::<AppState>()
+            .exports
+            .submit_with(plan, Finish::Keep))
     })
     .await
 }

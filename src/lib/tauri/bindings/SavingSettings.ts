@@ -20,4 +20,9 @@ container: Container, saveMode: SaveMode,
 /**
  * What re-encode-on-save produces; independent of the editor's export defaults.
  */
-reencode: ExportDefaults, postSave: PostSaveActions, };
+reencode: ExportDefaults, 
+/**
+ * Re-encode-on-save: a second popup (with the save sound) once the
+ * re-encoded clip is ready.
+ */
+reencodeDonePopup: boolean, postSave: PostSaveActions, };

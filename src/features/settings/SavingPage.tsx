@@ -125,7 +125,7 @@ export function SavingPage() {
           label="When saving"
           description={
             reencode
-              ? "Saves instantly, then re-encodes in the background and replaces the file."
+              ? "Saves to a temporary file, re-encodes it in the background, and only the re-encoded clip lands in the folder."
               : "Instant: buffered video is copied as-is (no quality loss, no CPU/GPU cost)."
           }
         >
@@ -155,6 +155,20 @@ export function SavingPage() {
               scope="saving"
               errorPrefix="saving.reencode"
             />
+            <Field
+              label="Popup when the clip is ready"
+              description="A second popup (with the save sound) once re-encoding is done: “Clip ready · ready to paste”. The sound plays then either way."
+            >
+              <Toggle
+                label="Popup when the clip is ready"
+                value={sv.reencodeDonePopup}
+                onChange={(v) => {
+                  update((d) => {
+                    d.saving.reencodeDonePopup = v;
+                  });
+                }}
+              />
+            </Field>
           </div>
         ) : (
           <Field

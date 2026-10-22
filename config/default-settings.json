@@ -100,6 +100,7 @@
       "mixAudio": false,
       "streamCopy": false
     },
+    "reencodeDonePopup": true,
     "postSave": {
       "openEditor": false,
       "openFolder": false,

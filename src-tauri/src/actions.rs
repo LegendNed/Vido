@@ -2,20 +2,20 @@
 //! Long-running work runs on a background thread; results are reported via
 //! events, HUD toasts and (optionally) a system sound.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_opener::OpenerExt;
 
-use crate::engine::SavedClip;
-use crate::error::{AppError, AppResult};
+use crate::engine::{Engine, SavedClip};
+use crate::error::{AppError, AppResult, ErrorCode};
 use crate::events::{self, CaptureIssue, HotkeyTriggered, ToastKind};
 use crate::export::manager::{Finish, OnDone};
 use crate::export::probe::MediaInfo;
-use crate::export::{ExportAudioTrack, ExportRequest, ExportResult};
+use crate::export::{ExportAudioTrack, ExportRequest};
 use crate::hotkeys::HotkeyAction;
-use crate::settings::{ExportDefaults, SaveMode};
+use crate::settings::ExportDefaults;
 use crate::state::AppState;
 use crate::ui;
 
@@ -63,23 +63,55 @@ pub fn save_blocking(app: &AppHandle) -> AppResult<crate::clips::ClipInfo> {
 fn after_save(app: &AppHandle, state: &AppState, clip: &SavedClip) {
     let settings = state.settings.get();
     let path = Path::new(&clip.path);
+    if path.starts_with(Engine::staging_dir(&settings, &state.paths)) {
+        // Re-encode-on-save: the clip is ready (sound, clipboard, ...) once the
+        // re-encoded file is in the clips folder.
+        events::toast(
+            app,
+            ToastKind::Saved,
+            format!(
+                "Clip saved ({}) · re-encoding…",
+                crate::util::fmt_duration(clip.duration_sec)
+            ),
+        );
+        reencode_saved(app, state, path, clip.duration_sec);
+    } else {
+        clip_ready(app, state, path, clip.duration_sec, "Clip saved", true);
+    }
+}
+
+/// `path` is the finished clip: it becomes the last clip, then the save sound,
+/// the clipboard, the popup (`popup`), the clip lists and the post-save actions.
+fn clip_ready(
+    app: &AppHandle,
+    state: &AppState,
+    path: &Path,
+    duration_sec: f64,
+    title: &str,
+    popup: bool,
+) {
+    let settings = state.settings.get();
     state.clips.set_last_saved(path);
     crate::sound::play_saved(&settings.general);
     // One clipboard: the video wins over its path.
     let post = &settings.saving.post_save;
-    let clipboard = if post.copy_video {
+    let copied = if post.copy_video {
         copy_file_to_clipboard(path)
     } else {
         if post.copy_path {
-            let _ = app.clipboard().write_text(clip.path.clone());
+            let _ = app
+                .clipboard()
+                .write_text(path.to_string_lossy().into_owned());
         }
-        None
+        false
     };
-    events::toast(
-        app,
-        ToastKind::Saved,
-        saved_toast(clip.duration_sec, clipboard.is_some()),
-    );
+    if popup {
+        events::toast(
+            app,
+            ToastKind::Saved,
+            ready_toast(title, duration_sec, copied),
+        );
+    }
     if let Ok(info) = state.clips.info(path) {
         events::emit(app, events::CLIP_SAVED, info);
     }
@@ -92,48 +124,34 @@ fn after_save(app: &AppHandle, state: &AppState, clip: &SavedClip) {
         ui::open_editor(app, path);
     }
     if let Some(cmd) = post.run_command.as_deref().filter(|c| !c.trim().is_empty()) {
-        run_user_command(cmd, &clip.path);
-    }
-    if settings.saving.save_mode == SaveMode::Reencode {
-        reencode_saved(app, state, &settings.saving.reencode, path, clipboard);
+        run_user_command(cmd, &path.to_string_lossy());
     }
 }
 
-fn saved_toast(duration_sec: f64, copied: bool) -> String {
-    let saved = format!("Clip saved ({})", crate::util::fmt_duration(duration_sec));
+fn ready_toast(title: &str, duration_sec: f64, copied: bool) -> String {
+    let text = format!("{title} ({})", crate::util::fmt_duration(duration_sec));
     if copied {
-        format!("{saved} · ready to paste")
+        format!("{text} · ready to paste")
     } else {
-        saved
+        text
     }
 }
 
 /// Puts the saved file on the clipboard (pasteable into Discord, Explorer, ...).
-/// Returns the clipboard's sequence number after the copy.
 #[cfg(windows)]
-fn copy_file_to_clipboard(path: &Path) -> Option<u32> {
+fn copy_file_to_clipboard(path: &Path) -> bool {
     match crate::win::copy_file_to_clipboard(path) {
-        Ok(seq) => Some(seq),
+        Ok(_) => true,
         Err(e) => {
             tracing::warn!("could not copy {} to the clipboard: {e}", path.display());
-            None
+            false
         }
     }
 }
 
 #[cfg(not(windows))]
-fn copy_file_to_clipboard(_path: &Path) -> Option<u32> {
-    None
-}
-
-#[cfg(windows)]
-fn clipboard_sequence() -> u32 {
-    crate::win::clipboard_sequence()
-}
-
-#[cfg(not(windows))]
-fn clipboard_sequence() -> u32 {
-    0
+fn copy_file_to_clipboard(_path: &Path) -> bool {
+    false
 }
 
 /// Runs the user's post-save command with `{path}` replaced by the quoted path.
@@ -158,46 +176,105 @@ fn run_user_command(template: &str, path: &str) {
     }
 }
 
-/// Re-encodes a just-saved clip with the Saving page's re-encode options,
-/// replacing it. `clipboard` is the clipboard sequence number if the clip was
-/// copied to the clipboard.
-fn reencode_saved(
-    app: &AppHandle,
-    state: &AppState,
-    options: &ExportDefaults,
-    path: &Path,
-    clipboard: Option<u32>,
-) {
+/// Re-encodes a clip saved to the staging folder into the clips folder with the
+/// Saving page's re-encode options, then removes the staged file. If that
+/// fails, the staged clip itself goes to the clips folder.
+fn reencode_saved(app: &AppHandle, state: &AppState, staged: &Path, duration_sec: f64) {
+    let settings = state.settings.get();
     let result = (|| -> AppResult<()> {
-        let info = crate::export::probe::probe(path)?;
-        let req = reencode_request(path, &info, options);
+        let options = &settings.saving.reencode;
+        let info = crate::export::probe::probe(staged)?;
+        let mut req = reencode_request(staged, &info, options);
+        let out = output_path_for(state, staged, options.container.extension())?;
+        req.output_path = Some(out.to_string_lossy().into_owned());
         let plan = crate::export::plan(&req, &info, &[])?;
-        let original = path.to_path_buf();
         let app2 = app.clone();
-        let on_done: OnDone = Box::new(move |r| follow_reencoded(&app2, &original, r, clipboard));
-        state
-            .exports
-            .submit_then(plan, Finish::ReplaceInput, Some(on_done));
+        let staged2 = staged.to_path_buf();
+        let popup = settings.saving.reencode_done_popup;
+        let on_done: OnDone = Box::new(move |r| {
+            let Some(state) = app2.try_state::<AppState>() else {
+                return;
+            };
+            match r {
+                Ok(r) => {
+                    let _ = std::fs::remove_file(&staged2);
+                    let out = Path::new(&r.output_path);
+                    clip_ready(&app2, &state, out, duration_sec, "Clip ready", popup);
+                }
+                Err(e) => keep_staged(&app2, &state, &staged2, duration_sec, e),
+            }
+        });
+        state.exports.submit_then(plan, Finish::Keep, Some(on_done));
         Ok(())
     })();
     if let Err(e) = result {
-        report_error(app, "reencode-failed", &e);
+        keep_staged(app, state, staged, duration_sec, &e);
     }
 }
 
-/// The re-encoded file replaced the saved one. With another container it has a
-/// new name: the "last clip" and (unless something else was copied meanwhile)
-/// the clipboard follow it.
-fn follow_reencoded(app: &AppHandle, original: &Path, r: &ExportResult, clipboard: Option<u32>) {
-    let out = Path::new(&r.output_path);
-    if out == original || original.exists() {
+/// Re-encoding failed or was cancelled: the staged clip goes to the clips folder.
+fn keep_staged(app: &AppHandle, state: &AppState, staged: &Path, duration_sec: f64, e: &AppError) {
+    match move_to_output(state, staged) {
+        Ok(path) => {
+            if e.code != ErrorCode::Cancelled {
+                let e = AppError::new(
+                    e.code,
+                    format!("Re-encoding failed, kept the original clip: {}", e.message),
+                );
+                report_error(app, "reencode-failed", &e);
+            }
+            clip_ready(app, state, &path, duration_sec, "Clip saved", false);
+        }
+        Err(e2) => {
+            tracing::error!("could not keep {}: {}", staged.display(), e2.message);
+            report_error(app, "reencode-failed", e);
+        }
+    }
+}
+
+/// A free `<staged name>.<ext>` in the clips folder.
+fn output_path_for(state: &AppState, staged: &Path, ext: &str) -> AppResult<PathBuf> {
+    let dir = state.output_dir();
+    std::fs::create_dir_all(&dir).map_err(|e| {
+        AppError::new(
+            ErrorCode::Io,
+            format!("cannot create the clips folder: {e}"),
+        )
+    })?;
+    let stem = staged
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "clip".into());
+    Ok(crate::util::unique_path(&dir, &stem, ext))
+}
+
+/// Moves a staged clip into the clips folder (copying across drives).
+fn move_to_output(state: &AppState, staged: &Path) -> AppResult<PathBuf> {
+    let ext = staged
+        .extension()
+        .map(|e| e.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "mp4".into());
+    let dest = output_path_for(state, staged, &ext)?;
+    if std::fs::rename(staged, &dest).is_err() {
+        std::fs::copy(staged, &dest)
+            .map_err(|e| AppError::new(ErrorCode::Io, format!("cannot move the clip: {e}")))?;
+        let _ = std::fs::remove_file(staged);
+    }
+    Ok(dest)
+}
+
+/// Clips left in the staging folder (Vido closed while re-encoding) go to the
+/// clips folder as they are.
+pub fn recover_staged(state: &AppState) {
+    let dir = Engine::staging_dir(&state.settings.get(), &state.paths);
+    let Ok(entries) = std::fs::read_dir(&dir) else {
         return;
-    }
-    if let Some(state) = app.try_state::<AppState>() {
-        state.clips.set_last_saved(out);
-    }
-    if clipboard.is_some_and(|seq| seq == clipboard_sequence()) {
-        copy_file_to_clipboard(out);
+    };
+    for p in entries.flatten().map(|e| e.path()).filter(|p| p.is_file()) {
+        match move_to_output(state, &p) {
+            Ok(dest) => tracing::info!("recovered {} as {}", p.display(), dest.display()),
+            Err(e) => tracing::warn!("could not recover {}: {}", p.display(), e.message),
+        }
     }
 }
 
@@ -435,10 +512,10 @@ mod tests {
 
     #[test]
     fn saved_toast_mentions_the_clipboard() {
-        assert_eq!(saved_toast(29.6, false), "Clip saved (0:30)");
+        assert_eq!(ready_toast("Clip saved", 29.6, false), "Clip saved (0:30)");
         assert_eq!(
-            saved_toast(30.0, true),
-            "Clip saved (0:30) · ready to paste"
+            ready_toast("Clip ready", 30.0, true),
+            "Clip ready (0:30) · ready to paste"
         );
     }
 }

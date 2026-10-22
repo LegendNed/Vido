@@ -71,8 +71,10 @@ fn fatal(msg: &str) {
 fn export_events(app: tauri::AppHandle) -> crate::export::manager::EventSink {
     Arc::new(move |ev| match ev {
         ExportEvent::Progress(p) => events::emit(&app, events::EXPORT_PROGRESS, p),
-        ExportEvent::Completed(r) => {
-            events::toast(&app, ToastKind::Saved, "Export finished");
+        ExportEvent::Completed { result: r, toast } => {
+            if toast {
+                events::toast(&app, ToastKind::Saved, "Export finished");
+            }
             if let Some(state) = app.try_state::<AppState>() {
                 state.clips.invalidate(std::path::Path::new(&r.output_path));
             }
@@ -184,6 +186,9 @@ fn setup(
         caps: caps.clone(),
         device_watcher: Mutex::new(None),
     });
+
+    // Clips staged for re-encoding when Vido last closed.
+    actions::recover_staged(&handle.state::<AppState>());
 
     tray::create(&handle)?;
 

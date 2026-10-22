@@ -32,7 +32,7 @@ use crate::error::{AppError, AppResult, ErrorCode};
 use crate::events::{self, CaptureIssue, Severity};
 use crate::export::remux::write_snapshot;
 use crate::paths::AppPaths;
-use crate::settings::{BufferStorage, CaptureMode, Settings};
+use crate::settings::{BufferStorage, CaptureMode, SaveMode, Settings};
 use recording::Recording;
 
 #[derive(Serialize, TS, Clone, Copy, Debug, PartialEq, Eq)]
@@ -662,8 +662,20 @@ impl Engine {
             .unwrap_or_else(|| paths.default_output_dir.clone())
     }
 
+    /// Where re-encode-on-save keeps the instant save until the re-encoded clip
+    /// is in the clips folder (so only that one shows up there).
+    pub fn staging_dir(s: &Settings, paths: &AppPaths) -> PathBuf {
+        s.advanced
+            .cache_dir
+            .as_ref()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| paths.default_cache_dir.clone())
+            .join("pending")
+    }
+
     /// Saves everything in the buffer: the last `capture.bufferSeconds` (from the keyframe
     /// at or before that point), or all of it if less is buffered. Blocks up to ~1 s.
+    /// With re-encode-on-save the file goes to [`Self::staging_dir`].
     pub fn save_clip(&self) -> AppResult<SavedClip> {
         let (settings, end_us, source) = {
             let st = self.inner.state.lock();
@@ -688,7 +700,11 @@ impl Engine {
             .buffer
             .wait_for_streams(end_us, Duration::from_millis(700));
         let snap = self.inner.buffer.snapshot(dur_us, end)?;
-        let dir = Self::output_dir(&settings, &self.inner.paths);
+        let dir = if settings.saving.save_mode == SaveMode::Reencode {
+            Self::staging_dir(&settings, &self.inner.paths)
+        } else {
+            Self::output_dir(&settings, &self.inner.paths)
+        };
         std::fs::create_dir_all(&dir).map_err(|e| {
             AppError::new(
                 ErrorCode::Io,

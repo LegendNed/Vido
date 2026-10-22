@@ -535,6 +535,9 @@ pub struct SavingSettings {
     pub save_mode: SaveMode,
     /// What re-encode-on-save produces; independent of the editor's export defaults.
     pub reencode: ExportDefaults,
+    /// Re-encode-on-save: a second popup (with the save sound) once the
+    /// re-encoded clip is ready.
+    pub reencode_done_popup: bool,
     pub post_save: PostSaveActions,
 }
 
@@ -735,6 +738,7 @@ impl Default for SavingSettings {
             container: Container::Mp4,
             save_mode: SaveMode::Remux,
             reencode: ExportDefaults::high_quality(),
+            reencode_done_popup: true,
             post_save: PostSaveActions::default(),
         }
     }
