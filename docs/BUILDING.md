@@ -7,7 +7,7 @@
 | Rust                           | stable, MSVC target           | `winget install Rustlang.Rustup`                                             |
 | Visual Studio Build Tools 2022 | C++ workload + Windows 11 SDK | components `VC.Tools.x86.x64`, `Windows11SDK.26100`                          |
 | LLVM                           | any recent                    | provides `libclang.dll` for the FFmpeg bindings (`winget install LLVM.LLVM`) |
-| Node.js                        | 22+                           |                                                                              |
+| Node.js                        | 24+                           | version in `.nvmrc` (`nvm install 24` / `nvm use 24`)                        |
 | pnpm                           | 10+                           | `npm i -g pnpm`                                                              |
 | PowerShell                     | 7+                            | for the helper scripts                                                       |
 | Python                         | 3.10+                         | only to regenerate the built-in sounds (`scripts/synth-sounds.py`)           |
