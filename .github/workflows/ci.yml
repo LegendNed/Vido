@@ -1,7 +1,10 @@
 name: CI
 
-# Manual only: Actions → CI → "Run workflow".
+# Runs for pull requests into main, and by hand (Actions → CI → "Run workflow").
+# Pushes to main don't trigger it (each run takes ~30 min of Windows runner time).
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
