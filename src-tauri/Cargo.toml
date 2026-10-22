@@ -93,6 +93,9 @@ windows = { version = "0.62", features = [
 
 [dev-dependencies]
 tempfile = "3"
+# The updater's signature format, for the update test.
+minisign-verify = "0.3"
+base64 = "0.22"
 
 [profile.dev]
 # Keep debug builds usable for realtime capture/encode work.

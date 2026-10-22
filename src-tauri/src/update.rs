@@ -465,6 +465,67 @@ mod tests {
         assert!(d.join("vido.exe").exists());
     }
 
+    fn fixture(f: &str) -> Vec<u8> {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/updater");
+        std::fs::read(dir.join(f)).unwrap()
+    }
+
+    /// Tauri stores minisign keys and signatures base64-encoded.
+    fn unbase64(b: &[u8]) -> String {
+        use base64::Engine;
+        let raw = base64::engine::general_purpose::STANDARD
+            .decode(String::from_utf8_lossy(b).trim())
+            .unwrap();
+        String::from_utf8(raw).unwrap()
+    }
+
+    /// The signed update path without a network, with the minisign checks the
+    /// updater runs: the package verifies against the public key, tampered bytes
+    /// don't, the signature carries the version (required by
+    /// `requireSignedVersion`), and the package then swaps into a portable copy.
+    /// Fixtures: `tests/fixtures/updater` (a test-only key; the signature was made
+    /// with `tauri signer sign --app-version 9.9.9`).
+    #[test]
+    fn signed_package_verifies_and_installs() {
+        let key = minisign_verify::PublicKey::decode(&unbase64(&fixture("test.key.pub"))).unwrap();
+        let sig =
+            minisign_verify::Signature::decode(&unbase64(&fixture("package.zip.sig"))).unwrap();
+        let package = fixture("package.zip");
+        key.verify(&package, &sig, false).unwrap();
+        let mut bad = package.clone();
+        let last = bad.len() - 1;
+        bad[last] ^= 0xff;
+        assert!(key.verify(&bad, &sig, false).is_err());
+        assert!(sig
+            .trusted_comment()
+            .split('\t')
+            .any(|kv| kv == "version:9.9.9"));
+
+        let target = tempfile::tempdir().unwrap();
+        std::fs::write(target.path().join("vido.exe"), b"old").unwrap();
+        swap_portable_files(&package, target.path()).unwrap();
+        assert_eq!(
+            std::fs::read(target.path().join("vido.exe")).unwrap(),
+            b"new exe 9.9.9"
+        );
+    }
+
+    /// The public key in tauri.conf.json is a valid minisign key, and the updater
+    /// requires signed versions (a broken key would silently stop all updates).
+    #[test]
+    fn app_updater_config_is_valid() {
+        let conf: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let updater = &conf["plugins"]["updater"];
+        let key = updater["pubkey"].as_str().unwrap();
+        minisign_verify::PublicKey::decode(&unbase64(key.as_bytes())).unwrap();
+        assert_eq!(updater["requireSignedVersion"], true);
+        assert!(updater["endpoints"][0]
+            .as_str()
+            .unwrap()
+            .starts_with("https://"));
+    }
+
     #[test]
     fn broken_zip_changes_nothing() {
         let dir = tempfile::tempdir().unwrap();
