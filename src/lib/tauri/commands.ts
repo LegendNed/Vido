@@ -22,6 +22,7 @@ import type {
   RegionRect,
   SaveEditMode,
   SaveSound,
+  UpdateInfo,
   Settings,
   WindowInfo,
 } from "./types";
@@ -91,6 +92,12 @@ export const commands = {
   showMainWindow: (page?: string) => invoke<undefined>("show_main_window", { page }),
   pickFolder: (initial?: string) => invoke<string | null>("pick_folder", { initial }),
   getCurrentGame: () => invoke<string | null>("get_current_game"),
+
+  // Updates
+  checkForUpdates: () => invoke<UpdateInfo | null>("check_for_updates"),
+  getPendingUpdate: () => invoke<UpdateInfo | null>("get_pending_update"),
+  /** Downloads and installs the pending update; Vido exits and comes back. */
+  installUpdate: () => invoke<null>("install_update"),
   pickSoundFile: (initial?: string) => invoke<string | null>("pick_sound_file", { initial }),
   previewSaveSound: (sound: SaveSound, path: string | null, volume: number) =>
     invoke<null>("preview_save_sound", { sound, path, volume }),

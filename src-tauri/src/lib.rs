@@ -27,6 +27,7 @@ pub mod state;
 pub mod theme;
 pub mod tray;
 pub mod ui;
+pub mod update;
 pub mod util;
 #[cfg(windows)]
 pub mod win;
@@ -188,6 +189,17 @@ fn setup(
         caps: caps.clone(),
         device_watcher: Mutex::new(None),
     });
+
+    // Updates: leftovers of a portable update, an update downloaded last time
+    // (installs now, before anything starts), then regular checks.
+    {
+        let paths = &handle.state::<AppState>().paths;
+        if paths.portable {
+            update::clean_old_files(&paths.exe_dir);
+        }
+    }
+    update::install_staged(&handle);
+    update::start_checks(&handle);
 
     // Clips staged for re-encoding when Vido last closed.
     actions::recover_staged(&handle.state::<AppState>());
@@ -355,6 +367,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_autostart::init(
@@ -400,6 +413,9 @@ pub fn run() {
             commands::show_main_window,
             commands::pick_folder,
             commands::get_current_game,
+            commands::check_for_updates,
+            commands::get_pending_update,
+            commands::install_update,
             commands::pick_sound_file,
             commands::preview_save_sound,
             commands::pick_export_path,

@@ -75,6 +75,21 @@
   `cache\preview`, cleaned after a day) through a Web Audio gain, so mute/volume changes are heard
   immediately.
 
+## Updates
+
+- Tauri's updater reads `latest.json` from the newest GitHub release (shortly after start, then
+  every 6 hours, while Settings → General → "Check for updates automatically" is on). A newer
+  version only shows the top bar's **Update** button.
+- Every package is verified against the public key built into Vido before it is installed
+  (minisign signatures made in the release workflow).
+- **Installed copies** run the NSIS installer in passive mode; it replaces Vido and starts it
+  again. **Portable copies** download the signed zip and swap their files in place: running
+  files can be renamed but not overwritten, so each replaced file becomes `<name>.vido-old`
+  (put back if anything fails, deleted on the next start), `data\` and the `portable` marker are
+  kept, and Vido restarts itself.
+- With "Install updates automatically" on, the update is downloaded in the background to
+  `cache\update` and installed the next time Vido starts, before the buffer starts.
+
 ## Windows APIs & permissions
 
 Vido runs as a normal user: **no administrator rights and no drivers**.

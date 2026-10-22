@@ -23,4 +23,12 @@ saveSoundPath: string | null,
 /**
  * 0–100 % of the sound's own level (Windows' volume still applies).
  */
-saveSoundVolume: number, hud: HudSettings, sidebar: SidebarMode, };
+saveSoundVolume: number, hud: HudSettings, sidebar: SidebarMode, 
+/**
+ * Ask GitHub for a newer version at start and every few hours.
+ */
+checkUpdates: boolean, 
+/**
+ * Download updates in the background and install them on the next start.
+ */
+autoUpdate: boolean, };

@@ -531,6 +531,24 @@ pub async fn pick_folder(app: AppHandle, initial: Option<String>) -> AppResult<O
     .await
 }
 
+/// Asks GitHub for a newer version (also sent as `update-available`).
+#[tauri::command]
+pub async fn check_for_updates(app: AppHandle) -> AppResult<Option<crate::update::UpdateInfo>> {
+    crate::update::check(&app).await
+}
+
+/// The update found by the last check, if any.
+#[tauri::command]
+pub fn get_pending_update() -> Option<crate::update::UpdateInfo> {
+    crate::update::pending()
+}
+
+/// Downloads and installs the pending update; Vido restarts.
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> AppResult<()> {
+    crate::update::install(&app).await
+}
+
 /// The game a clip saved now would be filed under (also sent as `game-changed`).
 #[tauri::command]
 pub fn get_current_game(state: AppStateRef<'_>) -> Option<String> {

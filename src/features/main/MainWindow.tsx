@@ -24,6 +24,7 @@ import {
 } from "../settings/groups";
 import { SettingsPage } from "../settings/SettingsPage";
 import { AppSidebar, type PageId } from "./AppSidebar";
+import { UpdateDialog } from "../update/UpdateDialog";
 import { WindowControls } from "./WindowControls";
 
 const PAGE_TITLES: Record<PageId, string> = {
@@ -208,6 +209,7 @@ export function MainWindow() {
         </main>
       </div>
       <EditorModal />
+      <UpdateDialog />
       {(!settings.firstRunCompleted || redoSetup) && <FirstRun />}
       <Notices />
     </div>

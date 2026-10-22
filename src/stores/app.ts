@@ -10,6 +10,7 @@ import {
   type EncoderCapabilities,
   type Settings,
   type Severity,
+  type UpdateInfo,
 } from "../lib/tauri/types";
 
 export interface NoticeAction {
@@ -44,6 +45,12 @@ interface AppStore {
    * as its starting point, `"fresh"` follows a reset (it suggests a quality again).
    */
   redoSetup: boolean | "fresh";
+  /** A newer version on GitHub (from the last check). */
+  pendingUpdate: UpdateInfo | null;
+  setPendingUpdate: (u: UpdateInfo | null) => void;
+  /** The update dialog is open. */
+  updateOpen: boolean;
+  setUpdateOpen: (open: boolean) => void;
   setRedoSetup: (v: boolean | "fresh") => void;
   init: () => Promise<void>;
   setStatus: (s: BufferStatus) => void;
@@ -76,6 +83,8 @@ export const useApp = create<AppStore>((set, get) => ({
   notices: [],
   fieldError: null,
   redoSetup: false,
+  pendingUpdate: null,
+  updateOpen: false,
   editor: null,
 
   openEditor: (path, from, at) => {
@@ -89,13 +98,22 @@ export const useApp = create<AppStore>((set, get) => ({
     set({ redoSetup });
   },
 
+  setPendingUpdate: (pendingUpdate) => {
+    set({ pendingUpdate });
+  },
+
+  setUpdateOpen: (updateOpen) => {
+    set({ updateOpen });
+  },
+
   init: async () => {
-    const [info, settings, status] = await Promise.all([
+    const [info, settings, status, pendingUpdate] = await Promise.all([
       commands.getAppInfo(),
       commands.getSettings(),
       commands.getBufferStatus(),
+      commands.getPendingUpdate(),
     ]);
-    set({ info, settings, confirmed: settings, status });
+    set({ info, settings, confirmed: settings, status, pendingUpdate });
     void get().loadCaps();
   },
 

@@ -24,6 +24,8 @@ export function StatusBar() {
   const status = useApp((s) => s.status);
   const notify = useApp((s) => s.notify);
   const sidebar = useApp((s) => s.settings?.general.sidebar ?? "full");
+  const pendingUpdate = useApp((s) => s.pendingUpdate);
+  const setUpdateOpen = useApp((s) => s.setUpdateOpen);
   const [busy, setBusy] = useState(false);
   if (!status) return null;
 
@@ -44,6 +46,18 @@ export function StatusBar() {
     status.state === "buffering" || status.state === "paused" || status.bufferedSeconds > 0;
   return (
     <div className="ml-auto flex min-w-0 items-center gap-1.5">
+      {pendingUpdate && (
+        <Button
+          small
+          icon="download"
+          title={`Vido ${pendingUpdate.version} is available`}
+          onClick={() => {
+            setUpdateOpen(true);
+          }}
+        >
+          Update
+        </Button>
+      )}
       {sidebar !== "full" && (
         <span className="mr-1 inline-flex items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium">
           <span

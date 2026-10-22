@@ -23,6 +23,7 @@ tauri-plugin-dialog = "2.8"
 tauri-plugin-opener = "2.7"
 tauri-plugin-clipboard-manager = "2.5"
 tauri-plugin-autostart = "2.7"
+tauri-plugin-updater = "2.14"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -40,6 +41,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 ts-rs = "12"
 nnnoiseless = { version = "0.5", default-features = false }
 libc = "0.2"
+time = { version = "0.3", features = ["formatting"] }
+zip = { version = "4", default-features = false, features = ["deflate"] }
 
 ffmpeg-sys-next = { version = "=8.1.0", default-features = false, features = ["avcodec", "avfilter", "avformat", "swresample", "swscale"] }
 

@@ -20,6 +20,10 @@ pub const CLIP_SAVED: &str = "clip-saved";
 pub const CLIPS_CHANGED: &str = "clips-changed";
 /// The game being played changed (`Option<String>`).
 pub const GAME_CHANGED: &str = "game-changed";
+/// A newer version is available (`UpdateInfo`).
+pub const UPDATE_AVAILABLE: &str = "update-available";
+/// Download progress of an update (`UpdateProgress`).
+pub const UPDATE_PROGRESS: &str = "update-progress";
 pub const SETTINGS_CHANGED: &str = "settings-changed";
 pub const EDITOR_OPEN: &str = "editor-open";
 pub const NAVIGATE: &str = "navigate";

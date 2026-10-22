@@ -1,9 +1,15 @@
 name: Release
 
-# Publishing a GitHub release builds the installer and portable zip and attaches
-# them with fixed names, so these links always point at the newest release:
+# Publishing a GitHub release (tag vX.Y.Z = the app version) builds the installer
+# and portable zip, signs both for the in-app updater and attaches them with fixed
+# names, so these links always point at the newest release:
 #   https://github.com/LegendNed/Vido/releases/latest/download/Vido-setup.exe
 #   https://github.com/LegendNed/Vido/releases/latest/download/Vido-portable-x64.zip
+#   https://github.com/LegendNed/Vido/releases/latest/download/latest.json  (updater)
+#
+# Needs the repository secret TAURI_SIGNING_PRIVATE_KEY (the content of the key
+# made by `pnpm tauri signer generate`) and, if the key has one,
+# TAURI_SIGNING_PRIVATE_KEY_PASSWORD. The release notes become the update notes.
 on:
   release:
     types: [published]
@@ -14,8 +20,19 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check the tag matches the app version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = "${{ github.event.release.tag_name }}".TrimStart("v")
+          if ($tag -ne $version) { throw "Tag $tag does not match the app version $version (run: node scripts/set-version.mjs $tag)" }
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw "The TAURI_SIGNING_PRIVATE_KEY secret is missing" }
 
       # pnpm version comes from "packageManager" in package.json.
       - uses: pnpm/action-setup@v4
@@ -38,20 +55,48 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      # Updater artifacts (the installer's .sig) only in CI, where the key is.
       - name: Build installer
-        run: pnpm tauri build
+        run: pnpm tauri build --config src-tauri/tauri.release.conf.json
 
       - name: Build portable zip
         shell: pwsh
         run: ./scripts/package-portable.ps1 -SkipBuild
+
+      - name: Sign the portable zip and write latest.json
+        shell: pwsh
+        env:
+          NOTES: ${{ github.event.release.body }}
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          $zip = Get-ChildItem release/*-portable-x64.zip | Select-Object -First 1
+          Copy-Item $setup.FullName Vido-setup.exe
+          Copy-Item "$($setup.FullName).sig" Vido-setup.exe.sig
+          Copy-Item $zip.FullName Vido-portable-x64.zip
+          pnpm tauri signer sign Vido-portable-x64.zip
+          if ($LASTEXITCODE -ne 0) { throw "signing the portable zip failed" }
+          $base = "https://github.com/${{ github.repository }}/releases/download/$tag"
+          $latest = [ordered]@{
+            version  = $tag.TrimStart("v")
+            notes    = "$env:NOTES"
+            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = [ordered]@{
+              "windows-x86_64" = [ordered]@{
+                signature = (Get-Content Vido-setup.exe.sig -Raw).Trim()
+                url       = "$base/Vido-setup.exe"
+              }
+              "windows-x86_64-portable" = [ordered]@{
+                signature = (Get-Content Vido-portable-x64.zip.sig -Raw).Trim()
+                url       = "$base/Vido-portable-x64.zip"
+              }
+            }
+          }
+          $latest | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8NoBOM latest.json
 
       - name: Attach to the release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
-          $zip = Get-ChildItem release/*-portable-x64.zip | Select-Object -First 1
-          Copy-Item $setup.FullName Vido-setup.exe
-          Copy-Item $zip.FullName Vido-portable-x64.zip
-          gh release upload "${{ github.event.release.tag_name }}" Vido-setup.exe Vido-portable-x64.zip --clobber
+          gh release upload "${{ github.event.release.tag_name }}" Vido-setup.exe Vido-portable-x64.zip latest.json --clobber

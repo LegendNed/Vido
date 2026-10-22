@@ -17,6 +17,8 @@ import type {
   Navigate,
   Settings,
   TrackLevel,
+  UpdateInfo,
+  UpdateProgress,
 } from "./types";
 
 export interface EventMap {
@@ -31,6 +33,8 @@ export interface EventMap {
   "clip-saved": ClipInfo;
   "clips-changed": null;
   "game-changed": string | null;
+  "update-available": UpdateInfo;
+  "update-progress": UpdateProgress;
   "settings-changed": Settings;
   "editor-open": EditorOpen;
   navigate: Navigate;

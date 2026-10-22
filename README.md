@@ -19,7 +19,8 @@ watermark or telemetry**. Everything stays on your PC.
 - **Lightweight:** about **30 MB of RAM** idling in the tray (closing the window unloads the UI
   completely), plus the buffer itself (roughly 50–200 MB for 30 s). Capture and encoding stay on
   your GPU (NVIDIA, AMD or Intel), so CPU use is tiny.
-- **Private:** no accounts, uploads, telemetry, ads, watermarks or auto-updates.
+- **Private:** no accounts, uploads, telemetry, ads or watermarks. The only thing Vido ever
+  sends is an update check to GitHub, which you can turn off.
 
 ---
 
@@ -41,7 +42,7 @@ watermark or telemetry**. Everything stays on your PC.
 | Per-track editing                       | Mute / volume per track, heard live       | Basic                       |
 | Idle RAM                                | ~30 MB + buffer                           | Heavier (300mb-1gb)         |
 | Overlay kept out of your clips          | Always (Windows capture exclusion)        | Not guaranteed              |
-| Auto-updates                            | Never; you choose when to update          | Yes                         |
+| Updates                                 | You choose (auto-install is opt-in)       | Forced, automatic           |
 | Automatic game detection                | Yes                                       | Yes                         |
 
 Vido is for people who want their clips on their own disk and nothing else. If you want a social
@@ -127,6 +128,14 @@ Clips are saved to `Videos\Vido` (change it in Settings → Saving).
 - A soft **save sound** (Tap, Two-Tone, Bloop, Pluck or your own WAV) with its own volume.
 
 ![Overlay settings](docs/images/settings-overlay.png)
+
+### Updates
+
+When a new version is out, an **Update** button appears in the top bar: it shows what's new and
+installs the update in one click (Vido restarts by itself). Updates are signed, and Vido refuses
+anything that doesn't match its signature. In Settings → General you can turn the check off, or
+let Vido install updates automatically the next time it starts. The portable version updates
+itself in place and keeps its `data` folder.
 
 ### Looks
 

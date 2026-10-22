@@ -359,6 +359,10 @@ pub struct GeneralSettings {
     pub save_sound_volume: u32,
     pub hud: HudSettings,
     pub sidebar: SidebarMode,
+    /// Ask GitHub for a newer version at start and every few hours.
+    pub check_updates: bool,
+    /// Download updates in the background and install them on the next start.
+    pub auto_update: bool,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone, Debug, PartialEq)]
@@ -635,6 +639,8 @@ impl Default for GeneralSettings {
             save_sound_volume: crate::sound::default_volume(),
             hud: HudSettings::default(),
             sidebar: SidebarMode::Full,
+            check_updates: true,
+            auto_update: false,
         }
     }
 }

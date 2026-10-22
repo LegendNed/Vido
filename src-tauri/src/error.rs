@@ -31,6 +31,8 @@ pub enum ErrorCode {
     BufferEmpty,
     Settings,
     Hotkey,
+    /// Checking for, downloading or installing an update failed.
+    Update,
     Internal,
 }
 

@@ -16,7 +16,9 @@
       "size": "medium",
       "clipPopup": true
     },
-    "sidebar": "full"
+    "sidebar": "full",
+    "checkUpdates": true,
+    "autoUpdate": false
   },
   "capture": {
     "mode": "monitor",

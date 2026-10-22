@@ -96,4 +96,22 @@ Repackaging keeps an existing `.\data` folder and leaves it out of the zip.
 and attaches them as `Vido-setup.exe` and `Vido-portable-x64.zip` (stable "latest" download
 links). CI (`ci.yml`) runs manually via _workflow_dispatch_.
 
-Vido never updates itself. It starts with Windows by default (Settings → General).
+Vido starts with Windows by default (Settings → General).
+
+## Releasing (and the updater)
+
+1. `node scripts/set-version.mjs 0.2.0` (package.json, Cargo.toml, tauri.conf.json), commit, push.
+2. Publish a GitHub release tagged `v0.2.0`; its notes become the in-app update notes.
+3. `release.yml` builds the installer (with `tauri.release.conf.json`, which turns on the
+   updater's `.sig` files) and the portable zip, signs the zip with `tauri signer sign`, writes
+   `latest.json` and attaches `Vido-setup.exe`, `Vido-portable-x64.zip` and `latest.json`.
+
+The app checks `releases/latest/download/latest.json`: the `windows-x86_64` entry (installer)
+for installed copies, `windows-x86_64-portable` (zip) for portable ones. A package is only
+installed when its signature matches the public key in `tauri.conf.json` →
+`plugins.updater.pubkey`.
+
+**Signing key.** Made once with `pnpm tauri signer generate -w ~/.tauri/vido-updater.key`; the
+private key stays out of the repo. Add its content as the repository secret
+`TAURI_SIGNING_PRIVATE_KEY` (and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if it has one). Losing the
+key means existing installs can no longer verify new releases, so keep a backup.
