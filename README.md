@@ -1,365 +1,145 @@
 # Vido
 
-A lightweight, **local-first** replay-buffer clipper for Windows - like Medal.tv, minus the account,
-cloud, ads, watermark and telemetry. Vido keeps the last moments of your screen and audio in a
-rolling buffer; press **Save clip** and the buffer (5 s – 10 min, your choice) is saved as an MP4 in
-milliseconds. A built-in editor trims, crops, mutes tracks and compresses clips to a target size.
+**Clip the last 30 seconds of your game with one key.** Vido is a lightweight replay-buffer
+clipper for Windows, like Medal.tv or ShadowPlay, but **without the account, cloud, ads,
+watermark or telemetry**. Everything stays on your PC.
 
-- **Light in the tray:** closing the window frees the UI (WebView2) entirely; Vido idles at
-  ~30 MB plus the replay buffer.
-- **Private by design:** no accounts, uploads, telemetry, ads, watermarks or auto-updates. Nothing leaves your PC.
-- **Low overhead:** Windows.Graphics.Capture → GPU colour conversion → NVENC/AMF with **zero CPU copies**.
-- **Instant saves:** the buffer stores _encoded_ packets, so saving is a remux (no re-encode).
-- **Tauri v2** app: React + TypeScript UI, all capture/audio/encoding/OS work in Rust.
+![Vido: Clips](docs/images/clips.png)
 
-> Status: v0.1. Verified on Windows 11 with an NVIDIA RTX 5090 (NVENC H.264/HEVC/AV1). AMD AMF and
-> Intel Quick Sync paths are implemented through FFmpeg but untested on real AMD/Intel hardware.
-
----
-
-## Contents
-
-1. [Features](#features)
-2. [Building](#building)
-3. [Installer & portable builds](#installer--portable-builds)
-4. [First run](#first-run)
-5. [How the replay buffer works](#how-the-replay-buffer-works)
-6. [Hotkeys](#hotkeys)
-7. [Windows APIs & permissions](#windows-apis--permissions)
-8. [Settings & files](#settings--files)
-9. [Known limitations](#known-limitations)
-10. [Architecture](#architecture) (details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md))
-11. [License](#license)
+- **Always ready:** Vido keeps the last moments of your screen and audio in memory. Press your
+  hotkey and the clip is saved in milliseconds, with no re-encoding.
+- **Paste it anywhere:** a saved clip is copied to the clipboard, so you can **Ctrl+V** it straight
+  into Discord or a folder.
+- **Quick edits:** trim, crop, mute or turn down individual audio tracks, and shrink clips to fit
+  Discord's upload limit.
+- **Light:** uses your GPU's video encoder (NVIDIA, AMD or Intel) and idles quietly in the tray.
+- **Private:** no accounts, uploads, telemetry, ads, watermarks or auto-updates.
 
 ---
 
-## Features
+## Download & install
 
-**Capture**
+Get the latest version from **[Releases](https://github.com/LegendNed/Vido/releases/latest)**:
 
-- Display, window (re-found by program name after restarts) or rectangular region.
-- 24/30/48/60/120 fps or native refresh rate (59.94 handled exactly, capped at 144).
-- Source resolution or 1440p/1080p/720p downscale (never upscales), cursor on/off.
-- Buffer 5 s – 10 min (this is the clip length), in RAM or disk segments ("Auto" picks), optional
-  1–20 GB size cap.
-- Exclusive-fullscreen detection: warns when the captured image stays black.
-- HDR displays are detected and recorded as SDR (with a warning).
+| Download                                                                                                      | What it is                                                                       |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **[Vido-setup.exe](https://github.com/LegendNed/Vido/releases/latest/download/Vido-setup.exe)**               | Installer. Per-user, no admin rights needed, adds a Start-menu entry.            |
+| **[Vido-portable-x64.zip](https://github.com/LegendNed/Vido/releases/latest/download/Vido-portable-x64.zip)** | Portable. Unzip anywhere and run `vido.exe`; settings stay in the `data` folder. |
 
-**Audio**
+**Requirements**
 
-- Device checklist: tick any number of output devices (recorded via WASAPI loopback) and input
-  devices (microphones, line-in), up to 16; each ticked device is its own track. "Windows
-  default" entries follow the default device.
-- Per-track name, mute, volume (0–200 %), gain (−20…+30 dB), mono downmix.
-- Optional RNNoise noise suppression for inputs (local, off by default).
-- Each clip gets a **mix track** (what players play) plus **one track per source** for editing.
-- 44.1/48 kHz, AAC (default) or Opus; live level meters in settings.
-- Devices that disappear record silence and reconnect automatically.
+- Windows 10 (1903 or newer) or Windows 11, 64-bit.
+- Microsoft Edge WebView2 Runtime (already on Windows 11; the installer adds it if missing).
+- A GPU with a hardware video encoder is recommended. Tested on NVIDIA (RTX 5090) and AMD
+  hardware; Intel Quick Sync is supported but less tested. Without one, Vido falls back to the CPU.
 
-**Saving**
-
-- **Save clip** (hotkey, tray, status bar) saves everything in the buffer; more hotkeys for manual
-  recording, pause, open last clip, open editor.
-- Configurable folder and filename template (`Vido_{date}_{time}`, `{source}`, `{duration}`).
-- MP4 or MKV; instant copy or re-encode-on-save (its own presets and options, e.g. "25 MB" or
-  "High quality").
-- After saving, the video itself is copied to the clipboard (on by default), so Ctrl+V pastes it
-  into Discord or a folder. Other post-save actions: open editor, open folder, copy path, run a
-  command.
-
-**Overlay**
-
-- A native, click-through pill that floats over games and is hidden from every recording and
-  screenshot; nothing runs while both options below are off.
-- Six positions (corners and top/bottom centre of the main display), picked on a small screen
-  diagram on the Overlay page.
-- **Show the overlay:** the always-visible pill (red dot while buffering), optionally with the
-  buffered seconds / REC timer.
-- **Clip saved popup** (on by default): "✓ Clip saved (0:30) · ready to paste" for 3 s in the same
-  spot, even with the overlay hidden; recording and error messages pop up the same way.
-  **Preview** shows it on demand.
-
-**Clips**
-
-- Hero banner with the latest clip, then a grid of thumbnails with resolution, codec and tracks.
-- Click a clip to watch it in the built-in viewer: play/pause, seek, volume, fullscreen,
-  ←/→ for the previous/next clip, Edit, Show in folder, Delete; Esc closes.
-
-**Editor**
-
-- **Save** writes the edit next to the original as `<name>_edit.mp4`; **Save & override** gives
-  the edit the original's name (and date) and moves the original to the Recycle Bin. Both keep
-  the source resolution, frame rate and codec, and stream-copy when only trimming.
-- Video above a timeline: time ruler, the video row with draggable trim handles and keyframe
-  ticks, and one lane per audio track with its waveform, mute and volume (0–200 %; double-click
-  the slider for 100 %). The recorded mix lane follows the source lanes; frame-accurate scrubbing
-  and stepping, Set in / Set out.
-- Lane changes are heard live while previewing: each track plays from its own copy (no
-  re-encode, cached in `cache\preview`, cleaned after a day) through a Web Audio gain.
-- Crop from the toolbar under the video (free, 16:9, 9:16, 1:1, 4:3).
-- The side panel is Export only. Exports get one track (the audible lanes mixed; an untouched
-  recorded mix is copied as is) or, optionally, separate tracks; Save keeps the clip's track layout.
-- PNG screenshot of the current frame, undo/redo (Ctrl+Z / Ctrl+Y).
-
-**Look**
-
-- Windows 11 Fluent design: Mica window, light and dark following the Windows app mode, and the
-  Windows accent color (both update live).
-- Store-style navigation rail; Advanced → Appearance switches it between Full (icons + names),
-  Small (icons) and None (tabs above the page).
-
-**Export & compression**
-
-- Presets up front (Original, 10 / 25 / 50 MB, High quality, Small (HEVC)); everything else under
-  a collapsed **Advanced** section. The same options drive Saving → Re-encode and the Export page.
-- MP4 / MKV / WebM; H.264, HEVC, AV1; NVENC → AMF → QSV → CPU (x264/x265/SVT-AV1) fallback.
-- Quality (CRF/CQ), bitrate (avg/peak) or **target file size** (“8 MB”, “25”, “1.5 GB”) with an
-  automatic second attempt if the first one overshoots.
-- **Stream-copy export** when only trimming (starts at the previous keyframe; shown in the UI).
-- Live size estimate, progress with fps/ETA, cancel, clear errors.
+Windows SmartScreen may warn about an unknown publisher on first launch: choose **More info →
+Run anyway**.
 
 ---
 
-## Building
+## Getting started
 
-### Prerequisites (Windows 10/11 x64)
+1. **Run Vido.** A short setup asks which display to record, which audio to include, how long
+   your clips should be and how good they should look (it suggests a quality for your PC).
+2. **Play.** Vido sits in the tray (bottom-right of the taskbar) and keeps buffering. It starts
+   with Windows by default; you can turn that off in Settings → General.
+3. **Press Ctrl+Shift+F6** (or **Save clip** in the window or tray menu) when something happens.
+   A small "Clip saved" popup appears over the game and the clip is ready to paste.
+4. **Open Vido** from the tray to watch, edit or delete your clips.
 
-| Tool                           | Version                       | Notes                                                                        |
-| ------------------------------ | ----------------------------- | ---------------------------------------------------------------------------- |
-| Rust                           | stable, MSVC target           | `winget install Rustlang.Rustup`                                             |
-| Visual Studio Build Tools 2022 | C++ workload + Windows 11 SDK | components `VC.Tools.x86.x64`, `Windows11SDK.26100`                          |
-| LLVM                           | any recent                    | provides `libclang.dll` for the FFmpeg bindings (`winget install LLVM.LLVM`) |
-| Node.js                        | 22+                           |                                                                              |
-| pnpm                           | 10+                           | `npm i -g pnpm`                                                              |
-| PowerShell                     | 7+                            | for the helper scripts                                                       |
-| WebView2 Runtime               | evergreen                     | preinstalled on Windows 11                                                   |
+Clips are saved to `Videos\Vido` (change it in Settings → Saving).
 
-`LIBCLANG_PATH` defaults to `C:\Program Files\LLVM\bin` (see `.cargo/config.toml`; override via the environment).
-
-### Steps
-
-```powershell
-pnpm install
-pnpm fetch:ffmpeg          # downloads + verifies FFmpeg 8.1 (GPL, shared) into third_party/ffmpeg
-pnpm tauri dev             # run the app with hot reload
-```
-
-### Scripts
-
-| Command                                        | What it does                                       |
-| ---------------------------------------------- | -------------------------------------------------- |
-| `pnpm dev`                                     | Vite dev server only (UI without the Rust backend) |
-| `pnpm build`                                   | Type-check + production frontend build             |
-| `pnpm tauri dev`                               | Full app in development mode                       |
-| `pnpm tauri build`                             | Release build + NSIS installer                     |
-| `pnpm lint` / `pnpm format` / `pnpm typecheck` | ESLint (strict, type-checked) / Prettier / `tsc`   |
-| `pnpm cargo:check` / `pnpm cargo:test`         | `cargo check` / `cargo test`                       |
-| `pnpm cargo:clippy` / `pnpm cargo:fmt`         | clippy with `-D warnings` / rustfmt                |
-| `pnpm bindings`                                | Regenerate TypeScript IPC types from Rust (ts-rs)  |
-| `pnpm check`                                   | Everything CI runs                                 |
-| `pnpm package:portable`                        | Portable folder + zip in `release/`                |
-
-Plain cargo works too (from the repo root or `src-tauri`): `cargo check`, `cargo test`.
-
-### Tests
-
-```powershell
-pnpm cargo:test                                                   # unit + media integration tests
-cargo test --manifest-path src-tauri/Cargo.toml --test capture_e2e -- --ignored --test-threads=1
-```
-
-Unit tests cover buffer duration/eviction maths, timestamp alignment (session clock, pauses,
-audio/video sync), trim/keyframe boundary handling, target-size bitrate estimation, settings
-serialization/validation/repair, hotkey parsing, the audio mixer and the export planner.
-`tests/export_media.rs` synthesizes a real clip and runs stream-copy / re-encode / target-size
-exports, screenshots and waveforms. `tests/capture_e2e.rs` (ignored by default; needs a display,
-GPU and audio output) runs the full pipeline live: display + desktop audio (codec, duration, A/V
-alignment), downscaled region, a window re-found by exe + title, a disk-backed buffer (eviction and
-segment-file cleanup), pause/resume (paused time excluded, A/V aligned) and manual recording to MP4.
+![Overview](docs/images/overview.png)
 
 ---
 
-## Installer & portable builds
+## What you can do
 
-**Installer:** `pnpm tauri build` → `src-tauri/target/release/bundle/nsis/Vido_<version>_x64-setup.exe`.
-Per-user install (no admin rights), Start-menu entry, uninstaller. FFmpeg DLLs are installed next
-to the executable. WebView2 is installed by the bootstrapper if missing.
+### Save clips
 
-**Portable:** `pnpm package:portable` → `release/Vido-<version>-portable-x64.zip`. Unzip anywhere
-and run `vido.exe`. A file named `portable` next to the exe switches Vido to portable mode:
-settings, logs, cache and the WebView2 profile are stored in `.\data` and nothing is written to
-`%APPDATA%`/`%LOCALAPPDATA%`. (Clips go to `Videos\Vido` unless you change the output folder.)
+- **Clip length** from 5 seconds to 10 minutes. Saving takes everything in the buffer.
+- **Quality presets** (Low, Standard, High, Native, or your own resolution, frame rate and bitrate).
+- Record a **display, a window** (found again after the game restarts) **or a region**.
+- **Audio:** any number of speakers/headphones and microphones, each on its own track, plus a mix
+  that plays everywhere. Optional noise suppression for microphones.
+- **Re-encode on save** (optional): Vido saves instantly, then compresses the clip in the
+  background (e.g. to 20 MB for Discord) and tells you when it's ready.
+- **After saving:** copy the video (default) or its path, open the folder or editor, or run your
+  own command.
+- **Manual recording** for longer sessions, and **pause** the buffer when you don't need it.
 
-Vido never updates itself and does not start with Windows unless you enable it
-(Settings → Advanced).
+![Video settings](docs/images/settings-video.png)
 
----
+### Watch and edit
 
-## First run
+- A **Clips** library grouped by date, with a resizable grid and a built-in player
+  (←/→ to step through clips).
+- The **editor** has a timeline with one lane per audio track: trim with the handles, mute or
+  change the volume of each track (heard live), crop, take a PNG of the current frame, undo/redo.
+- **Save** writes a copy next to the clip; **Save & override** replaces it (the original goes to
+  the Recycle Bin).
+- **Export presets:** **Discord (no Nitro)** (20 MB), Original (instant, lossless when you only
+  trim), 10 / 25 / 50 MB, High quality, Small (HEVC), or anything under Advanced.
 
-On first launch a short setup appears in the main window:
+![Editor](docs/images/editor.png)
 
-1. **Display** - pick the monitor to record (window/region capture can be chosen later).
-2. **Audio** - desktop output device; microphone is _off_ unless you enable it.
-3. **Buffer** - how much to keep (15 s – 5 min presets), which is the length of your clips, and quality.
-4. **Save clip hotkey** - defaults to **Ctrl+Shift+F6** (saves the whole buffer).
+### Overlay and sound
 
-“Start buffering” saves the choices and starts the buffer. Afterwards Vido starts minimized in
-the tray (configurable). The red tray dot means “buffering”; left-click opens the window.
+- A **"Clip saved" popup** in the corner of your choice (on by default), and an optional
+  always-visible buffer indicator. Both float over borderless and windowed games and never show
+  up in your recordings.
+- A soft **save sound** (Tap, Two-Tone, Bloop, Pluck or your own WAV) with its own volume.
 
----
+![Overlay settings](docs/images/settings-overlay.png)
 
-## How the replay buffer works
+### Looks
 
-```
- Display/Window ──WGC──▶ BGRA texture ──D3D11 video processor──▶ NV12 (scaled/cropped)
-                                                                     │ (same GPU texture)
-                                                                     ▼
- Desktop audio ─WASAPI loopback─┐                          NVENC / AMF  (or CPU via read-back)
- Microphone ────WASAPI capture──┼─▶ mixer (aligned to session clock) ─▶ AAC/Opus encoders
- Extra inputs ──────────────────┘                                     │
-                                                                     ▼
-                        ReplayBuffer: encoded packets in ~2 s segments (RAM or disk files)
-                        - each segment starts at a video keyframe (keyframe every 1 s)
-                        - oldest segments dropped once the rest still covers N s (or size cap hit)
-                                                                     │  hotkey
-                                                                     ▼
-                        snapshot → keyframe at/before (now − N s) → remux to MP4/MKV (no re-encode)
-```
+Light and dark themes follow Windows. The sidebar can be full, icons only or hidden.
 
-- **One clock for everything.** Video ticks and WASAPI packets both carry QPC timestamps and are
-  mapped onto a shared _media time_ (microseconds since start, pauses removed). Video is constant
-  frame rate: frame _n_ has time _n/fps_; unchanged screens repeat the previous frame.
-- **Audio alignment.** Each source has a sample timeline: small jitter (≤20 ms) is ignored, gaps
-  (loopback is silent when nothing plays) are filled with silence, overlaps are trimmed. The mixer
-  runs 150 ms behind real time so late packets still land in place.
-- **Rolling, not “record forever”.** Material older than the buffer length is discarded
-  continuously; a 30 s buffer uses ~50–200 MB depending on resolution and content.
-- **Saving** waits (≤0.7 s) for audio to catch up to “now”, freezes the needed segments (segment
-  files are deleted only when no save still references them), and writes the clip to a temporary
-  name before renaming it, so other apps never see half-written files.
-- **Manual recording** taps the same packet stream into a crash-safe MKV and remuxes it to MP4 on stop.
+![Clips in light mode](docs/images/clips-light.png)
 
 ---
 
 ## Hotkeys
 
-Defaults (change on the Hotkeys page or see [`config/hotkeys.example.json`](config/hotkeys.example.json)):
-
 | Action                               | Default        |
 | ------------------------------------ | -------------- |
 | Save clip (everything in the buffer) | Ctrl+Shift+F6  |
 | Start / stop manual recording        | Ctrl+Shift+F9  |
-| Pause / resume buffer                | Ctrl+Shift+F10 |
-| Open last clip (default player)      | Ctrl+Shift+F11 |
-| Open editor (last clip)              | Ctrl+Shift+F12 |
+| Pause / resume the buffer            | Ctrl+Shift+F10 |
+| Open the last clip                   | Ctrl+Shift+F11 |
+| Open the editor (last clip)          | Ctrl+Shift+F12 |
 
-The clip length is the buffer length (Recording page). Settings from earlier versions, which had
-"save last 15/30/60 s" and "save custom length" hotkeys, are migrated: Save clip gets the 30 s key
-(else the 60 s, 15 s or custom-length one; none if all were unbound).
-
-Defaults avoid NVIDIA ShadowPlay (Alt+F9/F10/Z), Xbox Game Bar (Win+Alt+…) and AMD Adrenalin
-(Ctrl+Shift+letters). Shortcuts are validated in Rust: a modifier is required except for F-keys,
-Pause, ScrollLock and PrintScreen; Alt+F4 etc. are rejected; duplicates are refused; registration
-failures (another app owns the shortcut) are shown per action. Editor shortcuts: Space play,
-←/→ frame step (Shift: 1 s), I/O set in/out, Home/End, Ctrl+Z/Ctrl+Y.
+Change them in Settings → Hotkeys. In the editor: **Space** play/pause, **←/→** previous/next
+frame (Shift: 1 s), **I/O** set in/out, **Ctrl+Z / Ctrl+Y** undo/redo.
 
 ---
 
-## Windows APIs & permissions
+## Good to know
 
-Vido runs as a normal user - **no administrator rights and no drivers**.
-
-| Feature                    | API                                                 | Requirement                                                                                                   |
-| -------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Display/window capture     | Windows.Graphics.Capture                            | Windows 10 1903+; borderless capture (no yellow frame) and capture rate limiting on Windows 11                |
-| Display capture fallback   | DXGI Desktop Duplication                            | any Windows 10/11                                                                                             |
-| GPU conversion             | D3D11 video processor                               | any D3D11 GPU                                                                                                 |
-| Encoding                   | FFmpeg: NVENC / AMF / QSV / x264 / x265 / SVT-AV1   | current GPU driver for hardware encoders                                                                      |
-| Audio                      | WASAPI shared mode (loopback for outputs)           | microphone: _Settings → Privacy & security → Microphone → Let desktop apps access your microphone_ must be on |
-| Device changes             | `IMMNotificationClient`                             | -                                                                                                             |
-| Global hotkeys             | `RegisterHotKey` (via tauri-plugin-global-shortcut) | games running **as administrator** only see hotkeys from elevated apps - run Vido elevated in that case       |
-| HUD hidden from recordings | `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`  | Windows 10 2004+                                                                                              |
-| UI                         | WebView2                                            | evergreen runtime                                                                                             |
-| Mica, accent color         | DWM system backdrop, `UISettings` (WinRT)           | Mica on Windows 11; Windows 10 gets a solid background                                                        |
-| Save & override            | `SHFileOperationW` (Recycle Bin)                    | drives without a Recycle Bin ask before deleting the original                                                 |
-
-Window capture shows a yellow border on Windows 10 (a Windows privacy indicator; it is not recorded).
+- **Exclusive fullscreen:** Windows can't capture true exclusive-fullscreen games, and the overlay
+  can't appear over them. Most modern games work fine; if your clips are black, switch the game
+  to **borderless** or **windowed**. The save sound still plays.
+- **Games running as administrator** only receive hotkeys from programs that also run as
+  administrator. Run Vido as administrator in that case.
+- **Microphone:** allow desktop apps under _Windows Settings → Privacy & security → Microphone_.
+- **HDR** screens are recorded as SDR.
+- **Disk buffer:** keeping the buffer on disk instead of RAM writes constantly and wears out
+  SSDs; Vido asks before you turn it on.
 
 ---
 
-## Settings & files
+## Documentation
 
-| What                        | Installed                      | Portable               |
-| --------------------------- | ------------------------------ | ---------------------- |
-| Settings                    | `%APPDATA%\Vido\settings.json` | `.\data\settings.json` |
-| Logs (5 × 5 MB, rotated)    | `%LOCALAPPDATA%\Vido\logs`     | `.\data\logs`          |
-| Buffer segments, thumbnails | `%LOCALAPPDATA%\Vido\cache`    | `.\data\cache`         |
-| Clips                       | `Videos\Vido` (configurable)   | same                   |
-
-All defaults: [`config/default-settings.json`](config/default-settings.json) (generated from the
-Rust defaults; a test keeps it in sync). Invalid or partially broken settings files are repaired
-section by section on startup; a corrupt file is kept as `settings.json.corrupt-<timestamp>`.
-
-**Upgrading from ClipDeck** (Vido's earlier name): on first launch the old `ClipDeck` folders in
-`%APPDATA%`, `%LOCALAPPDATA%` and `Videos` are renamed to `Vido` (never overwriting an existing
-`Vido` folder), and settings that still use the old filename template or folders are updated.
-Existing clip file names are kept.
-
----
-
-## Known limitations
-
-- **Exclusive fullscreen:** Windows' capture APIs can't see true exclusive-fullscreen games (most
-  modern DX11/DX12 games use “fullscreen optimizations” and work fine). Vido detects black
-  frames and suggests borderless/windowed mode. Game-hook injection is deliberately not used (anti-cheat risk).
-- **HDR:** recorded as SDR; colours of HDR content can look different.
-- **Desktop Duplication fallback** does not include the mouse cursor.
-- **Region capture** is limited to one display.
-- **Overlay and clip saved popup** can't appear over exclusive-fullscreen games (borderless and
-  windowed work; the save sound still plays).
-- **Preview:** the editor previews H.264 everywhere; HEVC/AV1 preview needs the corresponding
-  Windows video extensions. Trimming/exporting works regardless.
-- **Audio clock drift** between devices is corrected by small resyncs; on multi-hour sessions a
-  rare tiny click is possible. Per-application audio capture is not implemented yet.
-- **AMD AMF / Intel QSV** are implemented but untested on real hardware here; CPU fallback is automatic.
-- **Size:** the FFmpeg GPL build adds ~190 MB of DLLs (installer: 57 MB, portable zip: 81 MB).
-  A trimmed custom FFmpeg build would bring this to ~30–40 MB.
-- Windows only for now; capture/audio modules are isolated behind `#[cfg(windows)]` so Linux
-  backends (PipeWire, VA-API) can be added later.
-
----
-
-## Architecture
-
-```
-src/                      React + TypeScript UI (control panel only)
-  lib/tauri/              typed IPC: commands.ts, events.ts, types.ts (+ generated bindings/)
-  features/               clips, recording (capture + audio), hotkeys, overlay, settings, editor, export
-  stores/                 Zustand store (settings, status, notices)
-src-tauri/src/            Rust capture engine
-  capture/                WGC + DXGI sources, D3D11 conversion, video pipeline thread
-  audio/                  WASAPI sources, mixer, RNNoise, audio engine
-  buffer/                 session clock + segmented packet ring buffer
-  encode/                 encoder catalog/probe, video & audio encoders
-  export/                 remux (instant save), planner, transcoder, frames, export queue, edit saves
-  engine/                 session lifecycle, saving, manual recording, supervisor
-  hotkeys/ settings/      validated accelerators, settings model + JSON store
-  av/                     RAII wrappers over FFmpeg (ffmpeg-sys-next) + D3D11 hw contexts
-  commands.rs events.rs   the IPC surface
-  tray.rs ui.rs theme.rs  tray menu, windows (main - editor is a modal in it - and region picker), Mica + accent
-  hud.rs                  overlay pill + popups, drawn natively (GDI layered window)
-```
-
-The webview never captures, encodes, writes files or registers hotkeys; it calls typed commands
-and receives typed events. Raw frames never cross IPC - the editor plays saved files through
-Tauri's asset protocol (scoped to the clips folder and opened files). See
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
----
+- [Building from source](docs/BUILDING.md): prerequisites, scripts, tests, installer and portable builds.
+- [How it works](docs/HOW-IT-WORKS.md): the replay buffer, saving, Windows APIs and permissions.
+- [Settings & files](docs/SETTINGS.md): where Vido keeps settings, logs and caches, hotkey rules,
+  upgrading from ClipDeck.
+- [Architecture](docs/ARCHITECTURE.md): threads, capture session, export pipeline, IPC.
+- [Known limitations](docs/HOW-IT-WORKS.md#known-limitations).
 
 ## License
 
-Vido is licensed under the **GNU GPL v3.0 or later** (see [LICENSE](LICENSE)). It links
-FFmpeg's GPL build (including x264/x265); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
-for FFmpeg source availability and other notices.
+Vido is licensed under the **GNU GPL v3.0 or later** (see [LICENSE](LICENSE)). It uses FFmpeg's
+GPL build; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

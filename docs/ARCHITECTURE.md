@@ -148,12 +148,13 @@ Audio requires. If a track can't be prepared, the preview falls back to the vide
 
 ## Appearance
 
-`theme.rs` decides Mica support (Windows build ≥ 22000) and watches the Windows accent palette
-(`UISettings.ColorValuesChanged`, on an MTA worker). Each window's init script carries `mica` and
-the palette, so the first paint already has the right colors; `accent-changed` updates them live.
-Windows have no fixed theme: the title bar, Mica tint and the webview's `prefers-color-scheme`
-follow the Windows app mode. CSS defines dark tokens in `:root` and light ones under
-`prefers-color-scheme: light`; `.theme-dark` re-applies the dark set to surfaces drawn over video.
+The UI is shadcn/ui (Tailwind v4 + Radix) with the Geist font; light and dark follow the Windows
+app mode (`prefers-color-scheme`, toggling the `.dark` class). The main window is undecorated:
+the sidebar's top and the page header form the title bar (`data-tauri-drag-region`, double-click
+maximizes) with minimize / maximize / close at the right; close goes through the normal close
+request, so "close to tray" still applies. `theme.rs` still watches the Windows accent palette
+(`UISettings.ColorValuesChanged`, on an MTA worker) and sends `accent-changed`. Surfaces drawn
+over video carry `.theme-dark`, which keeps them dark in either theme.
 
 ## IPC contract
 

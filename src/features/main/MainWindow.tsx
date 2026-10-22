@@ -24,6 +24,7 @@ import {
 } from "../settings/groups";
 import { SettingsPage } from "../settings/SettingsPage";
 import { AppSidebar, type PageId } from "./AppSidebar";
+import { WindowControls } from "./WindowControls";
 
 const PAGE_TITLES: Record<PageId, string> = {
   overview: "Overview",
@@ -148,7 +149,12 @@ export function MainWindow() {
         />
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+        {/* The window's title bar too: drag it (double-click maximizes); the caption
+            buttons sit at the right end. */}
+        <header
+          data-tauri-drag-region
+          className="flex h-14 shrink-0 items-center gap-2 border-b px-3"
+        >
           <UiButton
             variant="ghost"
             size="icon-sm"
@@ -159,18 +165,30 @@ export function MainWindow() {
             <PanelLeft />
           </UiButton>
           <Separator orientation="vertical" className="mr-1 !h-4" />
-          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
-            <span className={page === "settings" ? "text-muted-foreground" : "font-medium"}>
+          <nav
+            data-tauri-drag-region
+            aria-label="Breadcrumb"
+            className="flex min-w-0 items-center gap-1.5 text-sm"
+          >
+            <span
+              data-tauri-drag-region
+              className={page === "settings" ? "text-muted-foreground" : "font-medium"}
+            >
               {PAGE_TITLES[page]}
             </span>
             {page === "settings" && groupLabel && (
               <>
-                <span className="text-muted-foreground">/</span>
-                <span className="truncate font-medium">{groupLabel}</span>
+                <span data-tauri-drag-region className="text-muted-foreground">
+                  /
+                </span>
+                <span data-tauri-drag-region className="truncate font-medium">
+                  {groupLabel}
+                </span>
               </>
             )}
           </nav>
           <StatusBar />
+          <WindowControls />
         </header>
         <main
           className={

@@ -80,6 +80,8 @@ fn build_main(app: &AppHandle, init: serde_json::Value) {
     {
         let built = builder(app, MAIN, init)
             .title("Vido")
+            // The page draws its own title bar (drag area and caption buttons).
+            .decorations(false)
             .inner_size(1040.0, 700.0)
             .min_inner_size(860.0, 560.0)
             .center()

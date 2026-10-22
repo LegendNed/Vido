@@ -1,3 +1,4 @@
+import vidoIcon from "../../assets/vido-icon.png";
 import { Icon, type IconName } from "../../components/Icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/misc";
 import { formatBitrate, formatBytes, formatTime } from "../../lib/format";
@@ -173,17 +174,24 @@ export function AppSidebar({
           collapsed ? "w-14" : "w-60",
         )}
       >
+        {/* Part of the title bar: drags the window. */}
         <div
+          data-tauri-drag-region
           className={cn("flex h-14 items-center gap-2 px-3", collapsed && "justify-center px-0")}
         >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Icon name="record" size={16} />
-          </div>
+          <img
+            src={vidoIcon}
+            alt=""
+            draggable={false}
+            className="pointer-events-none size-8 shrink-0 rounded-lg"
+          />
           {!collapsed && (
-            <div className="min-w-0 leading-tight">
-              <div className="text-sm font-semibold">Vido</div>
+            <div data-tauri-drag-region className="min-w-0 leading-tight">
+              <div data-tauri-drag-region className="text-sm font-semibold">
+                Vido
+              </div>
               {info && (
-                <div className="truncate text-xs text-muted-foreground">
+                <div data-tauri-drag-region className="truncate text-xs text-muted-foreground">
                   v{info.version}
                   {info.portable ? " · portable" : ""}
                 </div>
