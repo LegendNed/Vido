@@ -65,59 +65,6 @@ export function GeneralPage() {
         </Field>
       </Section>
 
-      <Section title="Setup" keywords="wizard first run welcome">
-        <Field
-          label="Run setup again"
-          description="Walks through display, audio, clip length and the save hotkey again. Your current settings are the starting point; Cancel keeps them."
-        >
-          <Button
-            icon="refresh"
-            onClick={() => {
-              setRedoSetup(true);
-            }}
-          >
-            Run setup
-          </Button>
-        </Field>
-        <Field
-          label="Reset settings and run setup"
-          description="Puts every setting back to its default (recommended quality for this PC included), then walks through setup. Clips are not touched."
-        >
-          <Button
-            icon="refresh"
-            onClick={() => {
-              setConfirmReset(true);
-            }}
-          >
-            Reset & run setup
-          </Button>
-        </Field>
-        {confirmReset && (
-          <ConfirmDialog
-            title="Reset all settings?"
-            confirmLabel="Reset"
-            onConfirm={() => {
-              setConfirmReset(false);
-              commands.resetSettings().then(
-                (s) => {
-                  setSettings(s);
-                  setRedoSetup("fresh");
-                },
-                (e: unknown) => {
-                  notify("error", "Could not reset settings", errorMessage(e));
-                },
-              );
-            }}
-            onCancel={() => {
-              setConfirmReset(false);
-            }}
-          >
-            Every setting goes back to its default, then setup starts. Your clips stay where they
-            are.
-          </ConfirmDialog>
-        )}
-      </Section>
-
       <Section
         title="Updates"
         keywords="update version upgrade new release github"
@@ -188,6 +135,59 @@ export function GeneralPage() {
             }}
           />
         </Field>
+      </Section>
+
+      <Section title="Setup" keywords="wizard first run welcome">
+        <Field
+          label="Run setup again"
+          description="Walks through display, audio, clip length and the save hotkey again. Your current settings are the starting point; Cancel keeps them."
+        >
+          <Button
+            icon="refresh"
+            onClick={() => {
+              setRedoSetup(true);
+            }}
+          >
+            Run setup
+          </Button>
+        </Field>
+        <Field
+          label="Reset settings and run setup"
+          description="Puts every setting back to its default (recommended quality for this PC included), then walks through setup. Clips are not touched."
+        >
+          <Button
+            icon="refresh"
+            onClick={() => {
+              setConfirmReset(true);
+            }}
+          >
+            Reset & run setup
+          </Button>
+        </Field>
+        {confirmReset && (
+          <ConfirmDialog
+            title="Reset all settings?"
+            confirmLabel="Reset"
+            onConfirm={() => {
+              setConfirmReset(false);
+              commands.resetSettings().then(
+                (s) => {
+                  setSettings(s);
+                  setRedoSetup("fresh");
+                },
+                (e: unknown) => {
+                  notify("error", "Could not reset settings", errorMessage(e));
+                },
+              );
+            }}
+            onCancel={() => {
+              setConfirmReset(false);
+            }}
+          >
+            Every setting goes back to its default, then setup starts. Your clips stay where they
+            are.
+          </ConfirmDialog>
+        )}
       </Section>
 
       <Section title="Startup & tray" keywords="autostart boot minimize close quit">

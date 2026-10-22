@@ -1,6 +1,7 @@
 // Sets the app version everywhere it is written down (package.json,
-// src-tauri/Cargo.toml, src-tauri/tauri.conf.json). The release tag must be
-// v<version>; the updater compares it with the running version.
+// src-tauri/Cargo.toml, src-tauri/Cargo.lock, src-tauri/tauri.conf.json). The
+// release tag must be <version> or v<version>; the updater compares it with the
+// running version, which is built into the exe.
 // usage: node scripts/set-version.mjs 0.2.0
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -25,4 +26,8 @@ function replace(file, re, label) {
 replace("package.json", /("version":\s*")[^"]+"/, '"version"');
 replace("src-tauri/tauri.conf.json", /("version":\s*")[^"]+"/, '"version"');
 replace("src-tauri/Cargo.toml", /(\[package\][^[]*?\nversion\s*=\s*")[^"]+"/, "[package] version");
-console.log(`Next: commit, then publish a GitHub release tagged v${version}.`);
+// Cargo would rewrite the lock file on the next build; keep it in the same commit.
+replace("src-tauri/Cargo.lock", /(\nname = "vido"\r?\nversion = ")[^"]+"/, "vido package");
+console.log(
+  `Next: commit and push, then publish a GitHub release tagged ${version} (or v${version}).`,
+);
