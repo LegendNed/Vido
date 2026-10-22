@@ -259,18 +259,27 @@ fn setup(
     // Remembers the game in the foreground (clips go into per-game folders).
     {
         let h2 = handle.clone();
+        let h3 = handle.clone();
         let shown: Mutex<Option<String>> = Mutex::new(None);
-        games::start_sampler(&handle.state::<AppState>().paths.data_dir, move || {
-            let Some(state) = h2.try_state::<AppState>() else {
-                return;
-            };
-            let game = actions::game_playing(&state);
-            let mut last = shown.lock();
-            if *last != game {
-                last.clone_from(&game);
-                events::emit(&h2, events::GAME_CHANGED, game);
-            }
-        });
+        let active = move || {
+            h3.try_state::<AppState>()
+                .is_some_and(|s| s.engine.status().state != crate::engine::BufferState::Stopped)
+        };
+        games::start_sampler(
+            &handle.state::<AppState>().paths.data_dir,
+            active,
+            move || {
+                let Some(state) = h2.try_state::<AppState>() else {
+                    return;
+                };
+                let game = actions::game_playing(&state);
+                let mut last = shown.lock();
+                if *last != game {
+                    last.clone_from(&game);
+                    events::emit(&h2, events::GAME_CHANGED, game);
+                }
+            },
+        );
     }
 
     // Files added, deleted or renamed in the clips folder outside Vido.

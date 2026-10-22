@@ -106,16 +106,22 @@ pub fn recent(within: Duration) -> Option<String> {
         .map(|(g, _)| g.clone())
 }
 
-/// Checks the foreground window every few seconds (cheap: a few system calls),
-/// calling `after` after each check. `data_dir` holds `games.json` with the
-/// remembered names.
-pub fn start_sampler(data_dir: &Path, after: impl Fn() + Send + 'static) {
+/// Checks the foreground window every few seconds while `active()` (the buffer
+/// is on: no clips can be saved otherwise), calling `after` after each round.
+/// `data_dir` holds `games.json` with the remembered names.
+pub fn start_sampler(
+    data_dir: &Path,
+    active: impl Fn() -> bool + Send + 'static,
+    after: impl Fn() + Send + 'static,
+) {
     let _ = NAMES_FILE.set(data_dir.join("games.json"));
     let _ = std::thread::Builder::new()
         .name("vido-games".into())
         .spawn(move || loop {
             crate::util::catch_panic("game detection", || {
-                sample();
+                if active() {
+                    sample();
+                }
                 after();
             });
             std::thread::sleep(SAMPLE);
