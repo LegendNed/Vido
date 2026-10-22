@@ -16,30 +16,36 @@ watermark or telemetry**. Everything stays on your PC.
   into Discord or a folder.
 - **Quick edits:** trim, crop, mute or turn down individual audio tracks, and shrink clips to fit
   Discord's upload limit.
-- **Light:** uses your GPU's video encoder (NVIDIA, AMD or Intel) and idles quietly in the tray.
+- **Lightweight:** about **30 MB of RAM** idling in the tray (closing the window unloads the UI
+  completely), plus the buffer itself (roughly 50–200 MB for 30 s). Capture and encoding stay on
+  your GPU (NVIDIA, AMD or Intel), so CPU use is tiny.
 - **Private:** no accounts, uploads, telemetry, ads, watermarks or auto-updates.
 
 ---
 
 ## Vido vs. Bloated Competitor
 
-|                                         | **Vido**                              | **Bloated Competitor**      |
-| --------------------------------------- | ------------------------------------- | --------------------------- |
-| Account needed                          | No                                    | Yes, to use the app         |
-| Works fully offline                     | Yes                                   | No                          |
-| Clips uploaded to a cloud / social feed | Never                                 | Built in                    |
-| Telemetry and analytics                 | None                                  | Yes                         |
-| Ads, upsells, premium tier              | None                                  | Yes                         |
-| Open source                             | Yes (GPL-3.0)                         | No                          |
-| Saving a clip                           | Instant remux, no re-encode           | Instant                     |
-| Ctrl+V the video into Discord           | Yes, copied on save                   | Through its own share links |
-| Fit Discord's free upload limit         | One-click "Discord (no Nitro)" preset | Yes                         |
-| Portable version (no install)           | Yes                                   | No                          |
-| Automatic game detection / auto-clips   | No (one hotkey, always buffering)     | Yes                         |
-| Mobile app, sharing links, community    | No                                    | Yes                         |
+|                                         | **Vido**                                                       | **Bloated Competitor**      |
+| --------------------------------------- | -------------------------------------------------------------- | --------------------------- |
+| Account needed                          | No                                                             | Yes, to use the app         |
+| Works fully offline                     | Yes                                                            | No                          |
+| Clips uploaded to a cloud / social feed | Never                                                          | Built in                    |
+| Telemetry and analytics                 | None                                                           | Yes                         |
+| Ads, upsells, premium tier              | None                                                           | Yes                         |
+| Open source                             | Yes (GPL-3.0)                                                  | No                          |
+| Saving a clip                           | Instant remux, no re-encode                                    | Instant                     |
+| Ctrl+V the video into Discord           | Yes, copied on save                                            | Through its own share links |
+| Fit Discord's free upload limit         | One-click "Discord (no Nitro)" preset                          | Yes                         |
+| Portable version (no install)           | Yes                                                            | No                          |
+| Multiple audio tracks                   | Every device on its own track, plus a mix                      | Mixed by default            |
+| Per-track editing                       | Mute / volume per track, heard live                            | Basic                       |
+| Idle RAM                                | ~30 MB in the tray + the buffer; UI fully unloaded when closed | Heavier (always-on app UI)  |
+| Overlay kept out of your clips          | Always (Windows capture exclusion)                             | Not guaranteed              |
+| Auto-updates                            | Never; you choose when to update                               | Yes                         |
+| Automatic game detection / auto-clips   | No (one hotkey, always buffering)                              | Yes                         |
 
-Vido is for people who want their clips on their own disk and nothing else. If you want a social
-platform built around your clips, the competitor does more of that.
+Vido is for people who want their clips on their own disk and nothing else. If you want automatic
+clipping or a social platform built around your clips, the competitor does more of that.
 
 ---
 
