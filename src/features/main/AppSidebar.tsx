@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import idlePhrases from "../../../config/idle-phrases.json";
-import vidoIcon from "../../assets/vido-icon.png";
+import vidoIcon from "../../../config/icons/128x128.png";
 import { Icon, type IconName } from "../../components/Icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/misc";
 import { formatBitrate, formatBytes, formatTime } from "../../lib/format";

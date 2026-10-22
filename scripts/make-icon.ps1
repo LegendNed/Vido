@@ -1,10 +1,10 @@
-# Renders the 1024x1024 source icon (src-tauri/icons/source.png) with System.Drawing.
-# Regenerate all icon sizes afterwards with: pnpm tauri icon src-tauri/icons/source.png
+# Renders the 1024x1024 source icon (config/icons/source.png) with System.Drawing.
+# Regenerate all icon sizes afterwards with: pnpm tauri icon config/icons/source.png -o config/icons
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 $size = 1024
-$out = Join-Path (Split-Path -Parent $PSScriptRoot) "src-tauri\icons\source.png"
+$out = Join-Path (Split-Path -Parent $PSScriptRoot) "config\icons\source.png"
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $out) | Out-Null
 
 function New-RoundedRect([float]$x, [float]$y, [float]$w, [float]$h, [float]$r) {

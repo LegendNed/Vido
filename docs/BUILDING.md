@@ -41,7 +41,7 @@ pnpm tauri dev             # run the app with hot reload
 
 Plain cargo works too (from the repo root or `src-tauri`): `cargo check`, `cargo test`.
 
-The built-in save sounds (`src-tauri/assets/sounds/*.wav`) are synthesized by
+The built-in save sounds (`config/sounds/*.wav`) are synthesized by
 `python scripts/synth-sounds.py` and embedded in the executable.
 
 ## Config files
@@ -50,16 +50,18 @@ Lists of content and tuning live in `config/` as JSON and are built into the app
 imports them, Rust reads them with `include_str!`); tests check each file against the
 settings validation, so a typo fails `cargo test` rather than the app.
 
-| File                     | What it holds                                                            |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `default-settings.json`  | All defaults (generated from Rust; a test keeps it in sync)              |
-| `hotkeys.example.json`   | Example hotkey settings                                                  |
-| `export-presets.json`    | Editor / Saving / Export presets (Discord, Original, 10/25/50 MB, …)     |
-| `recording-presets.json` | Recording quality cards (Low, Standard, High, Native)                    |
-| `clip-lengths.json`      | Clip length buttons (Video settings, Overview, setup)                    |
-| `save-sounds.json`       | Save sounds (ids, labels, files in `src-tauri/assets/sounds`) and volume |
-| `game-detection.json`    | Built-in game names and the generic names skipped when naming games      |
-| `idle-phrases.json`      | Sidebar phrases while no game is detected                                |
+| File                     | What it holds                                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `default-settings.json`  | All defaults (generated from Rust; a test keeps it in sync)                                                 |
+| `hotkeys.example.json`   | Example hotkey settings                                                                                     |
+| `export-presets.json`    | Editor / Saving / Export presets (Discord, Original, 10/25/50 MB, …)                                        |
+| `recording-presets.json` | Recording quality cards (Low, Standard, High, Native)                                                       |
+| `clip-lengths.json`      | Clip length buttons (Video settings, Overview, setup)                                                       |
+| `save-sounds.json`       | Save sounds (ids, labels, files in `config/sounds`) and volume                                              |
+| `game-detection.json`    | Built-in game names and the generic names skipped when naming games                                         |
+| `idle-phrases.json`      | Sidebar phrases while no game is detected                                                                   |
+| `sounds/*.wav`           | The built-in save sounds (from `scripts/synth-sounds.py`)                                                   |
+| `icons/`                 | App, installer and sidebar icons (`source.png` → `pnpm tauri icon config/icons/source.png -o config/icons`) |
 
 ## Tests
 

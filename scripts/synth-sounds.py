@@ -1,4 +1,4 @@
-# Synthesizes the built-in "clip saved" sounds into src-tauri/assets/sounds
+# Synthesizes the built-in "clip saved" sounds into config/sounds
 # (48 kHz, 16-bit mono WAV; embedded in the exe). Usage: python scripts/synth-sounds.py
 import math
 import os
@@ -7,7 +7,7 @@ import struct
 import wave
 
 SR = 48000
-OUT = os.path.join(os.path.dirname(__file__), "..", "src-tauri", "assets", "sounds")
+OUT = os.path.join(os.path.dirname(__file__), "..", "config", "sounds")
 
 
 def env(t, a, d):

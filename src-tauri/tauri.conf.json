@@ -40,7 +40,12 @@
     "longDescription": "Vido keeps a rolling replay buffer of your screen and audio and saves the last N seconds as a clip with one hotkey. No accounts, no cloud, no telemetry.",
     "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "icon": [
+      "../config/icons/32x32.png",
+      "../config/icons/128x128.png",
+      "../config/icons/128x128@2x.png",
+      "../config/icons/icon.ico"
+    ],
     "resources": {
       "../third_party/ffmpeg/bin/avcodec-62.dll": "avcodec-62.dll",
       "../third_party/ffmpeg/bin/avfilter-11.dll": "avfilter-11.dll",

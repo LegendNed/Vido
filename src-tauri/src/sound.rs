@@ -24,7 +24,7 @@ struct SoundConfig {
 #[cfg_attr(not(test), allow(dead_code))]
 struct SoundEntry {
     id: SaveSound,
-    /// File in `src-tauri/assets/sounds`; `None` for the custom sound.
+    /// File in `config/sounds`; `None` for the custom sound.
     file: Option<String>,
 }
 
@@ -41,10 +41,10 @@ pub fn default_volume() -> u32 {
     config().default_volume
 }
 
-const TAP: &[u8] = include_bytes!("../assets/sounds/tap.wav");
-const TWO_TONE: &[u8] = include_bytes!("../assets/sounds/two-tone.wav");
-const BLOOP: &[u8] = include_bytes!("../assets/sounds/bloop.wav");
-const PLUCK: &[u8] = include_bytes!("../assets/sounds/pluck.wav");
+const TAP: &[u8] = include_bytes!("../../config/sounds/tap.wav");
+const TWO_TONE: &[u8] = include_bytes!("../../config/sounds/two-tone.wav");
+const BLOOP: &[u8] = include_bytes!("../../config/sounds/bloop.wav");
+const PLUCK: &[u8] = include_bytes!("../../config/sounds/pluck.wav");
 
 /// Larger custom files are refused (the whole file is held in memory).
 const MAX_CUSTOM_BYTES: u64 = 8 * 1024 * 1024;
@@ -249,7 +249,7 @@ mod tests {
             let e = c.sounds.iter().find(|e| e.id == s).expect("listed");
             match (&e.file, built_in(s)) {
                 (Some(f), Some(bytes)) => {
-                    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/sounds");
+                    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../config/sounds");
                     assert_eq!(std::fs::read(dir.join(f)).unwrap(), bytes, "{f}");
                 }
                 (None, None) => {}
