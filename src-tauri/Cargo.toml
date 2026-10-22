@@ -1,6 +1,6 @@
 [package]
 name = "vido"
-version = "0.2.0"
+version = "0.2.1"
 description = "Local-first replay buffer and clip editor"
 authors = ["Vido contributors"]
 license = "GPL-3.0-or-later"
