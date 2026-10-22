@@ -20,7 +20,7 @@ pub const BUFFER_MAX_MB_MAX: u32 = 20 * 1024;
 pub const ALLOWED_FPS: [u32; 6] = [0, 24, 30, 48, 60, 120];
 /// Audio sources (checked devices) per session; the clip gets these plus the mix track.
 pub const MAX_AUDIO_TRACKS: usize = 16;
-pub const FILENAME_TOKENS: [&str; 4] = ["date", "time", "source", "duration"];
+pub const FILENAME_TOKENS: [&str; 5] = ["date", "time", "game", "source", "duration"];
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -1189,7 +1189,7 @@ pub fn validate_filename_template(t: &str) -> AppResult<()> {
             FILENAME_TOKENS.contains(&token),
             field,
             format!(
-                "unknown token {{{token}}}; use {{date}}, {{time}}, {{source}} or {{duration}}"
+                "unknown token {{{token}}}; use {{date}}, {{time}}, {{game}}, {{source}} or {{duration}}"
             ),
         )?;
         rest = &after[end + 1..];
@@ -1761,6 +1761,7 @@ mod tests {
     fn filename_template_validation() {
         assert!(validate_filename_template("Vido_{date}_{time}").is_ok());
         assert!(validate_filename_template("{source} - {duration}").is_ok());
+        assert!(validate_filename_template("{game}_{date}_{time}").is_ok());
         assert!(validate_filename_template("").is_err());
         assert!(validate_filename_template("a/b").is_err());
         assert!(validate_filename_template("{nope}").is_err());
