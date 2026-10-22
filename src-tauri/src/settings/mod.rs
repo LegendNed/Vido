@@ -268,6 +268,17 @@ pub enum LogLevel {
     Trace,
 }
 
+/// Overlay size (scales the popup and the dot; display scaling applies on top).
+#[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum HudSize {
+    Small,
+    #[default]
+    Medium,
+    Large,
+}
+
 #[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -357,8 +368,8 @@ pub struct HudSettings {
     /// The always-visible pill (buffer state).
     pub overlay: bool,
     pub position: HudPosition,
-    /// Show buffered seconds / the REC timer next to the indicator dot.
-    pub show_details: bool,
+    /// Size of the popup and the overlay dot.
+    pub size: HudSize,
     /// Briefly show "Clip saved", recording and error messages in the overlay's
     /// position, even while the permanent overlay is off.
     pub clip_popup: bool,
@@ -630,7 +641,7 @@ impl Default for HudSettings {
         Self {
             overlay: false,
             position: HudPosition::TopRight,
-            show_details: true,
+            size: HudSize::Medium,
             clip_popup: true,
             enabled: None,
         }
@@ -1389,13 +1400,11 @@ mod tests {
         assert!(!h.overlay);
         assert!(h.clip_popup);
         assert_eq!(h.position, HudPosition::BottomLeft);
-        assert!(!h.show_details);
         assert_eq!(
             h,
             &HudSettings {
                 overlay: false,
                 position: HudPosition::BottomLeft,
-                show_details: false,
                 ..Default::default()
             }
         );

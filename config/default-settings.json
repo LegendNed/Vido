@@ -13,7 +13,7 @@
     "hud": {
       "overlay": false,
       "position": "topRight",
-      "showDetails": true,
+      "size": "medium",
       "clipPopup": true
     },
     "sidebar": "full"

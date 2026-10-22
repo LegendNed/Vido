@@ -46,6 +46,7 @@ export type { HotkeySettings } from "./bindings/HotkeySettings";
 export type { HotkeyStatus } from "./bindings/HotkeyStatus";
 export type { HotkeyTriggered } from "./bindings/HotkeyTriggered";
 export type { HudPosition } from "./bindings/HudPosition";
+export type { HudSize } from "./bindings/HudSize";
 export type { HudSettings } from "./bindings/HudSettings";
 export type { LogLevel } from "./bindings/LogLevel";
 export type { Navigate } from "./bindings/Navigate";

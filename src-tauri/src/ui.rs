@@ -155,7 +155,7 @@ fn exclude_from_capture(w: &WebviewWindow) {
 pub fn sync_hud(_app: &AppHandle, s: &Settings) {
     let h = &s.general.hud;
     #[cfg(windows)]
-    crate::hud::configure(h.overlay, h.clip_popup, h.position, h.show_details);
+    crate::hud::configure(h.overlay, h.clip_popup, h.position, h.size);
     #[cfg(not(windows))]
     let _ = h;
 }

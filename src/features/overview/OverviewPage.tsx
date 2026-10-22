@@ -226,7 +226,7 @@ export function OverviewPage({
             }}
           />
         </Field>
-        <Field label="Overlay" description="Small always-on-top pill showing the buffer.">
+        <Field label="Overlay" description="Small always-on-top dot showing the buffer.">
           <Toggle
             value={hud.overlay}
             onChange={(v) => {

@@ -5,6 +5,7 @@ import {
   Button,
   Field,
   Section,
+  Segmented,
   Select,
   Slider,
   Toggle,
@@ -16,6 +17,7 @@ import {
   errorMessage,
   type GeneralSettings,
   type HudPosition,
+  type HudSize,
   type SaveSound,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
@@ -196,6 +198,22 @@ export function OverlayPage() {
             }}
           />
         </Field>
+        <Field label="Size" description="Display scaling applies on top.">
+          <Segmented<HudSize>
+            value={hud.size}
+            options={[
+              { value: "small", label: "Small" },
+              { value: "medium", label: "Medium" },
+              { value: "large", label: "Large" },
+            ]}
+            onChange={(v) => {
+              set((h) => {
+                h.size = v;
+              });
+              preview();
+            }}
+          />
+        </Field>
         <Field
           label="Preview"
           description="Shows the clip saved popup there for a few seconds, even when it's turned off."
@@ -209,7 +227,7 @@ export function OverlayPage() {
       <Section title="What shows">
         <Field
           label="Show the overlay"
-          description="A small pill that's always visible: red dot while the replay buffer runs, grey when it's off."
+          description="A small round badge that's always visible: red dot while the replay buffer runs or you record, amber when paused, grey when off."
         >
           <Toggle
             label="Show the overlay"
@@ -222,27 +240,8 @@ export function OverlayPage() {
           />
         </Field>
         <Field
-          label="Buffer details"
-          description={
-            hud.overlay
-              ? "Buffered seconds and the REC timer next to the dot."
-              : "Buffered seconds and the REC timer next to the dot. Needs the overlay."
-          }
-        >
-          <Toggle
-            label="Buffer details"
-            value={hud.showDetails}
-            disabled={!hud.overlay}
-            onChange={(v) => {
-              set((h) => {
-                h.showDetails = v;
-              });
-            }}
-          />
-        </Field>
-        <Field
           label="Clip saved popup"
-          description="“✓ Clip saved (0:30) · ready to paste” for a few seconds after saving, plus recording and error messages. Shows even when the overlay is hidden."
+          description="“Clip saved · 0:30 · ready to paste” for a few seconds after saving, plus recording and error messages. Follows Windows light/dark mode and shows even when the overlay is hidden."
         >
           <Toggle
             label="Clip saved popup"

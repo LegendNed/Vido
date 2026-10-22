@@ -168,7 +168,11 @@ fn store(ui: &UISettings, c: AccentColors) -> bool {
     // The app background is black in dark mode and white in light mode.
     if let Ok(bg) = ui.GetColorValue(UIColorType::Background) {
         let sum = u16::from(bg.R) + u16::from(bg.G) + u16::from(bg.B);
-        DARK.store(sum < 384, Ordering::Relaxed);
+        let dark = sum < 384;
+        if DARK.swap(dark, Ordering::Relaxed) != dark {
+            // The overlay follows the app mode.
+            crate::hud::redraw();
+        }
     }
     let mut cur = CURRENT.lock();
     if cur.as_ref() == Some(&c) {
