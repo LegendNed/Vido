@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import idlePhrases from "../../../config/idle-phrases.json";
 import vidoIcon from "../../assets/vido-icon.png";
 import { Icon, type IconName } from "../../components/Icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/misc";
@@ -85,25 +86,8 @@ function Item({
 }
 
 /** Buffer state and memory, capture source, resolution and bitrate in the sidebar footer. */
-/** Shown under the buffer state while no game is detected (a new one every so often). */
-const IDLE_PHRASES = [
-  "Doing nothing",
-  "Pondering",
-  "Exploring the desktop",
-  "Staring at the taskbar",
-  "Waiting for a game",
-  "Rearranging icons",
-  "Browsing around",
-  "Touching grass",
-  "Taking a breather",
-  "Warming up",
-  "Admiring the wallpaper",
-  "Thinking about games",
-  "On a coffee break",
-  "Contemplating life",
-];
-
-const randomPhrase = () => IDLE_PHRASES[Math.floor(Math.random() * IDLE_PHRASES.length)] ?? "";
+/** Shown under the buffer state while no game is detected (`config/idle-phrases.json`). */
+const randomPhrase = () => idlePhrases[Math.floor(Math.random() * idlePhrases.length)] ?? "";
 
 /** The game a clip saved now would be filed under, kept current by `game-changed`. */
 function useGame(): string | null {

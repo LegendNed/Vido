@@ -9,6 +9,7 @@ import { useEvent } from "../../lib/tauri/events";
 import { errorMessage, type BufferStatus, type ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 import { directionOf, setDeviceChecked } from "../audio/devices";
+import LENGTHS from "../../../config/clip-lengths.json";
 
 const STATE_TEXT: Record<BufferStatus["state"], string> = {
   stopped: "Off",
@@ -18,8 +19,6 @@ const STATE_TEXT: Record<BufferStatus["state"], string> = {
   waiting: "Waiting for the capture source",
   error: "Error",
 };
-
-const LENGTHS = [15, 30, 60, 120, 300];
 
 function lengthLabel(s: number): string {
   return s < 60 || s % 60 !== 0 ? `${s} s` : `${s / 60} min`;

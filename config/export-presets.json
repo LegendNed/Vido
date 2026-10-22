@@ -1,0 +1,108 @@
+[
+  {
+    "id": "discord",
+    "label": "Discord (no Nitro)",
+    "hint": "Fits Discord's 20 MB upload limit without Nitro · H.264, 1080p.",
+    "values": {
+      "container": "mp4",
+      "videoCodec": "h264",
+      "preset": "balanced",
+      "audioCodec": "aac",
+      "fps": 0,
+      "rateMode": "targetSize",
+      "targetSizeMb": 20,
+      "audioBitrateKbps": 128,
+      "scale": "1080p"
+    }
+  },
+  {
+    "id": "original",
+    "label": "Original",
+    "hint": "No re-encode when only trimming: lossless and instant.",
+    "copy": true,
+    "values": {
+      "scale": "native",
+      "fps": 0
+    }
+  },
+  {
+    "id": "discord10",
+    "label": "10 MB",
+    "hint": "Fits 10 MB upload limits · H.264, 720p.",
+    "values": {
+      "container": "mp4",
+      "videoCodec": "h264",
+      "preset": "balanced",
+      "audioCodec": "aac",
+      "fps": 0,
+      "rateMode": "targetSize",
+      "targetSizeMb": 10,
+      "audioBitrateKbps": 96,
+      "scale": "720p"
+    }
+  },
+  {
+    "id": "discord25",
+    "label": "25 MB",
+    "hint": "Fits 25 MB upload limits · H.264, 1080p.",
+    "values": {
+      "container": "mp4",
+      "videoCodec": "h264",
+      "preset": "balanced",
+      "audioCodec": "aac",
+      "fps": 0,
+      "rateMode": "targetSize",
+      "targetSizeMb": 25,
+      "audioBitrateKbps": 128,
+      "scale": "1080p"
+    }
+  },
+  {
+    "id": "discord50",
+    "label": "50 MB",
+    "hint": "Fits 50 MB upload limits · H.264, source resolution.",
+    "values": {
+      "container": "mp4",
+      "videoCodec": "h264",
+      "preset": "balanced",
+      "audioCodec": "aac",
+      "fps": 0,
+      "rateMode": "targetSize",
+      "targetSizeMb": 50,
+      "audioBitrateKbps": 160,
+      "scale": "native"
+    }
+  },
+  {
+    "id": "hq",
+    "label": "High quality",
+    "hint": "Near-lossless H.264 at the source resolution.",
+    "values": {
+      "container": "mp4",
+      "videoCodec": "h264",
+      "preset": "balanced",
+      "audioCodec": "aac",
+      "fps": 0,
+      "rateMode": "quality",
+      "quality": 18,
+      "audioBitrateKbps": 192,
+      "scale": "native"
+    }
+  },
+  {
+    "id": "small",
+    "label": "Small (HEVC)",
+    "hint": "Small HEVC files at 1080p (some apps can't play HEVC).",
+    "values": {
+      "container": "mp4",
+      "videoCodec": "hevc",
+      "preset": "balanced",
+      "audioCodec": "aac",
+      "fps": 0,
+      "rateMode": "quality",
+      "quality": 28,
+      "audioBitrateKbps": 128,
+      "scale": "1080p"
+    }
+  }
+]

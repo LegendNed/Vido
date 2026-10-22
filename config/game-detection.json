@@ -1,0 +1,43 @@
+{
+  "builtInNames": [
+    { "exe": "javaw.exe", "pathContains": "minecraft", "name": "Minecraft" },
+    { "exe": "javaw.exe", "pathContains": "microsoft.4297127d64ec6", "name": "Minecraft" },
+    { "exe": "robloxplayerbeta.exe", "pathContains": "", "name": "Roblox" }
+  ],
+  "notGames": ["robloxstudiobeta.exe"],
+  "launchers": ["ea app", "ea desktop", "origin", "ubisoft connect", "uplay"],
+  "genericTitles": ["game", "unrealwindow", "unity", "direct3d", "opengl", "vulkan"],
+  "genericProducts": [
+    "openjdk",
+    "java",
+    "unreal engine",
+    "ue4",
+    "ue5",
+    "unity",
+    "electron",
+    "microsoft®",
+    "bootstrap",
+    "godot",
+    "nw.js",
+    "chromium"
+  ],
+  "genericFolders": [
+    "binaries",
+    "win64",
+    "win32",
+    "x64",
+    "x86",
+    "bin",
+    "bin64",
+    "game",
+    "engine",
+    "common",
+    "retail",
+    "release",
+    "shipping",
+    "client",
+    "build",
+    "work",
+    "steamapps"
+  ]
+}

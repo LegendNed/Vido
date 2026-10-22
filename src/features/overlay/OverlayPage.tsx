@@ -1,5 +1,7 @@
 import { useRef, type KeyboardEvent } from "react";
 
+import soundConfig from "../../../config/save-sounds.json";
+
 import {
   Banner,
   Button,
@@ -9,7 +11,6 @@ import {
   Select,
   Slider,
   Toggle,
-  type Option,
 } from "../../components/controls";
 import { HUD_POSITIONS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
@@ -53,14 +54,11 @@ function step(index: number, key: string): number | null {
   }
 }
 
-/** Built-in sounds first, "Custom" (a WAV file) last. */
-const SOUNDS: Option<SaveSound>[] = [
-  { value: "tap", label: "Tap" },
-  { value: "twoTone", label: "Two-Tone" },
-  { value: "bloop", label: "Bloop" },
-  { value: "pluck", label: "Pluck" },
-  { value: "custom", label: "Custom" },
-];
+/** Built-in sounds first, "Custom" (a WAV file) last (`config/save-sounds.json`). */
+const SOUNDS = soundConfig.sounds.map((s) => ({
+  value: s.id as SaveSound,
+  label: s.label,
+}));
 
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 
@@ -317,10 +315,10 @@ export function OverlayPage() {
               onCommit={playSound}
               onDoubleClick={() => {
                 setSound((g) => {
-                  g.saveSoundVolume = 80;
+                  g.saveSoundVolume = soundConfig.defaultVolume;
                 });
               }}
-              title="Double-click: 80 %"
+              title={`Double-click: ${soundConfig.defaultVolume} %`}
             />
             <span className="muted small" style={{ minWidth: 36, textAlign: "right" }}>
               {general.saveSoundVolume} %

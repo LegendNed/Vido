@@ -80,7 +80,7 @@
   },
   "saving": {
     "outputDir": null,
-    "filenameTemplate": "Vido_{date}_{time}",
+    "filenameTemplate": "{game}_{date}_{time}",
     "container": "mp4",
     "saveMode": "remux",
     "reencode": {

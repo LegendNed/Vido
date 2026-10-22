@@ -632,7 +632,7 @@ impl Default for GeneralSettings {
             sound_on_save: true,
             save_sound: SaveSound::TwoTone,
             save_sound_path: None,
-            save_sound_volume: 80,
+            save_sound_volume: crate::sound::default_volume(),
             hud: HudSettings::default(),
             sidebar: SidebarMode::Full,
         }
@@ -748,7 +748,7 @@ impl Default for SavingSettings {
     fn default() -> Self {
         Self {
             output_dir: None,
-            filename_template: "Vido_{date}_{time}".into(),
+            filename_template: "{game}_{date}_{time}".into(),
             container: Container::Mp4,
             save_mode: SaveMode::Remux,
             reencode: ExportDefaults::high_quality(),
@@ -1755,6 +1755,75 @@ mod tests {
         assert_eq!(fixed.capture, CaptureSettings::default());
         assert_eq!(fixed.audio.bitrate_kbps, 256);
         assert_eq!(notes.len(), 1);
+    }
+
+    /// `config/export-presets.json`: every preset is a valid set of export
+    /// options, and "High quality" matches the re-encode-on-save default.
+    #[test]
+    fn export_presets_config_is_valid() {
+        let presets: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../config/export-presets.json")).unwrap();
+        assert!(!presets.is_empty());
+        let hq = serde_json::to_value(ExportDefaults::high_quality()).unwrap();
+        for p in &presets {
+            let id = p["id"].as_str().unwrap();
+            assert!(p["label"].is_string() && p["hint"].is_string(), "{id}");
+            let mut v = serde_json::to_value(ExportDefaults::default()).unwrap();
+            for (k, val) in p["values"].as_object().unwrap() {
+                assert!(v.get(k).is_some(), "{id}: unknown option {k}");
+                v[k] = val.clone();
+                if id == "hq" {
+                    assert_eq!(
+                        &hq[k], val,
+                        "hq.{k} differs from ExportDefaults::high_quality()"
+                    );
+                }
+            }
+            let d: ExportDefaults = serde_json::from_value(v).unwrap();
+            d.validate_at(id).unwrap();
+        }
+    }
+
+    /// `config/recording-presets.json` and `config/clip-lengths.json` hold valid
+    /// capture settings; every recommended tier has a preset.
+    #[test]
+    fn recording_config_is_valid() {
+        #[derive(Deserialize)]
+        struct Preset {
+            id: String,
+            scale: ScalePreset,
+            fps: u32,
+            kbps: Option<u32>,
+        }
+        let presets: Vec<Preset> =
+            serde_json::from_str(include_str!("../../../config/recording-presets.json")).unwrap();
+        for p in &presets {
+            let mut c = CaptureSettings {
+                scale: p.scale,
+                fps: p.fps,
+                ..Default::default()
+            };
+            if let Some(k) = p.kbps {
+                c.quality = BufferQuality::Custom;
+                c.custom_bitrate_kbps = k;
+            }
+            c.validate()
+                .unwrap_or_else(|e| panic!("{}: {}", p.id, e.message));
+        }
+        for tier in [QualityTier::Low, QualityTier::Standard, QualityTier::High] {
+            let id = serde_json::to_value(tier).unwrap();
+            assert!(presets.iter().any(|p| id == p.id.as_str()), "{id}");
+        }
+        let lengths: Vec<u32> =
+            serde_json::from_str(include_str!("../../../config/clip-lengths.json")).unwrap();
+        for s in lengths {
+            let c = CaptureSettings {
+                buffer_seconds: s,
+                ..Default::default()
+            };
+            c.validate()
+                .unwrap_or_else(|e| panic!("{s} s: {}", e.message));
+        }
     }
 
     #[test]

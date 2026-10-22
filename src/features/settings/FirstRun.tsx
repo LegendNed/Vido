@@ -17,9 +17,9 @@ import { AudioDeviceChecklist } from "../audio/AudioDeviceChecklist";
 import { trackSummary } from "../audio/devices";
 import { QualityCards } from "../capture/QualityCards";
 import { applyPreset, RECORDING_PRESETS } from "../capture/recordingPresets";
+import LENGTHS from "../../../config/clip-lengths.json";
 
 const STEPS = ["Display", "Audio", "Buffer", "Hotkey"] as const;
-const LENGTHS = [15, 30, 60, 120, 300];
 
 /** 30 → "30 seconds", 120 → "2 minutes", 90 → "90 seconds". */
 function formatLength(s: number): string {

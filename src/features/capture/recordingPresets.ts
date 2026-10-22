@@ -1,5 +1,6 @@
 // Recording presets (resolution, frame rate, bitrate) for the replay buffer.
 
+import presets from "../../../config/recording-presets.json";
 import type { CaptureSettings, ScalePreset } from "../../lib/tauri/types";
 
 export type RecordingPresetId = "low" | "standard" | "high" | "native";
@@ -14,34 +15,8 @@ export interface RecordingPreset {
   kbps: number | null;
 }
 
-/** Recording presets: each sets resolution, frame rate and bitrate. */
-export const RECORDING_PRESETS: RecordingPreset[] = [
-  { id: "low", label: "Low", hint: "Older PCs, small files", scale: "720p", fps: 30, kbps: 5000 },
-  {
-    id: "standard",
-    label: "Standard",
-    hint: "Light and easy to share",
-    scale: "1080p",
-    fps: 60,
-    kbps: 15000,
-  },
-  {
-    id: "high",
-    label: "High",
-    hint: "Sharper, larger files",
-    scale: "1440p",
-    fps: 60,
-    kbps: 25000,
-  },
-  {
-    id: "native",
-    label: "Native",
-    hint: "Full screen resolution",
-    scale: "native",
-    fps: 60,
-    kbps: null,
-  },
-];
+/** Recording presets: each sets resolution, frame rate and bitrate (`config/recording-presets.json`). */
+export const RECORDING_PRESETS = presets as RecordingPreset[];
 
 export const SCALE_LABEL: Record<ScalePreset, string> = {
   "720p": "720p",

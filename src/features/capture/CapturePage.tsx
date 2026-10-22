@@ -33,8 +33,7 @@ import {
 import { useApp } from "../../stores/app";
 import { QualityCards } from "./QualityCards";
 import { applyPreset } from "./recordingPresets";
-
-const BUFFER_PRESETS = [15, 30, 60, 120, 300, 600];
+import BUFFER_PRESETS from "../../../config/clip-lengths.json";
 
 /** Video source, quality and replay buffer: the video half of the Recording page. */
 export function CaptureSettings() {

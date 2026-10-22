@@ -1,0 +1,10 @@
+{
+  "defaultVolume": 80,
+  "sounds": [
+    { "id": "tap", "label": "Tap", "file": "tap.wav" },
+    { "id": "twoTone", "label": "Two-Tone", "file": "two-tone.wav" },
+    { "id": "bloop", "label": "Bloop", "file": "bloop.wav" },
+    { "id": "pluck", "label": "Pluck", "file": "pluck.wav" },
+    { "id": "custom", "label": "Custom", "file": null }
+  ]
+}

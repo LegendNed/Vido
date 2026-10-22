@@ -20,6 +20,41 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
+use serde::Deserialize;
+
+/// Name lists for detection and naming (`config/game-detection.json`, built in).
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Rules {
+    /// Games whose exe, title and product name all say something else.
+    built_in_names: Vec<BuiltInName>,
+    /// Executables Game Bar lists that aren't games.
+    not_games: Vec<String>,
+    /// Launchers in the installed-programs list (not games themselves).
+    launchers: Vec<String>,
+    /// Window titles that name an engine or API, not the game.
+    generic_titles: Vec<String>,
+    /// Product names (parts) that belong to an engine or runtime.
+    generic_products: Vec<String>,
+    /// Folder names skipped when naming a game after its folder.
+    generic_folders: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BuiltInName {
+    exe: String,
+    path_contains: String,
+    name: String,
+}
+
+fn rules() -> &'static Rules {
+    static RULES: OnceLock<Rules> = OnceLock::new();
+    RULES.get_or_init(|| {
+        serde_json::from_str(include_str!("../../config/game-detection.json"))
+            .expect("config/game-detection.json is valid (see tests)")
+    })
+}
 
 /// An installed game: its folder (lowercase, ending in `\`) and its name.
 #[derive(Clone, Debug, PartialEq)]
@@ -148,17 +183,12 @@ fn name_for(exe: &Path, title: &str) -> String {
         .file_name()
         .map(|f| f.to_string_lossy().to_lowercase())
         .unwrap_or_default();
-    // Games whose exe, title and product name all say something else.
-    let fixed = [
-        ("javaw.exe", "minecraft", "Minecraft"),
-        ("javaw.exe", "microsoft.4297127d64ec6", "Minecraft"),
-        ("robloxplayerbeta.exe", "", "Roblox"),
-    ];
-    if let Some((_, _, n)) = fixed
+    if let Some(b) = rules()
+        .built_in_names
         .iter()
-        .find(|(f, p, _)| file == *f && path.contains(p))
+        .find(|b| file == b.exe && path.contains(&b.path_contains))
     {
-        return (*n).to_owned();
+        return b.name.clone();
     }
     clean_title(title)
         .or_else(|| product_name(exe))
@@ -189,38 +219,17 @@ fn clean_title(title: &str) -> Option<String> {
         })
         .collect();
     let t = words.join(" ");
-    let generic = [
-        "",
-        "game",
-        "unrealwindow",
-        "unity",
-        "direct3d",
-        "opengl",
-        "vulkan",
-    ];
     let lower = t.to_lowercase();
-    (t.chars().count() >= 2 && !generic.contains(&lower.as_str())).then_some(t)
+    (t.chars().count() >= 2 && !rules().generic_titles.contains(&lower)).then_some(t)
 }
 
 /// Product names that belong to an engine or runtime, not the game.
 fn is_generic_product(name: &str) -> bool {
     let n = name.to_lowercase();
-    [
-        "openjdk",
-        "java",
-        "unreal engine",
-        "ue4",
-        "ue5",
-        "unity",
-        "electron",
-        "microsoft®",
-        "bootstrap",
-        "godot",
-        "nw.js",
-        "chromium",
-    ]
-    .iter()
-    .any(|g| n.contains(g))
+    rules()
+        .generic_products
+        .iter()
+        .any(|g| n.contains(g.as_str()))
         || n.trim().len() < 2
 }
 
@@ -228,25 +237,6 @@ fn is_generic_product(name: &str) -> bool {
 /// name: "…\Palworld\Pal\Binaries\Win64\x.exe" → "Palworld") and version suffixes
 /// ("Hydroneer.v3.0.9" → "Hydroneer").
 fn folder_name(exe: &Path) -> Option<String> {
-    let generic = [
-        "binaries",
-        "win64",
-        "win32",
-        "x64",
-        "x86",
-        "bin",
-        "bin64",
-        "game",
-        "engine",
-        "common",
-        "retail",
-        "release",
-        "shipping",
-        "client",
-        "build",
-        "work",
-        "steamapps",
-    ];
     let dirs: Vec<String> = exe
         .parent()?
         .ancestors()
@@ -259,7 +249,7 @@ fn folder_name(exe: &Path) -> Option<String> {
         .map_or(0, |i| i + 2);
     dirs.get(start..)?
         .iter()
-        .filter(|d| !generic.contains(&d.to_lowercase().as_str()))
+        .filter(|d| !rules().generic_folders.contains(&d.to_lowercase()))
         .find_map(|d| clean_title(&strip_version(d)))
 }
 
@@ -305,13 +295,11 @@ fn find(games: &[Game], exe: &str) -> Option<String> {
 /// Executables Game Bar recognised as games (Windows' GameConfigStore).
 fn gamebar_games() -> Vec<String> {
     let base = r"System\GameConfigStore\Children";
-    // Tools that Game Bar lists but that aren't games.
-    let not_games = ["robloxstudiobeta.exe"];
     reg::subkeys(reg::HKCU, base)
         .into_iter()
         .filter_map(|id| reg::string(reg::HKCU, &format!(r"{base}\{id}"), "MatchedExeFullPath"))
         .map(|p| norm_path(Path::new(&p)))
-        .filter(|p| !not_games.iter().any(|n| p.ends_with(n)))
+        .filter(|p| !rules().not_games.iter().any(|n| p.ends_with(n.as_str())))
         .collect()
 }
 
@@ -469,7 +457,8 @@ fn registry_games() -> Vec<(PathBuf, String)> {
 
 /// An installed-programs entry that is an EA app or Ubisoft Connect game.
 fn is_store_game(key: &str, name: &str, publisher: &str) -> bool {
-    let launcher = ["ea app", "origin", "ubisoft connect", "uplay", "ea desktop"]
+    let launcher = rules()
+        .launchers
         .iter()
         .any(|l| name.eq_ignore_ascii_case(l));
     if launcher || name.is_empty() {
@@ -735,6 +724,27 @@ mod tests {
         assert!(!is_store_game("{GUID}", "EA app", "Electronic Arts"));
         assert!(!is_store_game("Uplay", "Ubisoft Connect", "Ubisoft"));
         assert!(!is_store_game("{GUID}", "7-Zip", "Igor Pavlov"));
+    }
+
+    #[test]
+    fn detection_config_is_valid() {
+        let r = rules();
+        assert!(!r.built_in_names.is_empty());
+        // Matching compares lowercase text.
+        let lists = [
+            &r.not_games,
+            &r.launchers,
+            &r.generic_titles,
+            &r.generic_products,
+            &r.generic_folders,
+        ];
+        for s in lists.into_iter().flatten() {
+            assert_eq!(*s, s.to_lowercase(), "{s} must be lowercase");
+        }
+        for b in &r.built_in_names {
+            assert_eq!(b.exe, b.exe.to_lowercase());
+            assert_eq!(b.path_contains, b.path_contains.to_lowercase());
+        }
     }
 
     #[test]

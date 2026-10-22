@@ -123,6 +123,14 @@ mod tests {
             "Vido_2026-10-18_14-32-05"
         );
         assert_eq!(
+            render_filename("{game}_{date}_{time}", now, "x", Some("Apex: Legends"), 30),
+            "Apex_ Legends_2026-10-18_14-32-05"
+        );
+        assert_eq!(
+            render_filename("{game}_{date}_{time}", now, "x", None, 30),
+            "Clip_2026-10-18_14-32-05"
+        );
+        assert_eq!(
             render_filename(
                 "{source} - {duration}",
                 now,

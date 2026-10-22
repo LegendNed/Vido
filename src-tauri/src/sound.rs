@@ -2,9 +2,44 @@
 //! user's own file, scaled to the chosen volume and played asynchronously.
 
 use std::path::Path;
+use std::sync::OnceLock;
+
+use serde::Deserialize;
 
 use crate::error::{AppError, AppResult};
 use crate::settings::{GeneralSettings, SaveSound};
+
+/// `config/save-sounds.json` (built in): the sound list and the default volume.
+/// The labels are only used by the UI.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SoundConfig {
+    default_volume: u32,
+    /// Read by the UI; here only checked against the embedded files (tests).
+    #[cfg_attr(not(test), allow(dead_code))]
+    sounds: Vec<SoundEntry>,
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(not(test), allow(dead_code))]
+struct SoundEntry {
+    id: SaveSound,
+    /// File in `src-tauri/assets/sounds`; `None` for the custom sound.
+    file: Option<String>,
+}
+
+fn config() -> &'static SoundConfig {
+    static CONFIG: OnceLock<SoundConfig> = OnceLock::new();
+    CONFIG.get_or_init(|| {
+        serde_json::from_str(include_str!("../../config/save-sounds.json"))
+            .expect("config/save-sounds.json is valid (see tests)")
+    })
+}
+
+/// Default save sound volume (percent).
+pub fn default_volume() -> u32 {
+    config().default_volume
+}
 
 const TAP: &[u8] = include_bytes!("../assets/sounds/tap.wav");
 const TWO_TONE: &[u8] = include_bytes!("../assets/sounds/two-tone.wav");
@@ -33,16 +68,24 @@ pub fn play_saved(general: &GeneralSettings) {
 
 /// Plays `sound` (`path` for a custom one) at `volume` percent.
 pub fn play(sound: SaveSound, path: Option<&str>, volume: u32) -> AppResult<()> {
-    let mut wav = match sound {
-        SaveSound::Tap => TAP.to_vec(),
-        SaveSound::TwoTone => TWO_TONE.to_vec(),
-        SaveSound::Bloop => BLOOP.to_vec(),
-        SaveSound::Pluck => PLUCK.to_vec(),
-        SaveSound::Custom => read_custom(path)?,
+    let mut wav = match built_in(sound) {
+        Some(bytes) => bytes.to_vec(),
+        None => read_custom(path)?,
     };
     scale_wav(&mut wav, volume.min(100) as f32 / 100.0)?;
     output::play(wav);
     Ok(())
+}
+
+/// The embedded WAV of a built-in sound (`None` for the custom one).
+fn built_in(sound: SaveSound) -> Option<&'static [u8]> {
+    match sound {
+        SaveSound::Tap => Some(TAP),
+        SaveSound::TwoTone => Some(TWO_TONE),
+        SaveSound::Bloop => Some(BLOOP),
+        SaveSound::Pluck => Some(PLUCK),
+        SaveSound::Custom => None,
+    }
 }
 
 fn read_custom(path: Option<&str>) -> AppResult<Vec<u8>> {
@@ -187,6 +230,31 @@ mod tests {
             let mut silent = wav.to_vec();
             scale_wav(&mut silent, 0.0).unwrap();
             assert!(samples(&silent).iter().all(|v| *v == 0));
+        }
+    }
+
+    #[test]
+    fn sound_config_matches_the_embedded_files() {
+        let c = config();
+        assert!(c.default_volume <= 100);
+        let all = [
+            SaveSound::Tap,
+            SaveSound::TwoTone,
+            SaveSound::Bloop,
+            SaveSound::Pluck,
+            SaveSound::Custom,
+        ];
+        assert_eq!(c.sounds.len(), all.len(), "one entry per sound");
+        for s in all {
+            let e = c.sounds.iter().find(|e| e.id == s).expect("listed");
+            match (&e.file, built_in(s)) {
+                (Some(f), Some(bytes)) => {
+                    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/sounds");
+                    assert_eq!(std::fs::read(dir.join(f)).unwrap(), bytes, "{f}");
+                }
+                (None, None) => {}
+                _ => panic!("{s:?}: file and embedded sound disagree"),
+            }
         }
     }
 
