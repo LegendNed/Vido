@@ -30,23 +30,6 @@ pub fn on_hotkey(app: &AppHandle, action: HotkeyAction) {
     }
 }
 
-#[cfg(windows)]
-fn play_save_sound() {
-    use windows::core::w;
-    use windows::Win32::Media::Audio::{PlaySoundW, SND_ALIAS, SND_ASYNC, SND_NODEFAULT};
-    // SAFETY: plays a system sound alias asynchronously.
-    unsafe {
-        let _ = PlaySoundW(
-            w!("SystemAsterisk"),
-            None,
-            SND_ALIAS | SND_ASYNC | SND_NODEFAULT,
-        );
-    }
-}
-
-#[cfg(not(windows))]
-fn play_save_sound() {}
-
 fn report_error(app: &AppHandle, kind: &str, e: &AppError) {
     events::toast(app, ToastKind::Error, e.message.clone());
     events::issue(app, CaptureIssue::from_error(kind, e));
@@ -81,9 +64,7 @@ fn after_save(app: &AppHandle, state: &AppState, clip: &SavedClip) {
     let settings = state.settings.get();
     let path = Path::new(&clip.path);
     state.clips.set_last_saved(path);
-    if settings.general.sound_on_save {
-        play_save_sound();
-    }
+    crate::sound::play_saved(&settings.general);
     // One clipboard: the video wins over its path.
     let post = &settings.saving.post_save;
     let clipboard = if post.copy_video {

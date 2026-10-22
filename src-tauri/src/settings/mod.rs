@@ -282,6 +282,20 @@ pub enum HudPosition {
     BottomRight,
 }
 
+/// The sound played when a clip is saved.
+#[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum SaveSound {
+    Tap,
+    #[default]
+    TwoTone,
+    Bloop,
+    Pluck,
+    /// `GeneralSettings::save_sound_path`.
+    Custom,
+}
+
 /// Main-window navigation style.
 #[derive(Serialize, Deserialize, TS, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
@@ -325,8 +339,13 @@ pub struct GeneralSettings {
     pub close_to_tray: bool,
     pub start_with_windows: bool,
     pub start_buffer_on_launch: bool,
-    /// Play a short system sound when a clip is saved.
+    /// Play a short sound when a clip is saved.
     pub sound_on_save: bool,
+    pub save_sound: SaveSound,
+    /// WAV file played for `SaveSound::Custom`.
+    pub save_sound_path: Option<String>,
+    /// 0–100 % of the sound's own level (Windows' volume still applies).
+    pub save_sound_volume: u32,
     pub hud: HudSettings,
     pub sidebar: SidebarMode,
 }
@@ -594,6 +613,9 @@ impl Default for GeneralSettings {
             start_with_windows: true,
             start_buffer_on_launch: true,
             sound_on_save: true,
+            save_sound: SaveSound::TwoTone,
+            save_sound_path: None,
+            save_sound_volume: 80,
             hud: HudSettings::default(),
             sidebar: SidebarMode::Full,
         }

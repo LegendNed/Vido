@@ -7,6 +7,9 @@
     "startWithWindows": true,
     "startBufferOnLaunch": true,
     "soundOnSave": true,
+    "saveSound": "twoTone",
+    "saveSoundPath": null,
+    "saveSoundVolume": 80,
     "hud": {
       "overlay": false,
       "position": "topRight",

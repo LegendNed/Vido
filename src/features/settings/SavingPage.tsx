@@ -251,16 +251,6 @@ export function SavingPage() {
             }}
           />
         </Field>
-        <Field label="Play a sound when saved">
-          <Toggle
-            value={settings.general.soundOnSave}
-            onChange={(v) => {
-              update((d) => {
-                d.general.soundOnSave = v;
-              });
-            }}
-          />
-        </Field>
       </Section>
     </div>
   );

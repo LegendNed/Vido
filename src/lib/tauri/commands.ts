@@ -21,6 +21,7 @@ import type {
   HotkeyStatus,
   RegionRect,
   SaveEditMode,
+  SaveSound,
   Settings,
   WindowInfo,
 } from "./types";
@@ -89,6 +90,9 @@ export const commands = {
   openEditor: (path?: string) => invoke<undefined>("open_editor", { path }),
   showMainWindow: (page?: string) => invoke<undefined>("show_main_window", { page }),
   pickFolder: (initial?: string) => invoke<string | null>("pick_folder", { initial }),
+  pickSoundFile: (initial?: string) => invoke<string | null>("pick_sound_file", { initial }),
+  previewSaveSound: (sound: SaveSound, path: string | null, volume: number) =>
+    invoke<null>("preview_save_sound", { sound, path, volume }),
   pickExportPath: (suggested: string, container: Container) =>
     invoke<string | null>("pick_export_path", { suggested, container }),
   openFolder: (which: FolderKind) => invoke<undefined>("open_folder", { which }),

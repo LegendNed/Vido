@@ -20,6 +20,7 @@ pub mod hud;
 pub mod logging;
 pub mod paths;
 pub mod settings;
+pub mod sound;
 pub mod state;
 #[cfg(windows)]
 pub mod theme;
@@ -374,6 +375,8 @@ pub fn run() {
             commands::open_editor,
             commands::show_main_window,
             commands::pick_folder,
+            commands::pick_sound_file,
+            commands::preview_save_sound,
             commands::pick_export_path,
             commands::open_folder,
             commands::get_hotkey_status,

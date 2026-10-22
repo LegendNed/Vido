@@ -24,7 +24,7 @@ use crate::export::edit::SaveEditMode;
 use crate::export::manager::Finish;
 use crate::export::{self, CropRect, ExportEstimate, ExportRequest};
 use crate::hotkeys::{HotkeyManager, HotkeyStatus};
-use crate::settings::{Container, RegionRect, Settings};
+use crate::settings::{Container, RegionRect, SaveSound, Settings};
 use crate::state::AppState;
 use crate::ui;
 
@@ -525,6 +525,32 @@ pub async fn pick_folder(app: AppHandle, initial: Option<String>) -> AppResult<O
             .map(|p| p.to_string_lossy().into_owned()))
     })
     .await
+}
+
+#[tauri::command]
+pub async fn pick_sound_file(app: AppHandle, initial: Option<String>) -> AppResult<Option<String>> {
+    blocking(move || {
+        let mut d = app
+            .dialog()
+            .file()
+            .set_title("Choose a sound")
+            .add_filter("WAV sound", &["wav"]);
+        if let Some(dir) = initial.as_deref().map(Path::new).and_then(Path::parent) {
+            if dir.is_dir() {
+                d = d.set_directory(dir);
+            }
+        }
+        Ok(d.blocking_pick_file()
+            .and_then(|f| f.into_path().ok())
+            .map(|p| p.to_string_lossy().into_owned()))
+    })
+    .await
+}
+
+/// Plays a save sound as Settings → Overlay shows it (also when sounds are off).
+#[tauri::command]
+pub fn preview_save_sound(sound: SaveSound, path: Option<String>, volume: u32) -> AppResult<()> {
+    crate::sound::play(sound, path.as_deref(), volume)
 }
 
 #[tauri::command]

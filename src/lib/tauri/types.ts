@@ -61,6 +61,7 @@ export type { SavingSettings } from "./bindings/SavingSettings";
 export type { ScalePreset } from "./bindings/ScalePreset";
 export type { Settings } from "./bindings/Settings";
 export type { Severity } from "./bindings/Severity";
+export type { SaveSound } from "./bindings/SaveSound";
 export type { SidebarMode } from "./bindings/SidebarMode";
 export type { SourceState } from "./bindings/SourceState";
 export type { TrackKind } from "./bindings/TrackKind";

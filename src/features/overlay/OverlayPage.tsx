@@ -1,9 +1,23 @@
 import { useRef, type KeyboardEvent } from "react";
 
-import { Banner, Button, Field, Section, Toggle } from "../../components/controls";
+import {
+  Banner,
+  Button,
+  Field,
+  Section,
+  Select,
+  Slider,
+  Toggle,
+  type Option,
+} from "../../components/controls";
 import { HUD_POSITIONS } from "../../lib/options";
 import { commands } from "../../lib/tauri/commands";
-import { errorMessage, type HudPosition } from "../../lib/tauri/types";
+import {
+  errorMessage,
+  type GeneralSettings,
+  type HudPosition,
+  type SaveSound,
+} from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 
 /** The six spots, row by row on the screen diagram (2 rows × 3 columns). */
@@ -36,6 +50,17 @@ function step(index: number, key: string): number | null {
       return null;
   }
 }
+
+/** Built-in sounds first, "Custom" (a WAV file) last. */
+const SOUNDS: Option<SaveSound>[] = [
+  { value: "tap", label: "Tap" },
+  { value: "twoTone", label: "Two-Tone" },
+  { value: "bloop", label: "Bloop" },
+  { value: "pluck", label: "Pluck" },
+  { value: "custom", label: "Custom" },
+];
+
+const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 
 const label = (p: HudPosition) => HUD_POSITIONS.find((o) => o.value === p)?.label ?? p;
 
@@ -122,6 +147,35 @@ export function OverlayPage() {
     });
   };
 
+  // Plays the sound as currently set (after the store has the latest change).
+  const playSound = () => {
+    const g = useApp.getState().settings?.general;
+    if (!g) return;
+    commands
+      .previewSaveSound(g.saveSound, g.saveSoundPath, g.saveSoundVolume)
+      .catch((e: unknown) => {
+        notify("error", "Could not play the sound", errorMessage(e));
+      });
+  };
+  const setSound = (mutate: (g: GeneralSettings) => void, play = true) => {
+    update(
+      (d) => {
+        mutate(d.general);
+      },
+      { immediate: true },
+    );
+    if (play) playSound();
+  };
+  const chooseFile = async () => {
+    const p = await commands.pickSoundFile(general.saveSoundPath ?? undefined);
+    if (p)
+      setSound((g) => {
+        g.saveSound = "custom";
+        g.saveSoundPath = p;
+      });
+  };
+  const general = settings.general;
+
   return (
     <div className="page">
       <div className="page-head">
@@ -202,9 +256,83 @@ export function OverlayPage() {
         </Field>
       </Section>
 
+      <Section title="Sound" description="Plays when a clip is saved, also over fullscreen games.">
+        <Field label="Play a sound when a clip is saved">
+          <Toggle
+            label="Play a sound when a clip is saved"
+            value={general.soundOnSave}
+            onChange={(v) => {
+              setSound((g) => {
+                g.soundOnSave = v;
+              }, v);
+            }}
+          />
+        </Field>
+        <Field label="Sound">
+          <div className="row" style={{ gap: 6 }}>
+            <Select
+              value={general.saveSound}
+              options={SOUNDS}
+              width={150}
+              onChange={(v) => {
+                if (v === "custom" && !general.saveSoundPath) {
+                  void chooseFile();
+                  return;
+                }
+                setSound((g) => {
+                  g.saveSound = v;
+                });
+              }}
+            />
+            <Button icon="play" variant="ghost" title="Play the sound" onClick={playSound} />
+          </div>
+        </Field>
+        {general.saveSound === "custom" && (
+          <Field
+            label="Sound file"
+            description={
+              general.saveSoundPath ? (
+                <span title={general.saveSoundPath}>{fileName(general.saveSoundPath)}</span>
+              ) : (
+                "No file chosen"
+              )
+            }
+          >
+            <Button icon="folder" onClick={() => void chooseFile()}>
+              Choose WAV…
+            </Button>
+          </Field>
+        )}
+        <Field label="Volume">
+          <div className="row" style={{ gap: 10 }}>
+            <Slider
+              value={general.saveSoundVolume}
+              min={0}
+              max={100}
+              width={180}
+              onChange={(v) => {
+                update((d) => {
+                  d.general.saveSoundVolume = v;
+                });
+              }}
+              onCommit={playSound}
+              onDoubleClick={() => {
+                setSound((g) => {
+                  g.saveSoundVolume = 80;
+                });
+              }}
+              title="Double-click: 80 %"
+            />
+            <span className="muted small" style={{ minWidth: 36, textAlign: "right" }}>
+              {general.saveSoundVolume} %
+            </span>
+          </div>
+        </Field>
+      </Section>
+
       <Banner tone="info">
         The overlay can't appear over exclusive-fullscreen games; borderless and windowed games
-        work. “Play a sound when saved” still works there.
+        work. The sound plays there too.
       </Banner>
     </div>
   );
