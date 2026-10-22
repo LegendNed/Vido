@@ -606,20 +606,42 @@
   .overlay-screen .spot:hover .mark {
     border-color: var(--text-2);
   }
+  /* A small "Clip saved" card: the icon tile with the red dot, then two lines. */
   .overlay-screen .mini-pill {
     display: flex;
     align-items: center;
-    width: 34px;
-    height: 12px;
-    padding-left: 3px;
-    border-radius: 6px;
-    background: var(--brand);
+    gap: 3px;
+    width: 40px;
+    height: 16px;
+    padding: 0 3px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--card);
   }
   .overlay-screen .mini-pill .dot {
-    width: 6px;
-    height: 6px;
+    position: relative;
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    background: var(--panel-3);
+  }
+  .overlay-screen .mini-pill .dot::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
-    background: var(--on-accent);
+    background: #ef4444;
+  }
+  .overlay-screen .mini-pill::after {
+    content: "";
+    flex: 1;
+    height: 6px;
+    border-top: 2px solid var(--text-muted);
+    border-bottom: 2px solid var(--panel-3);
   }
   .overlay-screen .taskbar {
     grid-column: 1 / -1;
@@ -760,7 +782,7 @@
   }
   .quality-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
     gap: 8px;
   }
   .quality-card {

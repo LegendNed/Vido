@@ -111,7 +111,7 @@ export function OverviewPage({
         </div>
         <div className="row">
           {running ? (
-            <Button icon="stop" disabled={busy} onClick={() => void run(commands.stopBuffer)}>
+            <Button icon="bufferStop" disabled={busy} onClick={() => void run(commands.stopBuffer)}>
               Stop
             </Button>
           ) : (

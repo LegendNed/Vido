@@ -27,6 +27,8 @@ use crate::state::AppState;
 /// `latest.json` platform key of the portable zip (installed copies use Tauri's
 /// default, `windows-x86_64`).
 pub const PORTABLE_TARGET: &str = "windows-x86_64-portable";
+/// Where the release notes live (the top bar's update dialog links here).
+pub const RELEASES_URL: &str = "https://github.com/LegendNed/Vido/releases";
 /// How often to check while Vido runs (also once shortly after start).
 const CHECK_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
 const FIRST_CHECK_AFTER: Duration = Duration::from_secs(15);

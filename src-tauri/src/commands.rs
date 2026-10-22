@@ -649,6 +649,14 @@ pub async fn install_update(app: AppHandle) -> AppResult<()> {
     crate::update::install(&app).await
 }
 
+/// Opens Vido's GitHub releases page (a fixed address; the webview can't open others).
+#[tauri::command]
+pub fn open_release_page(app: AppHandle) -> AppResult<()> {
+    app.opener()
+        .open_url(crate::update::RELEASES_URL, None::<&str>)
+        .map_err(|e| AppError::new(ErrorCode::Io, e.to_string()))
+}
+
 /// The game a clip saved now would be filed under (also sent as `game-changed`).
 #[tauri::command]
 pub fn get_current_game(state: AppStateRef<'_>) -> Option<String> {

@@ -336,9 +336,9 @@ export function NumberInput({
     onChange(Number(rounded.toFixed(decimals)));
   };
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="relative inline-flex items-center">
       <Input
-        className="h-8 text-right tabular-nums"
+        className={cn("h-8 text-right tabular-nums", suffix && "pr-7")}
         style={{ width: width ?? 80 }}
         aria-invalid={invalid || undefined}
         value={draft ?? value.toFixed(decimals)}
@@ -358,7 +358,11 @@ export function NumberInput({
           }
         }}
       />
-      {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
+      {suffix && (
+        <span className="pointer-events-none absolute right-2.5 text-xs text-muted-foreground">
+          {suffix}
+        </span>
+      )}
     </span>
   );
 }

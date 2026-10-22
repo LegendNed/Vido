@@ -431,6 +431,7 @@ pub fn run() {
             commands::check_for_updates,
             commands::get_pending_update,
             commands::install_update,
+            commands::open_release_page,
             commands::pick_sound_file,
             commands::preview_save_sound,
             commands::pick_export_path,

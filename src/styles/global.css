@@ -140,7 +140,7 @@
 
   .field {
     display: grid;
-    grid-template-columns: minmax(170px, 0.9fr) 1.6fr;
+    grid-template-columns: minmax(200px, 1fr) minmax(min-content, max-content);
     align-items: center;
     gap: 16px;
     min-height: 56px;
@@ -303,6 +303,7 @@
     opacity: 1;
   }
   .clip-meta {
+    flex: 1;
     padding: 8px 10px 10px;
     display: flex;
     flex-direction: column;

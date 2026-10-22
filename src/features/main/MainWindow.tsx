@@ -1,5 +1,5 @@
 import { PanelLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Notices } from "../../components/Notices";
 import { StatusBar } from "../../components/StatusBar";
@@ -64,6 +64,11 @@ export function MainWindow() {
   const [loadError, setLoadError] = useState<string | null>(null);
   /** A clip to open in the Clips page viewer (picked on Overview). */
   const [openPath, setOpenPath] = useState<string | null>(null);
+  // Each page opens at the top (not where the previous page was scrolled to).
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [page, target?.seq]);
 
   useEffect(() => {
     init().catch((e: unknown) => {
@@ -192,6 +197,7 @@ export function MainWindow() {
           <WindowControls />
         </header>
         <main
+          ref={mainRef}
           className={
             page === "settings"
               ? "flex min-h-0 flex-1 flex-col overflow-hidden"

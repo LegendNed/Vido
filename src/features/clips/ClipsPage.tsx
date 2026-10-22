@@ -200,22 +200,23 @@ export function ClipsPage({ open }: { open?: string | null }) {
             >
               Group by date
             </Checkbox>
-            <span className="spacer" />
-            <span className="muted small">
-              {shown.length} clip{shown.length === 1 ? "" : "s"}
-            </span>
-            <div className="grid-size" title="Card size">
-              <Icon name="gridSmall" size={14} />
-              <Slider
-                value={view.size}
-                min={1}
-                max={GRID_STEPS}
-                width={120}
-                onChange={(v) => {
-                  setView({ size: v });
-                }}
-              />
-              <Icon name="gridLarge" size={14} />
+            <div className="ml-auto flex items-center gap-3">
+              <span className="muted small">
+                {shown.length} clip{shown.length === 1 ? "" : "s"}
+              </span>
+              <div className="grid-size" title="Card size">
+                <Icon name="gridSmall" size={14} />
+                <Slider
+                  value={view.size}
+                  min={1}
+                  max={GRID_STEPS}
+                  width={120}
+                  onChange={(v) => {
+                    setView({ size: v });
+                  }}
+                />
+                <Icon name="gridLarge" size={14} />
+              </div>
             </div>
           </div>
           {groups.map((g, gi) => (

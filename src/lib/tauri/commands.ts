@@ -98,6 +98,8 @@ export const commands = {
   getPendingUpdate: () => invoke<UpdateInfo | null>("get_pending_update"),
   /** Downloads and installs the pending update; Vido exits and comes back. */
   installUpdate: () => invoke<null>("install_update"),
+  /** Opens Vido's releases on GitHub in the browser. */
+  openReleasePage: () => invoke<null>("open_release_page"),
   pickSoundFile: (initial?: string) => invoke<string | null>("pick_sound_file", { initial }),
   previewSaveSound: (sound: SaveSound, path: string | null, volume: number) =>
     invoke<null>("preview_save_sound", { sound, path, volume }),

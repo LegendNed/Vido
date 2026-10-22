@@ -88,7 +88,7 @@ export function StatusBar() {
         <>
           <Button
             small
-            icon={status.state === "paused" ? "play" : "pause"}
+            icon={status.state === "paused" ? "bufferResume" : "bufferPause"}
             variant="ghost"
             disabled={busy || status.state === "starting"}
             title={status.state === "paused" ? "Resume buffer" : "Pause buffer"}
@@ -98,7 +98,7 @@ export function StatusBar() {
           />
           <Button
             small
-            icon="stop"
+            icon="bufferStop"
             variant="ghost"
             disabled={busy}
             title="Stop buffer"

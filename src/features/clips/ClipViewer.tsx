@@ -1,3 +1,4 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -300,6 +301,7 @@ export function ClipViewer({
         <video
           ref={video}
           className="viewer-video"
+          poster={clip.thumbnail ? convertFileSrc(clip.thumbnail) : undefined}
           playsInline
           onClick={togglePlay}
           onDoubleClick={() => {

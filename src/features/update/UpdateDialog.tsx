@@ -14,6 +14,7 @@ import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import { errorMessage, type UpdateProgress } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import { ReleaseNotes } from "./ReleaseNotes";
 
 /**
  * The update offered by the top bar's Update button: release notes, then
@@ -65,8 +66,8 @@ export function UpdateDialog() {
           </DialogDescription>
         </DialogHeader>
         {update.notes && (
-          <div className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-sm">
-            {update.notes}
+          <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm">
+            <ReleaseNotes markdown={update.notes} />
           </div>
         )}
         {installing && (
@@ -82,6 +83,14 @@ export function UpdateDialog() {
         {error && <p className="text-sm text-destructive">{error}</p>}
         {busy && !installing && <p className="text-sm text-muted-foreground">{busy}</p>}
         <DialogFooter>
+          <Button
+            variant="ghost"
+            icon="external"
+            className="sm:mr-auto"
+            onClick={() => void commands.openReleasePage()}
+          >
+            View on GitHub
+          </Button>
           <Button
             variant="ghost"
             disabled={installing}

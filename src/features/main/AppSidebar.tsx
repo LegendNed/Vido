@@ -179,7 +179,11 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
             {text}
           </div>
           {details.map((d) => (
-            <div key={d} className="truncate text-muted-foreground" title={d}>
+            <div
+              key={d}
+              className="truncate text-muted-foreground [@media(max-height:680px)]:hidden"
+              title={d}
+            >
               {d}
             </div>
           ))}

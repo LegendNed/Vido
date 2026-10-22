@@ -354,7 +354,11 @@
     font-size: 15px;
   }
   .clip-feature .hero-meta {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
     font-size: 11px;
+    mask-image: linear-gradient(to right, #000 85%, transparent);
   }
   .clip-feature .hero-actions {
     margin-top: 6px;
