@@ -42,10 +42,10 @@ watermark or telemetry**. Everything stays on your PC.
 | Idle RAM                                | ~30 MB + buffer                           | Heavier (300mb-1gb)         |
 | Overlay kept out of your clips          | Always (Windows capture exclusion)        | Not guaranteed              |
 | Auto-updates                            | Never; you choose when to update          | Yes                         |
-| Automatic game detection / auto-clips   | No (one hotkey, always buffering)         | Yes                         |
+| Automatic game detection                | Yes                                       | Yes                         |
 
-Vido is for people who want their clips on their own disk and nothing else. If you want automatic
-clipping or a social platform built around your clips, the competitor does more of that.
+Vido is for people who want their clips on their own disk and nothing else. If you want a social
+platform built around your clips, the competitor does more of that.
 
 ---
 
