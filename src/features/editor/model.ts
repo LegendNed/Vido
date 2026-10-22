@@ -13,7 +13,7 @@ import type {
 export interface ExportOpts extends ExportDefaults {
   /** Copy the video instead of re-encoding when possible. */
   streamCopy: boolean;
-  /** `null` = `<name>_export.<ext>` next to the clip. */
+  /** `null` = `<name>_edit.<ext>` next to the clip. */
   outputPath: string | null;
   /**
    * Exports carry one audio track (the lanes mixed). `false` keeps separate tracks:
@@ -134,26 +134,6 @@ export function exportAudio(s: EditState): AudioOut {
   return { audioTracks: tracks, mixAudio: remix, keepMixedTracks: remix };
 }
 
-/**
- * Save / Save & override audio: the clip keeps its track layout. A recorded mix is
- * copied while the lanes are untouched, else rebuilt from them; every other track
- * keeps its place with its lane applied (muted = silent).
- */
-export function saveAudio(s: EditState): AudioOut {
-  if (s.recordedMix && lanesChanged(s)) {
-    return {
-      audioTracks: s.lanes.map((l, i) => (i === 0 ? drop(0) : keep(i, l))),
-      mixAudio: true,
-      keepMixedTracks: true,
-    };
-  }
-  return {
-    audioTracks: s.lanes.map((l, i) => keep(i, s.recordedMix ? UNITY : l)),
-    mixAudio: false,
-    keepMixedTracks: false,
-  };
-}
-
 function request(path: string, s: EditState, audio: AudioOut): ExportRequest {
   return {
     inputPath: path,
@@ -185,15 +165,6 @@ function request(path: string, s: EditState, audio: AudioOut): ExportRequest {
 
 export function buildRequest(path: string, s: EditState): ExportRequest {
   return request(path, s, exportAudio(s));
-}
-
-/**
- * Request for the editor's Save / Save & override. Same edits as an export (Rust
- * then matches the output format to the original), but the audio keeps the clip's
- * track layout.
- */
-export function buildSaveRequest(path: string, s: EditState): ExportRequest {
-  return request(path, s, saveAudio(s));
 }
 
 /** Whether `s` changes the clip itself (export-only options don't count). */

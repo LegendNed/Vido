@@ -272,12 +272,6 @@
 
   /* ---------------------------------------------------------------- editor save */
 
-  .editor-head-sep {
-    align-self: stretch;
-    width: 1px;
-    margin: 2px 4px;
-    background: var(--border);
-  }
   .save-progress {
     display: flex;
     align-items: center;

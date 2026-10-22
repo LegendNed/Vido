@@ -12,7 +12,7 @@ import {
   type SaveEditMode,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
-import { buildSaveRequest, type EditState } from "./model";
+import { buildRequest, type EditState } from "./model";
 
 interface SaveJob {
   id: string;
@@ -25,22 +25,23 @@ type Outcome = { ok: true; result: ExportResult } | { ok: false; error: AppError
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 
 /**
- * Editor header actions: "Save" writes `<name>_edit.<ext>` next to the clip,
- * "Save & override" replaces the clip (the original goes to the Recycle Bin).
- * Both run as export jobs; progress and cancel are shown in place of the buttons.
+ * The editor's save buttons (bottom of the export pane), both with the export
+ * options: "Save" writes `<name>_edit.<ext>` next to the clip (or the "Save as…"
+ * path), "Save & override" replaces the clip (the original goes to the Recycle
+ * Bin). Both run as export jobs; progress and cancel replace the buttons.
  */
 export function SaveActions({
   path,
   state,
-  dirty,
+  canOverride,
   release,
   restore,
   onReplaced,
 }: {
   path: string;
   state: EditState;
-  /** Whether there is anything to save. */
-  dirty: boolean;
+  /** Whether overriding would change the clip (edits, or a re-encoding preset). */
+  canOverride: boolean;
   /** Lets go of the clip file (the preview may hold it) before it is replaced. */
   release: () => void;
   /** Reloads the preview after an override did not happen. */
@@ -93,7 +94,7 @@ export function SaveActions({
       return;
     }
     early.current.set(jobId, o);
-    // Only the latest few matter (other ids belong to the Export panel).
+    // Only the latest few matter (other ids belong to re-encode-on-save).
     for (const k of [...early.current.keys()].slice(0, -8)) early.current.delete(k);
   };
 
@@ -114,7 +115,7 @@ export function SaveActions({
     if (mode === "override") release();
     let id: string;
     try {
-      id = await commands.saveEdit(buildSaveRequest(path, state), mode);
+      id = await commands.saveEdit(buildRequest(path, state), mode);
     } catch (e) {
       if (mode === "override") restore();
       notify(
@@ -152,24 +153,25 @@ export function SaveActions({
     );
   }
 
-  const why = dirty ? undefined : "No changes to save";
   return (
-    <>
+    <div className="save-actions">
       <Button
-        small
         variant="primary"
         icon="save"
-        disabled={!dirty}
-        title={why ?? "Save the edit as a new clip next to this one (…_edit)"}
+        title="Save the edit as a new file next to this clip (…_edit)"
         onClick={() => void start("new")}
       >
         Save
       </Button>
       <Button
-        small
+        variant="ghost"
         icon="refresh"
-        disabled={!dirty}
-        title={why ?? "Replace this clip with the edit (the original goes to the Recycle Bin)"}
+        disabled={!canOverride}
+        title={
+          canOverride
+            ? "Replace this clip with the edit (the original goes to the Recycle Bin)"
+            : "No changes to save"
+        }
         onClick={() => {
           setConfirming(true);
         }}
@@ -188,6 +190,6 @@ export function SaveActions({
           The original will be moved to the Recycle Bin.
         </ConfirmDialog>
       )}
-    </>
+    </div>
   );
 }

@@ -1,11 +1,11 @@
 //! The editor's "Save" and "Save & override".
 //!
-//! Both write the current edits with "keep it like the original" settings
-//! (source resolution, frame rate and codec family, high quality, stream copy
-//! whenever the plan allows it) through the normal export queue. "Save" writes
-//! `<name>_edit.<ext>` next to the clip; "Save & override" exports to a
-//! temporary file first and only then swaps it in, moving the original to the
-//! Recycle Bin (see [`replace_original`]).
+//! Both write the current edits with the editor's export options (preset,
+//! resolution, size, codecs; "Original" copies the video when it can) through the
+//! normal export queue. "Save" writes `<name>_edit.<ext>` next to the clip (or
+//! where "Save as…" points); "Save & override" exports to a temporary file in the
+//! clip's own container first and only then swaps it in, moving the original to
+//! the Recycle Bin (see [`replace_original`]).
 
 use std::io;
 use std::path::{Path, PathBuf};
@@ -17,7 +17,7 @@ use ts_rs::TS;
 use super::probe::MediaInfo;
 use super::{codec_ffmpeg_name, container_accepts_video, ExportRequest};
 use crate::error::{AppError, AppResult, ErrorCode};
-use crate::settings::{AudioCodec, Container, QualityPreset, RateMode, ScalePreset, VideoCodec};
+use crate::settings::{AudioCodec, Container, VideoCodec};
 
 #[derive(Deserialize, Serialize, TS, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -31,9 +31,6 @@ pub enum SaveEditMode {
 
 /// Marks the temporary output of an override; such files are not listed as clips.
 pub const OVERRIDE_TEMP_TAG: &str = ".vido-tmp";
-
-/// Normalized 0–51 quality for saves (≈ x264 CRF 18, visually lossless).
-const SAVE_QUALITY: u32 = 18;
 
 /// Recycle attempts while another process (thumbnailer, antivirus, a player)
 /// still has the original open.
@@ -77,81 +74,65 @@ pub fn is_override_temp(file_name: &str) -> bool {
     file_name.to_lowercase().contains(OVERRIDE_TEMP_TAG)
 }
 
-/// Turns the editor's request into a save of `input`: the edits (trim, crop,
-/// speed, fades, audio tracks, encoder choice) are kept, everything about the
-/// output format is chosen to match the original.
+/// Turns the editor's request into a save of `input`. "Save" keeps every option
+/// and names the file `<name>_edit.<ext>` unless a path was picked; an override
+/// keeps the clip's container (and so its name), switching the codecs only
+/// where that container can't hold the chosen ones.
 pub fn save_request(
     input: &Path,
     req: &ExportRequest,
     info: &MediaInfo,
     mode: SaveEditMode,
 ) -> AppResult<ExportRequest> {
-    let v = info
-        .video
-        .as_ref()
-        .ok_or_else(|| AppError::invalid("inputPath", "the file has no video stream"))?;
-    let ext = input
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(str::to_ascii_lowercase)
-        .unwrap_or_default();
-    let container = match (ext.as_str(), mode) {
-        ("mp4", _) => Container::Mp4,
-        ("mkv", _) => Container::Mkv,
-        ("webm", _) => Container::Webm,
-        // MOV is MP4's sibling: a new file can be MP4, but an override must keep the name.
-        ("mov", SaveEditMode::New) => Container::Mp4,
-        _ => {
-            return Err(AppError::invalid(
-                "inputPath",
-                format!("Save & override is not available for .{ext} files"),
-            )
-            .with_hint("Use Save or Export instead."))
+    if info.video.is_none() {
+        return Err(AppError::invalid(
+            "inputPath",
+            "the file has no video stream",
+        ));
+    }
+    let mut r = ExportRequest {
+        input_path: input.to_string_lossy().into_owned(),
+        ..req.clone()
+    };
+    let output = match mode {
+        SaveEditMode::New => match &r.output_path {
+            Some(p) => PathBuf::from(p),
+            None => edit_output_path(input, r.container.extension()),
+        },
+        SaveEditMode::Override => {
+            let ext = input
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(str::to_ascii_lowercase)
+                .unwrap_or_default();
+            let container = match ext.as_str() {
+                "mp4" => Container::Mp4,
+                "mkv" => Container::Mkv,
+                "webm" => Container::Webm,
+                _ => {
+                    return Err(AppError::invalid(
+                        "inputPath",
+                        format!("Save & override is not available for .{ext} files"),
+                    )
+                    .with_hint("Use Save instead."))
+                }
+            };
+            r.container = container;
+            if !container_accepts_video(container, codec_ffmpeg_name(r.video_codec)) {
+                r.video_codec = if container == Container::Webm {
+                    VideoCodec::Av1
+                } else {
+                    VideoCodec::H264
+                };
+            }
+            if container == Container::Webm {
+                r.audio_codec = AudioCodec::Opus;
+            }
+            override_temp_path(input)
         }
     };
-    // Re-encoded video keeps the source's codec family when the container allows it.
-    let video_codec = match v.codec {
-        Some(c) if container_accepts_video(container, codec_ffmpeg_name(c)) => c,
-        _ if container == Container::Webm => VideoCodec::Av1,
-        _ => VideoCodec::H264,
-    };
-    let audio_codec =
-        if container == Container::Webm || info.audio.iter().any(|(_, t)| t.codec == "opus") {
-            AudioCodec::Opus
-        } else {
-            AudioCodec::Aac
-        };
-    let audio_bitrate_kbps = info
-        .audio
-        .iter()
-        .map(|(_, t)| t.bitrate_kbps)
-        .max()
-        .filter(|k| *k > 0)
-        .unwrap_or(192)
-        .clamp(96, 320);
-    let output = match mode {
-        SaveEditMode::New => edit_output_path(input, container.extension()),
-        SaveEditMode::Override => override_temp_path(input),
-    };
-    Ok(ExportRequest {
-        input_path: input.to_string_lossy().into_owned(),
-        output_path: Some(output.to_string_lossy().into_owned()),
-        scale: ScalePreset::Native,
-        fps: 0,
-        video_codec,
-        preset: QualityPreset::Quality,
-        rate_mode: RateMode::Quality,
-        quality: SAVE_QUALITY,
-        // Unused in quality mode, but validated.
-        bitrate_kbps: 8_000,
-        max_bitrate_kbps: 0,
-        target_size_mb: 25.0,
-        audio_codec,
-        audio_bitrate_kbps,
-        container,
-        stream_copy: true,
-        ..req.clone()
-    })
+    r.output_path = Some(output.to_string_lossy().into_owned());
+    Ok(r)
 }
 
 fn retry<T>(attempts: u32, delay: Duration, mut f: impl FnMut() -> io::Result<T>) -> io::Result<T> {
@@ -253,7 +234,7 @@ mod tests {
     use super::super::{plan, AudioOut, ExportAudioTrack, VideoPlan};
     use super::*;
     use crate::av::q;
-    use crate::settings::EncoderPreference;
+    use crate::settings::{EncoderPreference, QualityPreset, RateMode, ScalePreset};
 
     fn info(codec: Option<VideoCodec>, codec_name: &str, audio_codec: &str) -> MediaInfo {
         MediaInfo {
@@ -328,6 +309,23 @@ mod tests {
         }
     }
 
+    /// The "Original" preset: source size, stream copy, MP4, saved next to the clip.
+    fn original_request(input: &Path) -> ExportRequest {
+        ExportRequest {
+            output_path: None,
+            scale: ScalePreset::Native,
+            fps: 0,
+            video_codec: VideoCodec::H264,
+            rate_mode: RateMode::Quality,
+            quality: 18,
+            bitrate_kbps: 8_000,
+            audio_bitrate_kbps: 160,
+            container: Container::Mp4,
+            stream_copy: true,
+            ..editor_request(input)
+        }
+    }
+
     const KF: [f64; 3] = [0.0, 2.0, 4.0];
 
     /// An existing input file (the planner refuses outputs that resolve to the input).
@@ -370,10 +368,11 @@ mod tests {
     }
 
     #[test]
-    fn save_keeps_edits_and_matches_the_original_format() {
+    fn save_follows_the_export_options() {
         let dir = tempfile::tempdir().unwrap();
         let input = clip(&dir, "clip.mp4");
         let mut editor = editor_request(&input);
+        editor.output_path = None;
         editor.speed = 2.0;
         editor.fade_in = 1.0;
         editor.audio_tracks[2].volume = 0.5;
@@ -384,36 +383,27 @@ mod tests {
             SaveEditMode::New,
         )
         .unwrap();
-        // Edits survive.
+        // Edits and every export option survive; only the name is filled in.
         assert_eq!(
-            (r.trim_start, r.trim_end, r.speed, r.fade_in),
-            (2.0, 12.0, 2.0, 1.0)
+            ExportRequest {
+                output_path: None,
+                ..r.clone()
+            },
+            editor
         );
-        assert_eq!(r.audio_tracks, editor.audio_tracks);
-        assert_eq!(r.encoder, EncoderPreference::Nvenc);
-        // Format follows the original, not the Export panel.
-        assert_eq!(r.container, Container::Mp4);
-        assert_eq!(r.video_codec, VideoCodec::Hevc);
-        assert_eq!(r.audio_codec, AudioCodec::Aac);
-        assert_eq!(r.audio_bitrate_kbps, 160);
-        assert_eq!((r.scale, r.fps), (ScalePreset::Native, 0));
-        assert_eq!((r.rate_mode, r.quality), (RateMode::Quality, SAVE_QUALITY));
-        assert!(r.stream_copy);
         assert_eq!(
             r.output_path.as_deref(),
-            Some(dir.path().join("clip_edit.mp4").to_string_lossy().as_ref())
+            Some(dir.path().join("clip_edit.webm").to_string_lossy().as_ref())
         );
-        let p = plan(&r, &info(Some(VideoCodec::Hevc), "hevc", "aac"), &KF).unwrap();
-        assert!(matches!(
-            p.video,
-            VideoPlan::Encode {
-                width: 2560,
-                height: 1440,
-                fps: (60, 1),
-                codec: VideoCodec::Hevc,
-                ..
-            }
-        ));
+        // "Save as…" picks the place.
+        let r = save_request(
+            &input,
+            &editor_request(&input),
+            &info(Some(VideoCodec::Hevc), "hevc", "aac"),
+            SaveEditMode::New,
+        )
+        .unwrap();
+        assert_eq!(r.output_path.as_deref(), Some(r"C:\elsewhere\x.webm"));
     }
 
     #[test]
@@ -421,7 +411,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let input = clip(&dir, "clip.mp4");
         let i = info(Some(VideoCodec::H264), "h264", "aac");
-        let r = save_request(&input, &editor_request(&input), &i, SaveEditMode::New).unwrap();
+        let r = save_request(&input, &original_request(&input), &i, SaveEditMode::New).unwrap();
         let p = plan(&r, &i, &KF).unwrap();
         assert_eq!(p.video, VideoPlan::Copy);
         assert!(p.audio.iter().all(|a| matches!(a, AudioOut::Copy { .. })));
@@ -434,7 +424,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let input = clip(&dir, "clip.mp4");
         let i = info(Some(VideoCodec::H264), "h264", "aac");
-        let mut editor = editor_request(&input);
+        let mut editor = original_request(&input);
         editor.mix_audio = true;
         editor.keep_mixed_tracks = true;
         editor.audio_tracks[0].include = false;
@@ -465,7 +455,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let input = clip(&dir, "clip.webm");
         let i = info(None, "vp9", "opus");
-        let r = save_request(&input, &editor_request(&input), &i, SaveEditMode::Override).unwrap();
+        let mut editor = original_request(&input);
+        editor.video_codec = VideoCodec::Hevc;
+        let r = save_request(&input, &editor, &i, SaveEditMode::Override).unwrap();
         assert_eq!(r.container, Container::Webm);
         assert_eq!(
             r.video_codec,
@@ -483,7 +475,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let input = clip(&dir, "clip.mov");
         let i = info(Some(VideoCodec::H264), "h264", "aac");
-        let r = save_request(&input, &editor_request(&input), &i, SaveEditMode::New).unwrap();
+        let r = save_request(&input, &original_request(&input), &i, SaveEditMode::New).unwrap();
         assert_eq!(r.container, Container::Mp4);
         assert!(r.output_path.unwrap().ends_with("clip_edit.mp4"));
         let e =

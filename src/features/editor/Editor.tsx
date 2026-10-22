@@ -13,6 +13,7 @@ import {
 import { useApp } from "../../stores/app";
 import { clipSrc, unloadVideo } from "../clips/media";
 import { ExportPanel } from "../export/ExportPanel";
+import { activePreset } from "../export/presets";
 import type { LaneView } from "./AudioLane";
 import { CropBar } from "./CropBar";
 import { CropOverlay } from "./CropOverlay";
@@ -387,46 +388,6 @@ function ClipEditor({
           {info.width}×{info.height} · {Math.round(info.fps)} fps · {info.videoCodec.toUpperCase()}
         </span>
         <span className="spacer" />
-        <Button
-          small
-          variant="ghost"
-          icon="undo"
-          title="Undo (Ctrl+Z)"
-          disabled={!canUndo}
-          onClick={undo}
-        />
-        <Button
-          small
-          variant="ghost"
-          icon="redo"
-          title="Redo (Ctrl+Y)"
-          disabled={!canRedo}
-          onClick={redo}
-        />
-        <Button
-          small
-          variant="ghost"
-          icon="camera"
-          title="Save this frame as PNG"
-          onClick={() => void screenshot()}
-        />
-        <Button
-          small
-          variant="ghost"
-          icon="folder"
-          title="Show in folder"
-          onClick={() => void commands.revealClip(info.path)}
-        />
-        <span className="editor-head-sep" />
-        <SaveActions
-          path={info.path}
-          state={s}
-          dirty={hasEdits(s, initial)}
-          release={releaseVideo}
-          restore={restoreVideo}
-          onReplaced={onReplaced}
-        />
-        <span className="editor-head-sep" />
         <Button variant="ghost" icon="x" title="Close editor (Esc)" onClick={onClose} />
       </header>
 
@@ -513,6 +474,23 @@ function ClipEditor({
             <span className="mono">
               {formatTime(current)} / {formatTime(duration)}
             </span>
+            <span className="transport-sep" />
+            <Button
+              small
+              variant="ghost"
+              icon="undo"
+              title="Undo (Ctrl+Z)"
+              disabled={!canUndo}
+              onClick={undo}
+            />
+            <Button
+              small
+              variant="ghost"
+              icon="redo"
+              title="Redo (Ctrl+Y)"
+              disabled={!canRedo}
+              onClick={redo}
+            />
             <span className="spacer" />
             <div className="transport-tools">
               <Button small onClick={setIn} title="Set the start at the playhead (I)">
@@ -532,6 +510,21 @@ function ClipEditor({
               >
                 {s.crop && !cropMode ? `Crop ${s.crop.width}×${s.crop.height}` : "Crop"}
               </Button>
+              <Button
+                small
+                variant="ghost"
+                icon="camera"
+                title="Save this frame as PNG"
+                onClick={() => void screenshot()}
+              />
+              <Button
+                small
+                variant="ghost"
+                icon="folder"
+                title="Show in folder"
+                onClick={() => void commands.revealClip(info.path)}
+              />
+              <span className="transport-sep" />
               <span className="muted small">Loop</span>
               <Toggle value={loop} onChange={setLoop} label="Loop the selection" />
             </div>
@@ -568,8 +561,21 @@ function ClipEditor({
         </div>
 
         <aside className="editor-side">
-          <div className="side-title">Export</div>
-          <ExportPanel path={info.path} state={s} setOpts={setOpts} />
+          <ExportPanel
+            path={info.path}
+            state={s}
+            setOpts={setOpts}
+            actions={
+              <SaveActions
+                path={info.path}
+                state={s}
+                canOverride={hasEdits(s, initial) || activePreset(s.x)?.id !== "original"}
+                release={releaseVideo}
+                restore={restoreVideo}
+                onReplaced={onReplaced}
+              />
+            }
+          />
         </aside>
       </div>
     </div>
