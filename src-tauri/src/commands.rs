@@ -268,7 +268,8 @@ pub async fn save_clip(app: AppHandle) -> AppResult<ClipInfo> {
 pub async fn toggle_recording(app: AppHandle) -> AppResult<BufferStatus> {
     blocking(move || {
         let state = app.state::<AppState>();
-        if let Some(path) = state.engine.toggle_recording()? {
+        let game = crate::actions::game_now(&state);
+        if let Some(path) = state.engine.toggle_recording(game.as_deref())? {
             state.clips.set_last_saved(&path);
             events::emit(&app, events::CLIPS_CHANGED, ());
         }

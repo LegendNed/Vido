@@ -150,12 +150,10 @@ impl ClipLibrary {
     /// Lists clips (newest first). Missing thumbnails are generated in the
     /// background; `on_thumbs` runs once they are ready.
     pub fn list(&self, dir: &Path, on_thumbs: impl FnOnce() + Send + 'static) -> Vec<ClipInfo> {
-        let Ok(rd) = std::fs::read_dir(dir) else {
-            return Vec::new();
-        };
+        let entries = clip_folder_entries(dir);
         let mut out = Vec::new();
         let mut missing = Vec::new();
-        for entry in rd.flatten() {
+        for entry in entries {
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().to_lowercase();
             if !is_media_file(&path)
@@ -239,9 +237,8 @@ impl ClipLibrary {
                 return Some(p);
             }
         }
-        std::fs::read_dir(dir)
-            .ok()?
-            .flatten()
+        clip_folder_entries(dir)
+            .into_iter()
             .filter(|e| {
                 let name = e.file_name().to_string_lossy().to_lowercase();
                 is_media_file(&e.path()) && !name.ends_with(".partial") && !is_override_temp(&name)
@@ -267,6 +264,27 @@ impl ClipLibrary {
 
 /// Resolves a frontend-supplied clip path, requiring it to be an existing media
 /// file inside `root` (the clips folder). Prevents deleting arbitrary files.
+/// Entries of the clips folder and of its game folders (one level deep).
+fn clip_folder_entries(dir: &Path) -> Vec<std::fs::DirEntry> {
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut entries = Vec::new();
+    for entry in rd.flatten() {
+        let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
+        if is_dir {
+            if !entry.file_name().to_string_lossy().starts_with('.') {
+                if let Ok(inner) = std::fs::read_dir(entry.path()) {
+                    entries.extend(inner.flatten());
+                }
+            }
+        } else {
+            entries.push(entry);
+        }
+    }
+    entries
+}
+
 pub fn ensure_in_dir(path: &str, root: &Path) -> AppResult<PathBuf> {
     let p = PathBuf::from(path);
     if !p.is_absolute() || !is_media_file(&p) {

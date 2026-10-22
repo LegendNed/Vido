@@ -24,6 +24,7 @@ import {
   SORT_OPTIONS,
   sortClips,
   cardWidth,
+  clipGame,
   GRID_STEPS,
   type ClipView,
 } from "./clipView";
@@ -42,6 +43,8 @@ export function ClipsPage({ open }: { open?: string | null }) {
   const saveKey = useApp((s) => s.settings?.hotkeys.saveClip);
   const openEditor = useApp((s) => s.openEditor);
   const [view, setViewState] = useState<ClipView>(loadView);
+  /** "" = all games, "\u0000" = clips without a game, else a game's name. */
+  const [game, setGame] = useState("");
   const setView = (patch: Partial<ClipView>) => {
     setViewState((v) => {
       const next = { ...v, ...patch };
@@ -83,7 +86,36 @@ export function ClipsPage({ open }: { open?: string | null }) {
   };
 
   const canSave = status?.state === "buffering" || status?.state === "paused";
-  const sorted = useMemo(() => (clips ? sortClips(clips, view.sort) : null), [clips, view.sort]);
+  const root = info?.outputDir;
+  // Games with clips, for the filter (alphabetical; "No game" last).
+  const games = useMemo(() => {
+    const names = new Set<string>();
+    let other = false;
+    for (const c of clips ?? []) {
+      const g = clipGame(c.path, root);
+      if (g) names.add(g);
+      else other = true;
+    }
+    return { names: [...names].sort((a, b) => a.localeCompare(b)), other };
+  }, [clips, root]);
+  const gameOptions = [
+    { value: "", label: "All games" },
+    ...games.names.map((n) => ({ value: n, label: n })),
+    ...(games.other ? [{ value: "\u0000", label: "No game" }] : []),
+  ];
+  const filtered = useMemo(
+    () =>
+      clips?.filter((c) => {
+        if (!game) return true;
+        const g = clipGame(c.path, root);
+        return game === "\u0000" ? g === null : g === game;
+      }) ?? null,
+    [clips, game, root],
+  );
+  const sorted = useMemo(
+    () => (filtered ? sortClips(filtered, view.sort) : null),
+    [filtered, view.sort],
+  );
   // The newest clip gets the "Latest clip" card (Play / Edit), only when sorting newest first.
   const featured = view.sort === "newest" ? sorted?.[0] : undefined;
   const groups = useMemo(
@@ -152,6 +184,14 @@ export function ClipsPage({ open }: { open?: string | null }) {
                 setView({ sort: v });
               }}
             />
+            {games.names.length > 0 && (
+              <Select
+                value={gameOptions.some((o) => o.value === game) ? game : ""}
+                options={gameOptions}
+                width={180}
+                onChange={setGame}
+              />
+            )}
             <Checkbox
               checked={view.groupByDate}
               onChange={(v) => {
@@ -162,7 +202,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
             </Checkbox>
             <span className="spacer" />
             <span className="muted small">
-              {clips.length} clip{clips.length === 1 ? "" : "s"}
+              {shown.length} clip{shown.length === 1 ? "" : "s"}
             </span>
             <div className="grid-size" title="Card size">
               <Icon name="gridSmall" size={14} />
@@ -238,6 +278,9 @@ export function ClipsPage({ open }: { open?: string | null }) {
                           <span>{formatBytes(c.sizeBytes)}</span>
                         </div>
                         <div className="clip-tags">
+                          {clipGame(c.path, root) && (
+                            <Badge tone="accent">{clipGame(c.path, root)}</Badge>
+                          )}
                           <Badge>
                             {c.height}p{Math.round(c.fps)}
                           </Badge>

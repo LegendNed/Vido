@@ -675,8 +675,9 @@ impl Engine {
 
     /// Saves everything in the buffer: the last `capture.bufferSeconds` (from the keyframe
     /// at or before that point), or all of it if less is buffered. Blocks up to ~1 s.
-    /// With re-encode-on-save the file goes to [`Self::staging_dir`].
-    pub fn save_clip(&self) -> AppResult<SavedClip> {
+    /// With re-encode-on-save the file goes to [`Self::staging_dir`]. A clip of
+    /// `game` goes into that game's folder (when game folders are on).
+    pub fn save_clip(&self, game: Option<&str>) -> AppResult<SavedClip> {
         let (settings, end_us, source) = {
             let st = self.inner.state.lock();
             if self.inner.buffer.epoch().is_none() {
@@ -705,6 +706,7 @@ impl Engine {
         } else {
             Self::output_dir(&settings, &self.inner.paths)
         };
+        let dir = Self::game_dir(&settings, dir, game);
         std::fs::create_dir_all(&dir).map_err(|e| {
             AppError::new(
                 ErrorCode::Io,
@@ -717,6 +719,7 @@ impl Engine {
             &settings.saving.filename_template,
             chrono::Local::now(),
             &source,
+            game,
             secs,
         );
         let path = crate::util::unique_path(&dir, &name, settings.saving.container.extension());
@@ -740,8 +743,19 @@ impl Engine {
         self.inner.state.lock().recording.is_some()
     }
 
-    /// Starts or stops manual recording. Returns the finished file when stopping.
-    pub fn toggle_recording(&self) -> AppResult<Option<PathBuf>> {
+    /// `dir\<game>` when game folders are on and a game was detected, else `dir`.
+    pub fn game_dir(settings: &Settings, dir: PathBuf, game: Option<&str>) -> PathBuf {
+        match game {
+            Some(g) if settings.saving.game_folders => {
+                dir.join(crate::util::sanitize_component(g, 80))
+            }
+            _ => dir,
+        }
+    }
+
+    /// Starts or stops manual recording (into `game`'s folder). Returns the
+    /// finished file when stopping.
+    pub fn toggle_recording(&self, game: Option<&str>) -> AppResult<Option<PathBuf>> {
         let existing = self.inner.state.lock().recording.take();
         if let Some(r) = existing {
             let out = self.finish_recording(r);
@@ -758,13 +772,18 @@ impl Engine {
             }
             st.settings.clone()
         };
-        let dir = Self::output_dir(&settings, &self.inner.paths);
+        let dir = Self::game_dir(
+            &settings,
+            Self::output_dir(&settings, &self.inner.paths),
+            game,
+        );
         std::fs::create_dir_all(&dir)?;
         let source = self.inner.state.lock().last_source_name.clone();
         let name = crate::util::render_filename(
             &settings.saving.filename_template,
             chrono::Local::now(),
             &source,
+            game,
             0,
         );
         let path = crate::util::unique_path(

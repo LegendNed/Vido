@@ -44,14 +44,17 @@ pub fn sanitize_component(s: &str, max_chars: usize) -> String {
 }
 
 /// Renders a validated filename template (without extension).
+/// `{game}` is the detected game, or "Clip" when there is none.
 pub fn render_filename(
     template: &str,
     now: DateTime<Local>,
     source: &str,
+    game: Option<&str>,
     duration_s: u32,
 ) -> String {
     let name = template
         .replace("{date}", &now.format("%Y-%m-%d").to_string())
+        .replace("{game}", &sanitize_component(game.unwrap_or("Clip"), 60))
         .replace("{time}", &now.format("%H-%M-%S").to_string())
         .replace("{source}", &sanitize_component(source, 40))
         .replace("{duration}", &format!("{duration_s}s"));
@@ -116,11 +119,17 @@ mod tests {
     fn renders_default_template() {
         let now = Local.with_ymd_and_hms(2026, 10, 18, 14, 32, 5).unwrap();
         assert_eq!(
-            render_filename("Vido_{date}_{time}", now, "x", 30),
+            render_filename("Vido_{date}_{time}", now, "x", None, 30),
             "Vido_2026-10-18_14-32-05"
         );
         assert_eq!(
-            render_filename("{source} - {duration}", now, "Game: \"Best\" <Ed.>", 15),
+            render_filename(
+                "{source} - {duration}",
+                now,
+                "Game: \"Best\" <Ed.>",
+                None,
+                15
+            ),
             "Game_ _Best_ _Ed._ - 15s"
         );
     }

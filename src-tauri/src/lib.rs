@@ -14,6 +14,7 @@ pub mod engine;
 pub mod error;
 pub mod events;
 pub mod export;
+pub mod games;
 pub mod hotkeys;
 #[cfg(windows)]
 pub mod hud;
@@ -99,7 +100,7 @@ fn watch_output_dir(app: &tauri::AppHandle) {
     use windows::Win32::Foundation::{WAIT_OBJECT_0, WAIT_TIMEOUT};
     use windows::Win32::Storage::FileSystem::{
         FindCloseChangeNotification, FindFirstChangeNotificationW, FindNextChangeNotification,
-        FILE_NOTIFY_CHANGE_FILE_NAME,
+        FILE_NOTIFY_CHANGE_DIR_NAME, FILE_NOTIFY_CHANGE_FILE_NAME,
     };
     use windows::Win32::System::Threading::WaitForSingleObject;
 
@@ -111,8 +112,9 @@ fn watch_output_dir(app: &tauri::AppHandle) {
         let handle = unsafe {
             FindFirstChangeNotificationW(
                 &HSTRING::from(dir.as_os_str()),
-                false,
-                FILE_NOTIFY_CHANGE_FILE_NAME,
+                // Game folders too.
+                true,
+                FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME,
             )
         };
         let Ok(handle) = handle else {
@@ -241,6 +243,9 @@ fn setup(
                 Err(e) => tracing::warn!("audio device notifications unavailable: {}", e.message),
             }
         })?;
+
+    // Remembers the game in the foreground (clips go into per-game folders).
+    games::start_sampler();
 
     // Files added, deleted or renamed in the clips folder outside Vido.
     #[cfg(windows)]

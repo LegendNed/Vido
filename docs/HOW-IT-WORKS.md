@@ -35,6 +35,13 @@
 - **Instant save** waits (≤0.7 s) for audio to catch up to "now", freezes the needed segments
   (segment files are deleted only when no save still references them), and remuxes them into the
   clip under a temporary name before renaming it, so other apps never see half-written files.
+- **Game folders.** Vido reads the local library files of Steam (`libraryfolders.vdf`,
+  `appmanifest_*.acf`), Epic (`.item` manifests), GOG, EA app and Ubisoft Connect (registry) to
+  know where games are installed and what they're called; nothing is fetched online. When saving,
+  the foreground program's executable is matched against those folders; a background check every
+  3 s remembers the last game, so a clip saved from the tray still gets it. Clips of a game go to
+  `<clips folder>\<game>\` (also while staged for re-encoding), others to the clips folder.
+  `{game}` in the filename template is the game's name ("Clip" without one).
 - Each clip gets a **mix track** (what players play) plus **one track per audio source** for the
   editor.
 - **Re-encode on save** writes the instant save to `cache\pending` instead of the clips folder,

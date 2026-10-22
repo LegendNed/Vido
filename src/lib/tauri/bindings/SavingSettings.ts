@@ -25,4 +25,9 @@ reencode: ExportDefaults,
  * Re-encode-on-save: a second popup (with the save sound) once the
  * re-encoded clip is ready.
  */
-reencodeDonePopup: boolean, postSave: PostSaveActions, };
+reencodeDonePopup: boolean, 
+/**
+ * Clips of a detected game go into `<clips folder>\<game>`; others stay in
+ * the clips folder itself.
+ */
+gameFolders: boolean, postSave: PostSaveActions, };

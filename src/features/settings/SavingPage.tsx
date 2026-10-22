@@ -25,7 +25,8 @@ function previewName(template: string): string {
   return template
     .replaceAll("{date}", date)
     .replaceAll("{time}", time)
-    .replaceAll("{source}", "Game")
+    .replaceAll("{source}", "Display 1")
+    .replaceAll("{game}", "Apex Legends")
     .replaceAll("{duration}", "30s");
 }
 
@@ -97,10 +98,24 @@ export function SavingPage() {
           />
         </Field>
         <Field
+          label="Sort clips into game folders"
+          description="Clips of games installed through Steam, Epic, GOG, EA app or Ubisoft Connect go into a folder named after the game; everything else stays in the clips folder."
+        >
+          <Toggle
+            label="Sort clips into game folders"
+            value={sv.gameFolders}
+            onChange={(v) => {
+              update((d) => {
+                d.saving.gameFolders = v;
+              });
+            }}
+          />
+        </Field>
+        <Field
           label="File name"
           description={
             <>
-              Tokens: {"{date} {time} {source} {duration}"} · Preview:{" "}
+              Tokens: {"{date} {time} {game} {source} {duration}"} · Preview:{" "}
               <span className="mono">
                 {previewName(sv.filenameTemplate)}.{extension}
               </span>

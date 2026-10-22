@@ -8,6 +8,7 @@ import { clamp, formatBytes, formatDate, formatDuration, formatTime } from "../.
 import { commands } from "../../lib/tauri/commands";
 import { errorMessage, type ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import { clipGame } from "./clipView";
 import { clipSrc, unloadVideo } from "./media";
 
 const VOLUME_KEY = "vido.viewer.volume";
@@ -57,6 +58,7 @@ export function ClipViewer({
   onClose: () => void;
 }) {
   const notify = useApp((s) => s.notify);
+  const outputDir = useApp((s) => s.info?.outputDir);
   const clip = clips[index] as ClipInfo;
   const prev = clips[index - 1];
   const next = clips[index + 1];
@@ -356,6 +358,7 @@ export function ClipViewer({
               {clip.fileName}
             </div>
             <div className="meta">
+              {clipGame(clip.path, outputDir) && <span>{clipGame(clip.path, outputDir)}</span>}
               <span>{formatDate(clip.modifiedMs)}</span>
               <span>{formatDuration(clip.durationSec)}</span>
               <span>{formatBytes(clip.sizeBytes)}</span>

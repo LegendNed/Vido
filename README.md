@@ -90,6 +90,9 @@ Clips are saved to `Videos\Vido` (change it in Settings → Saving).
 
 ### Save clips
 
+- **Sorted by game:** clips of games installed through Steam, Epic, GOG, EA app or Ubisoft
+  Connect go into a folder named after the game (everything else stays in the main folder), and
+  the Clips page can filter by game.
 - **Clip length** from 5 seconds to 10 minutes. Saving takes everything in the buffer.
 - **Quality presets** (Low, Standard, High, Native, or your own resolution, frame rate and bitrate).
 - Record a **display, a window** (found again after the game restarts) **or a region**.

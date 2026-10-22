@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { Button } from "../../components/controls";
 import { formatBytes, formatDate, formatDuration } from "../../lib/format";
 import type { ClipInfo } from "../../lib/tauri/types";
+import { useApp } from "../../stores/app";
+import { clipGame } from "./clipView";
 import { clipSrc } from "./media";
 
 /**
@@ -23,6 +25,10 @@ export function ClipsHero({
   tools?: ReactNode;
 }) {
   const [frameReady, setFrameReady] = useState(false);
+  const game = clipGame(
+    clip.path,
+    useApp((s) => s.info?.outputDir),
+  );
   // Same moment as the thumbnail, so the sharper frame doesn't jump.
   const at = Math.min(clip.durationSec / 3, 1).toFixed(2);
   return (
@@ -52,6 +58,7 @@ export function ClipsHero({
           {clip.fileName}
         </h2>
         <div className="hero-meta">
+          {game && <span>{game}</span>}
           <span>{formatDate(clip.modifiedMs)}</span>
           <span>{formatDuration(clip.durationSec)}</span>
           <span>{formatBytes(clip.sizeBytes)}</span>

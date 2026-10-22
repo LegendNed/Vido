@@ -101,6 +101,7 @@
       "streamCopy": false
     },
     "reencodeDonePopup": true,
+    "gameFolders": true,
     "postSave": {
       "openEditor": false,
       "openFolder": false,

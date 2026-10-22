@@ -35,6 +35,18 @@ fn report_error(app: &AppHandle, kind: &str, e: &AppError) {
     events::issue(app, CaptureIssue::from_error(kind, e));
 }
 
+/// The game for a clip saved now (see [`crate::games`]); only looked up when it
+/// is used (game folders or a `{game}` file name).
+pub fn game_now(state: &AppState) -> Option<String> {
+    let s = state.settings.get();
+    if !s.saving.game_folders && !s.saving.filename_template.contains("{game}") {
+        return None;
+    }
+    // A game played during the clip counts, also when saving from the tray.
+    let within = std::time::Duration::from_secs(u64::from(s.capture.buffer_seconds) + 30);
+    crate::games::current(within)
+}
+
 /// Saves the clip (the whole buffer) in the background.
 pub fn save(app: &AppHandle) {
     let app = app.clone();
@@ -44,7 +56,7 @@ pub fn save(app: &AppHandle) {
             let Some(state) = app.try_state::<AppState>() else {
                 return;
             };
-            match state.engine.save_clip() {
+            match state.engine.save_clip(game_now(&state).as_deref()) {
                 Ok(clip) => after_save(&app, &state, &clip),
                 Err(e) => report_error(&app, "save-failed", &e),
             }
@@ -55,7 +67,7 @@ pub fn save(app: &AppHandle) {
 /// Synchronous save for the `save_clip` command.
 pub fn save_blocking(app: &AppHandle) -> AppResult<crate::clips::ClipInfo> {
     let state = app.state::<AppState>();
-    let clip = state.engine.save_clip()?;
+    let clip = state.engine.save_clip(game_now(&state).as_deref())?;
     after_save(app, &state, &clip);
     state.clips.info(Path::new(&clip.path))
 }
@@ -232,9 +244,16 @@ fn keep_staged(app: &AppHandle, state: &AppState, staged: &Path, duration_sec: f
     }
 }
 
-/// A free `<staged name>.<ext>` in the clips folder.
+/// A free `<staged name>.<ext>` in the clips folder, in the same game folder the
+/// clip was staged in.
 fn output_path_for(state: &AppState, staged: &Path, ext: &str) -> AppResult<PathBuf> {
-    let dir = state.output_dir();
+    let staging = Engine::staging_dir(&state.settings.get(), &state.paths);
+    let sub = staged
+        .parent()
+        .and_then(|p| p.strip_prefix(&staging).ok())
+        .map(Path::to_path_buf)
+        .unwrap_or_default();
+    let dir = state.output_dir().join(sub);
     std::fs::create_dir_all(&dir).map_err(|e| {
         AppError::new(
             ErrorCode::Io,
@@ -270,7 +289,19 @@ pub fn recover_staged(state: &AppState) {
     let Ok(entries) = std::fs::read_dir(&dir) else {
         return;
     };
-    for p in entries.flatten().map(|e| e.path()).filter(|p| p.is_file()) {
+    // Clips of a game are staged in its folder.
+    let mut files = Vec::new();
+    for p in entries.flatten().map(|e| e.path()) {
+        if p.is_dir() {
+            if let Ok(inner) = std::fs::read_dir(&p) {
+                files.extend(inner.flatten().map(|e| e.path()).filter(|p| p.is_file()));
+            }
+            let _ = std::fs::remove_dir(&p);
+        } else if p.is_file() {
+            files.push(p);
+        }
+    }
+    for p in files {
         match move_to_output(state, &p) {
             Ok(dest) => tracing::info!("recovered {} as {}", p.display(), dest.display()),
             Err(e) => tracing::warn!("could not recover {}: {}", p.display(), e.message),
@@ -346,7 +377,7 @@ pub fn toggle_recording(app: &AppHandle) {
         let Some(state) = app.try_state::<AppState>() else {
             return;
         };
-        match state.engine.toggle_recording() {
+        match state.engine.toggle_recording(game_now(&state).as_deref()) {
             Ok(None) => events::toast(&app, ToastKind::Recording, "Recording…"),
             Ok(Some(path)) => {
                 state.clips.set_last_saved(&path);

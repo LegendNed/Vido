@@ -549,6 +549,9 @@ pub struct SavingSettings {
     /// Re-encode-on-save: a second popup (with the save sound) once the
     /// re-encoded clip is ready.
     pub reencode_done_popup: bool,
+    /// Clips of a detected game go into `<clips folder>\<game>`; others stay in
+    /// the clips folder itself.
+    pub game_folders: bool,
     pub post_save: PostSaveActions,
 }
 
@@ -750,6 +753,7 @@ impl Default for SavingSettings {
             save_mode: SaveMode::Remux,
             reencode: ExportDefaults::high_quality(),
             reencode_done_popup: true,
+            game_folders: true,
             post_save: PostSaveActions::default(),
         }
     }

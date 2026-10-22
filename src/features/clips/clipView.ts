@@ -105,3 +105,17 @@ export function groupClips(
     .sort((a, b) => b[1].newest - a[1].newest)
     .map(([title, g]) => ({ title, clips: g.clips }));
 }
+
+/**
+ * The game a clip belongs to: the folder it is in under the clips folder
+ * (`<clips folder>\<game>\clip.mp4`), or `null` for clips in the clips folder itself.
+ */
+export function clipGame(path: string, root: string | undefined): string | null {
+  if (!root) return null;
+  const p = path.replace(/\//g, "\\");
+  const r = `${root.replace(/\//g, "\\").replace(/\\+$/, "")}\\`;
+  if (!p.toLowerCase().startsWith(r.toLowerCase())) return null;
+  const rest = p.slice(r.length);
+  const i = rest.indexOf("\\");
+  return i > 0 ? rest.slice(0, i) : null;
+}
