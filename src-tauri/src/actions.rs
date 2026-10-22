@@ -42,9 +42,18 @@ pub fn game_now(state: &AppState) -> Option<String> {
     if !s.saving.game_folders && !s.saving.filename_template.contains("{game}") {
         return None;
     }
-    // A game played during the clip counts, also when saving from the tray.
-    let within = std::time::Duration::from_secs(u64::from(s.capture.buffer_seconds) + 30);
-    crate::games::current(within)
+    crate::games::current(game_window(state))
+}
+
+/// The game a clip saved now would be filed under (shown in the main window).
+pub fn game_playing(state: &AppState) -> Option<String> {
+    crate::games::recent(game_window(state))
+}
+
+/// A game played during the clip counts, also when saving from the tray.
+fn game_window(state: &AppState) -> std::time::Duration {
+    let secs = u64::from(state.settings.get().capture.buffer_seconds) + 30;
+    std::time::Duration::from_secs(secs)
 }
 
 /// Saves the clip (the whole buffer) in the background.

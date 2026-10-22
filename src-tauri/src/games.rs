@@ -59,9 +59,11 @@ const SAMPLE: Duration = Duration::from_secs(3);
 /// The game for a clip saved now: the one in the foreground, else the last one
 /// seen in the foreground within `within`.
 pub fn current(within: Duration) -> Option<String> {
-    if let Some(g) = sample() {
-        return Some(g);
-    }
+    sample().or_else(|| recent(within))
+}
+
+/// The last game seen in the foreground within `within` (without looking again).
+pub fn recent(within: Duration) -> Option<String> {
     let d = DETECTOR.lock();
     d.last
         .as_ref()
@@ -69,14 +71,16 @@ pub fn current(within: Duration) -> Option<String> {
         .map(|(g, _)| g.clone())
 }
 
-/// Checks the foreground window every few seconds (cheap: a few system calls).
-/// `data_dir` holds `games.json` with the remembered names.
-pub fn start_sampler(data_dir: &Path) {
+/// Checks the foreground window every few seconds (cheap: a few system calls),
+/// calling `after` after each check. `data_dir` holds `games.json` with the
+/// remembered names.
+pub fn start_sampler(data_dir: &Path, after: impl Fn() + Send + 'static) {
     let _ = NAMES_FILE.set(data_dir.join("games.json"));
     let _ = std::thread::Builder::new()
         .name("vido-games".into())
-        .spawn(|| loop {
+        .spawn(move || loop {
             sample();
+            after();
             std::thread::sleep(SAMPLE);
         });
 }

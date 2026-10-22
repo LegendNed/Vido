@@ -18,6 +18,8 @@ pub const EXPORT_FAILED: &str = "export-failed";
 pub const HOTKEY_TRIGGERED: &str = "hotkey-triggered";
 pub const CLIP_SAVED: &str = "clip-saved";
 pub const CLIPS_CHANGED: &str = "clips-changed";
+/// The game being played changed (`Option<String>`).
+pub const GAME_CHANGED: &str = "game-changed";
 pub const SETTINGS_CHANGED: &str = "settings-changed";
 pub const EDITOR_OPEN: &str = "editor-open";
 pub const NAVIGATE: &str = "navigate";

@@ -1,7 +1,11 @@
+import { useEffect, useState } from "react";
+
 import vidoIcon from "../../assets/vido-icon.png";
 import { Icon, type IconName } from "../../components/Icon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/misc";
 import { formatBitrate, formatBytes, formatTime } from "../../lib/format";
+import { commands } from "../../lib/tauri/commands";
+import { useEvent } from "../../lib/tauri/events";
 import { cn } from "../../lib/utils";
 import { useApp } from "../../stores/app";
 import type { SettingsGroupId } from "../settings/groups";
@@ -81,9 +85,65 @@ function Item({
 }
 
 /** Buffer state and memory, capture source, resolution and bitrate in the sidebar footer. */
+/** Shown under the buffer state while no game is detected (a new one every so often). */
+const IDLE_PHRASES = [
+  "Doing nothing",
+  "Pondering",
+  "Exploring the desktop",
+  "Staring at the taskbar",
+  "Waiting for a game",
+  "Rearranging icons",
+  "Browsing around",
+  "Touching grass",
+  "Taking a breather",
+  "Warming up",
+  "Admiring the wallpaper",
+  "Thinking about games",
+  "On a coffee break",
+  "Contemplating life",
+];
+
+const randomPhrase = () => IDLE_PHRASES[Math.floor(Math.random() * IDLE_PHRASES.length)] ?? "";
+
+/** The game a clip saved now would be filed under, kept current by `game-changed`. */
+function useGame(): string | null {
+  const [game, setGame] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    commands.getCurrentGame().then(
+      (g) => {
+        if (alive) setGame(g);
+      },
+      () => {},
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEvent("game-changed", setGame);
+  return game;
+}
+
+/** An idle phrase that changes every 45 s. */
+function useIdlePhrase(): string {
+  const [phrase, setPhrase] = useState(randomPhrase);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setPhrase(randomPhrase());
+    }, 45_000);
+    return () => {
+      clearInterval(t);
+    };
+  }, []);
+  return phrase;
+}
+
 function BufferStatus({ collapsed }: { collapsed: boolean }) {
   const status = useApp((s) => s.status);
+  const game = useGame();
+  const idle = useIdlePhrase();
   if (!status) return null;
+  const activity = game ? `Playing ${game}` : idle;
   const live = status.state === "buffering";
   const memory = status.state !== "stopped" && status.sizeBytes > 0;
   const text = [
@@ -123,7 +183,7 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
         "flex items-start gap-2 rounded-md border bg-background/50 px-2.5 py-2 text-xs leading-5",
         collapsed && "justify-center px-0",
       )}
-      title={collapsed ? text : undefined}
+      title={collapsed ? `${text}\n${activity}` : undefined}
     >
       {dot}
       {!collapsed && (
@@ -139,6 +199,9 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
               {d}
             </div>
           ))}
+          <div className="truncate font-medium" title={activity}>
+            {activity}
+          </div>
           {status.droppedFrames > 0 && (
             <div className="truncate text-warning">{status.droppedFrames} frames dropped</div>
           )}

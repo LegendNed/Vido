@@ -30,6 +30,7 @@ export interface EventMap {
   "hotkey-triggered": HotkeyTriggered;
   "clip-saved": ClipInfo;
   "clips-changed": null;
+  "game-changed": string | null;
   "settings-changed": Settings;
   "editor-open": EditorOpen;
   navigate: Navigate;

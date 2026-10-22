@@ -531,6 +531,12 @@ pub async fn pick_folder(app: AppHandle, initial: Option<String>) -> AppResult<O
     .await
 }
 
+/// The game a clip saved now would be filed under (also sent as `game-changed`).
+#[tauri::command]
+pub fn get_current_game(state: AppStateRef<'_>) -> Option<String> {
+    crate::actions::game_playing(&state)
+}
+
 #[tauri::command]
 pub async fn pick_sound_file(app: AppHandle, initial: Option<String>) -> AppResult<Option<String>> {
     blocking(move || {

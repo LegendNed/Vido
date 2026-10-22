@@ -90,6 +90,7 @@ export const commands = {
   openEditor: (path?: string) => invoke<undefined>("open_editor", { path }),
   showMainWindow: (page?: string) => invoke<undefined>("show_main_window", { page }),
   pickFolder: (initial?: string) => invoke<string | null>("pick_folder", { initial }),
+  getCurrentGame: () => invoke<string | null>("get_current_game"),
   pickSoundFile: (initial?: string) => invoke<string | null>("pick_sound_file", { initial }),
   previewSaveSound: (sound: SaveSound, path: string | null, volume: number) =>
     invoke<null>("preview_save_sound", { sound, path, volume }),
