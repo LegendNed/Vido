@@ -245,7 +245,7 @@ fn setup(
         })?;
 
     // Remembers the game in the foreground (clips go into per-game folders).
-    games::start_sampler();
+    games::start_sampler(&handle.state::<AppState>().paths.data_dir);
 
     // Files added, deleted or renamed in the clips folder outside Vido.
     #[cfg(windows)]

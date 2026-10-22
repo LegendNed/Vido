@@ -99,7 +99,7 @@ export function SavingPage() {
         </Field>
         <Field
           label="Sort clips into game folders"
-          description="Clips of games installed through Steam, Epic, GOG, EA app or Ubisoft Connect go into a folder named after the game; everything else stays in the clips folder."
+          description="Clips of games (anything Windows Game Bar recognises, or installed through Steam, Epic, GOG, EA app or Ubisoft Connect) go into a folder named after the game; everything else stays in the clips folder."
         >
           <Toggle
             label="Sort clips into game folders"

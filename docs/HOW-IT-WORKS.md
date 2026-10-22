@@ -35,13 +35,19 @@
 - **Instant save** waits (≤0.7 s) for audio to catch up to "now", freezes the needed segments
   (segment files are deleted only when no save still references them), and remuxes them into the
   clip under a temporary name before renaming it, so other apps never see half-written files.
-- **Game folders.** Vido reads the local library files of Steam (`libraryfolders.vdf`,
-  `appmanifest_*.acf`), Epic (`.item` manifests), GOG, EA app and Ubisoft Connect (registry) to
-  know where games are installed and what they're called; nothing is fetched online. When saving,
-  the foreground program's executable is matched against those folders; a background check every
-  3 s remembers the last game, so a clip saved from the tray still gets it. Clips of a game go to
-  `<clips folder>\<game>\` (also while staged for re-encoding), others to the clips folder.
-  `{game}` in the filename template is the game's name ("Clip" without one).
+- **Game folders.** _Is it a game?_ The foreground program counts as one when Windows' Game Bar
+  recognised it (`HKCU\System\GameConfigStore`, the list behind Win+G) or when it runs from a
+  folder that Steam (`libraryfolders.vdf`, `appmanifest_*.acf`), Epic (`.item` manifests), GOG, EA
+  app or Ubisoft Connect (registry) installed. Window titles and exe names never decide this.
+  _What is it called?_ The first of: the library's official name; the name remembered for that
+  exe in `games.json` (so a game keeps one folder even when its window title changes); built-in
+  names for odd cases (Minecraft runs as `javaw.exe`); the window title without version numbers;
+  the exe's product name (unless it names an engine such as Unreal or OpenJDK); the game's folder
+  (skipping `Binaries\Win64`, Unreal project code names and version suffixes); the exe name.
+  Nothing is fetched online. A background check every 3 s remembers the last game, so a clip saved
+  from the tray still gets it. Clips of a game go to `<clips folder>\<game>\` (also while staged
+  for re-encoding), others to the clips folder. `{game}` in the filename template is the game's
+  name ("Clip" without one).
 - Each clip gets a **mix track** (what players play) plus **one track per audio source** for the
   editor.
 - **Re-encode on save** writes the instant save to `cache\pending` instead of the clips folder,

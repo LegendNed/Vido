@@ -7,6 +7,7 @@
 | Settings                              | `%APPDATA%\Vido\settings.json` | `.\data\settings.json` |
 | Logs (5 × 5 MB, rotated)              | `%LOCALAPPDATA%\Vido\logs`     | `.\data\logs`          |
 | Buffer segments, thumbnails, previews | `%LOCALAPPDATA%\Vido\cache`    | `.\data\cache`         |
+| Names given to detected games         | `%APPDATA%\Vido\games.json`    | `.\data\games.json`    |
 | Clips waiting to be re-encoded        | `...\cache\pending`            | `.\data\cache\pending` |
 | Clips (one folder per game)           | `Videos\Vido` (configurable)   | same                   |
 
