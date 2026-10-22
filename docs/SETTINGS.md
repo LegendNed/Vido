@@ -35,10 +35,3 @@ failures (another app owns the shortcut) are shown per action.
 The clip length is the buffer length. Settings from earlier versions, which had "save last
 15/30/60 s" and "save custom length" hotkeys, are migrated: Save clip gets the 30 s key (else the
 60 s, 15 s or custom-length one; none if all were unbound).
-
-## Upgrading from ClipDeck
-
-ClipDeck was Vido's earlier name. On first launch the old `ClipDeck` folders in `%APPDATA%`,
-`%LOCALAPPDATA%` and `Videos` are renamed to `Vido` (never overwriting an existing `Vido` folder),
-and settings that still use the old filename template or folders are updated. Existing clip file
-names are kept.

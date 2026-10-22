@@ -160,8 +160,7 @@ frame (Shift: 1 s), **I/O** set in/out, **Ctrl+Z / Ctrl+Y** undo/redo.
 
 - [Building from source](docs/BUILDING.md): prerequisites, scripts, tests, installer and portable builds.
 - [How it works](docs/HOW-IT-WORKS.md): the replay buffer, saving, Windows APIs and permissions.
-- [Settings & files](docs/SETTINGS.md): where Vido keeps settings, logs and caches, hotkey rules,
-  upgrading from ClipDeck.
+- [Settings & files](docs/SETTINGS.md): where Vido keeps settings, logs and caches, hotkey rules.
 - [Architecture](docs/ARCHITECTURE.md): threads, capture session, export pipeline, IPC.
 - [Known limitations](docs/HOW-IT-WORKS.md#known-limitations).
 

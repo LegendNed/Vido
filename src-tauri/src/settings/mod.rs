@@ -853,8 +853,7 @@ impl Settings {
     /// Repairs a settings file read from disk: any section that fails validation
     /// is reset to defaults (and logged) instead of refusing to start.
     pub fn repaired(mut self) -> (Self, Vec<String>) {
-        let mut notes = self.migrate_legacy_names();
-        notes.extend(self.hotkeys.migrate_legacy_saves());
+        let mut notes = Vec::from_iter(self.hotkeys.migrate_legacy_saves());
         notes.extend(self.general.hud.migrate_legacy_enabled());
         notes.extend(self.audio.drop_duplicate_devices());
         notes.extend(self.saving.post_save.one_clipboard_action());
@@ -890,56 +889,6 @@ impl Settings {
         self.version = SETTINGS_VERSION;
         (self, notes)
     }
-
-    /// Follows the ClipDeck → Vido rename: the default filename prefix, and folders that
-    /// were renamed on disk by [`crate::paths::migrate_legacy_dir`].
-    fn migrate_legacy_names(&mut self) -> Vec<String> {
-        use crate::paths::{APP_DIR_NAME, LEGACY_DIR_NAME};
-        let mut notes = Vec::new();
-        if self.saving.filename_template.contains(LEGACY_DIR_NAME) {
-            self.saving.filename_template = self
-                .saving
-                .filename_template
-                .replace(LEGACY_DIR_NAME, APP_DIR_NAME);
-            notes.push(format!(
-                "filename template renamed to {}",
-                self.saving.filename_template
-            ));
-        }
-        for (field, dir) in [
-            ("saving.outputDir", &mut self.saving.output_dir),
-            ("advanced.cacheDir", &mut self.advanced.cache_dir),
-        ] {
-            if let Some(moved) = dir.as_deref().and_then(renamed_legacy_path) {
-                notes.push(format!("{field} moved to {moved}"));
-                *dir = Some(moved);
-            }
-        }
-        notes
-    }
-}
-
-/// If `p` no longer exists but the same path with its `ClipDeck` folder renamed to `Vido`
-/// does, returns that path.
-fn renamed_legacy_path(p: &str) -> Option<String> {
-    use crate::paths::{APP_DIR_NAME, LEGACY_DIR_NAME};
-    use std::path::{Component, Path, PathBuf};
-    let old = Path::new(p);
-    if old.exists() {
-        return None;
-    }
-    let mut changed = false;
-    let new: PathBuf = old
-        .components()
-        .map(|c| match c {
-            Component::Normal(n) if n.eq_ignore_ascii_case(LEGACY_DIR_NAME) => {
-                changed = true;
-                Component::Normal(APP_DIR_NAME.as_ref())
-            }
-            other => other,
-        })
-        .collect();
-    (changed && new.is_dir()).then(|| new.to_string_lossy().into_owned())
 }
 
 impl CaptureSettings {
@@ -1689,35 +1638,6 @@ mod tests {
         assert_eq!(notes.len(), 2, "{notes:?}");
         // The rest of the audio section survives.
         assert_eq!(fixed.audio.bitrate_kbps, 256);
-    }
-
-    #[test]
-    fn legacy_names_follow_the_rename() {
-        let root = tempfile::tempdir().unwrap();
-        let renamed = root.path().join("Vido");
-        std::fs::create_dir_all(&renamed).unwrap();
-        let kept = root.path().join("Elsewhere").join("ClipDeck");
-        std::fs::create_dir_all(&kept).unwrap();
-
-        let mut s = Settings::default();
-        s.saving.filename_template = "ClipDeck_{date}_{time}".into();
-        s.saving.output_dir = Some(root.path().join("ClipDeck").to_string_lossy().into());
-        s.advanced.cache_dir = Some(kept.to_string_lossy().into());
-        let (fixed, notes) = s.repaired();
-        assert_eq!(fixed.saving.filename_template, "Vido_{date}_{time}");
-        assert_eq!(
-            fixed.saving.output_dir.as_deref(),
-            Some(renamed.to_string_lossy().as_ref())
-        );
-        // Still exists under the old name: user's own folder, left alone.
-        assert_eq!(
-            fixed.advanced.cache_dir.as_deref(),
-            Some(kept.to_string_lossy().as_ref())
-        );
-        assert_eq!(notes.len(), 2);
-
-        // Default settings need no migration.
-        assert!(Settings::default().repaired().1.is_empty());
     }
 
     #[test]
