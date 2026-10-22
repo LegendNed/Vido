@@ -670,7 +670,7 @@ impl Default for CaptureSettings {
             capture_cursor: true,
             buffer_seconds: 30,
             buffer_storage: BufferStorage::Auto,
-            buffer_max_mb: Some(4096),
+            buffer_max_mb: None,
             video_codec: VideoCodec::H264,
             encoder: EncoderPreference::Auto,
             quality: BufferQuality::Custom,

@@ -30,7 +30,7 @@
     "captureCursor": true,
     "bufferSeconds": 30,
     "bufferStorage": "auto",
-    "bufferMaxMb": 4096,
+    "bufferMaxMb": null,
     "videoCodec": "h264",
     "encoder": "auto",
     "quality": "custom",
