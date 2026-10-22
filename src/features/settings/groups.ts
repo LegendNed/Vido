@@ -1,4 +1,4 @@
-/** Settings pages, in order, under their category headings (like Medal's settings list). */
+/** Settings pages, in order, under their category headings. */
 export const SETTINGS_GROUPS = [
   { id: "video", label: "Video", category: "Recording" },
   { id: "audio", label: "Audio", category: "Recording" },

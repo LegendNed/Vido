@@ -1,8 +1,12 @@
 # Vido
 
 **Clip the last 30 seconds of your game with one key.** Vido is a lightweight replay-buffer
-clipper for Windows, like Medal.tv or ShadowPlay, but **without the account, cloud, ads,
+clipper for Windows, like the big clipping apps, but **without the account, cloud, ads,
 watermark or telemetry**. Everything stays on your PC.
+
+> **Heads-up:** Vido is mostly AI-generated: most of its code and docs were written with an AI
+> coding assistant, then directed, tested and reviewed by a human. Expect rough edges, and please
+> report anything that breaks.
 
 ![Vido: Clips](docs/images/clips.png)
 
@@ -14,6 +18,28 @@ watermark or telemetry**. Everything stays on your PC.
   Discord's upload limit.
 - **Light:** uses your GPU's video encoder (NVIDIA, AMD or Intel) and idles quietly in the tray.
 - **Private:** no accounts, uploads, telemetry, ads, watermarks or auto-updates.
+
+---
+
+## Vido vs. Bloated Competitor
+
+|                                         | **Vido**                              | **Bloated Competitor**      |
+| --------------------------------------- | ------------------------------------- | --------------------------- |
+| Account needed                          | No                                    | Yes, to use the app         |
+| Works fully offline                     | Yes                                   | No                          |
+| Clips uploaded to a cloud / social feed | Never                                 | Built in                    |
+| Telemetry and analytics                 | None                                  | Yes                         |
+| Ads, upsells, premium tier              | None                                  | Yes                         |
+| Open source                             | Yes (GPL-3.0)                         | No                          |
+| Saving a clip                           | Instant remux, no re-encode           | Instant                     |
+| Ctrl+V the video into Discord           | Yes, copied on save                   | Through its own share links |
+| Fit Discord's free upload limit         | One-click "Discord (no Nitro)" preset | Yes                         |
+| Portable version (no install)           | Yes                                   | No                          |
+| Automatic game detection / auto-clips   | No (one hotkey, always buffering)     | Yes                         |
+| Mobile app, sharing links, community    | No                                    | Yes                         |
+
+Vido is for people who want their clips on their own disk and nothing else. If you want a social
+platform built around your clips, the competitor does more of that.
 
 ---
 

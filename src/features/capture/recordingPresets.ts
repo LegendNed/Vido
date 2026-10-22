@@ -1,4 +1,4 @@
-// Medal-style recording presets (resolution, frame rate, bitrate) for the replay buffer.
+// Recording presets (resolution, frame rate, bitrate) for the replay buffer.
 
 import type { CaptureSettings, ScalePreset } from "../../lib/tauri/types";
 
@@ -14,7 +14,7 @@ export interface RecordingPreset {
   kbps: number | null;
 }
 
-/** Medal-style recording presets: each sets resolution, frame rate and bitrate. */
+/** Recording presets: each sets resolution, frame rate and bitrate. */
 export const RECORDING_PRESETS: RecordingPreset[] = [
   { id: "low", label: "Low", hint: "Older PCs, small files", scale: "720p", fps: 30, kbps: 5000 },
   {
