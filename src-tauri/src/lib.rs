@@ -34,6 +34,7 @@ pub mod util;
 pub mod win;
 
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
 use tauri::{Manager, RunEvent};
@@ -157,52 +158,85 @@ fn watch_output_dir(app: &tauri::AppHandle) {
 }
 
 /// "Only buffer while a game runs": starts the buffer when a game runs and stops
-/// it a minute after the game closes. Only a buffer this started is stopped, so a
-/// buffer started by hand keeps running.
+/// it a minute after the game closes, whoever started it. Stopping it by hand
+/// while a game runs keeps it stopped until that game closes.
 #[derive(Default)]
 struct GameBuffer {
-    /// The running buffer was started here.
-    started: bool,
     /// When the game was last seen running.
-    last_seen: Option<std::time::Instant>,
+    last_seen: Option<Instant>,
+    /// When the option was found on (a buffer already running then gets a minute too).
+    since: Option<Instant>,
+    /// The buffer was running at the last tick.
+    was_running: bool,
+    /// Stopped by hand during this game: not restarted until it closes.
+    held: bool,
+}
+
+#[derive(Debug, PartialEq)]
+enum BufferAction {
+    Start,
+    Stop,
 }
 
 impl GameBuffer {
     /// How long the buffer keeps running after the game closes (to save the end).
-    const LINGER: std::time::Duration = std::time::Duration::from_secs(60);
+    const LINGER: Duration = Duration::from_secs(60);
 
     fn tick(&mut self, state: &AppState) {
         use crate::engine::BufferState;
         let s = state.settings.get();
-        let stopped = state.engine.status().state == BufferState::Stopped;
         if !s.capture.buffer_only_in_games || !s.first_run_completed {
-            self.started = false;
+            *self = Self::default();
             return;
         }
-        if stopped {
-            // Stopped by hand or by an error: not ours any more.
-            self.started = false;
-        }
-        if games::game_running() {
-            self.last_seen = Some(std::time::Instant::now());
-            if stopped {
-                match state.engine.start() {
-                    Ok(_) => {
-                        tracing::info!("game running: buffer started");
-                        self.started = true;
-                    }
-                    Err(e) => tracing::warn!("buffer did not start: {}", e.message),
-                }
+        let stopped = state.engine.status().state == BufferState::Stopped;
+        let action = self.decide(
+            Instant::now(),
+            games::game_running(),
+            stopped,
+            state.engine.is_recording(),
+        );
+        match action {
+            Some(BufferAction::Start) => match state.engine.start() {
+                Ok(_) => tracing::info!("game running: buffer started"),
+                Err(e) => tracing::warn!("buffer did not start: {}", e.message),
+            },
+            Some(BufferAction::Stop) => {
+                tracing::info!("no game for a minute: buffer stopped");
+                state.engine.stop();
             }
-        } else if self.started
-            && !stopped
-            && !state.engine.is_recording()
-            && self.last_seen.is_none_or(|t| t.elapsed() >= Self::LINGER)
-        {
-            tracing::info!("no game for a minute: buffer stopped");
-            state.engine.stop();
-            self.started = false;
+            None => {}
         }
+    }
+
+    fn decide(
+        &mut self,
+        now: Instant,
+        game: bool,
+        stopped: bool,
+        recording: bool,
+    ) -> Option<BufferAction> {
+        let since = *self.since.get_or_insert(now);
+        let stopped_by_hand = self.was_running && stopped;
+        self.was_running = !stopped;
+        if game {
+            self.last_seen = Some(now);
+            if stopped_by_hand {
+                self.held = true;
+            }
+            if stopped && !self.held {
+                self.was_running = true;
+                return Some(BufferAction::Start);
+            }
+            return None;
+        }
+        self.held = false;
+        let idle_from = self.last_seen.map_or(since, |t| t.max(since));
+        if !stopped && !recording && now.duration_since(idle_from) >= Self::LINGER {
+            self.was_running = false;
+            return Some(BufferAction::Stop);
+        }
+        None
     }
 }
 
@@ -332,6 +366,7 @@ fn setup(
                 let game = actions::game_playing(&state);
                 let mut last = shown.lock();
                 if *last != game {
+                    tracing::info!("game: {}", game.as_deref().unwrap_or("none"));
                     last.clone_from(&game);
                     events::emit(&h2, events::GAME_CHANGED, game);
                 }
@@ -530,4 +565,55 @@ pub fn run() {
         }
         _ => {}
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TICK: Duration = Duration::from_secs(3);
+
+    #[test]
+    fn game_buffer_stops_a_buffer_it_did_not_start() {
+        let mut g = GameBuffer::default();
+        let t0 = Instant::now();
+        // Option turned on while buffering on the desktop: a minute's grace, then stop.
+        assert_eq!(g.decide(t0, false, false, false), None);
+        assert_eq!(g.decide(t0 + TICK, false, false, false), None);
+        assert_eq!(
+            g.decide(t0 + GameBuffer::LINGER, false, false, false),
+            Some(BufferAction::Stop)
+        );
+        // A game starts: buffer on; it closes: off a minute later, not while recording.
+        let t1 = t0 + Duration::from_secs(120);
+        assert_eq!(g.decide(t1, true, true, false), Some(BufferAction::Start));
+        assert_eq!(g.decide(t1 + TICK, true, false, false), None);
+        let closed = t1 + 2 * TICK;
+        assert_eq!(g.decide(closed, false, false, false), None);
+        assert_eq!(
+            g.decide(closed + GameBuffer::LINGER, false, false, true),
+            None
+        );
+        assert_eq!(
+            g.decide(closed + GameBuffer::LINGER + TICK, false, false, false),
+            Some(BufferAction::Stop)
+        );
+    }
+
+    #[test]
+    fn game_buffer_respects_a_manual_stop_until_the_game_closes() {
+        let mut g = GameBuffer::default();
+        let t0 = Instant::now();
+        assert_eq!(g.decide(t0, true, true, false), Some(BufferAction::Start));
+        assert_eq!(g.decide(t0 + TICK, true, false, false), None);
+        // Stopped by hand while playing: stays stopped.
+        assert_eq!(g.decide(t0 + 2 * TICK, true, true, false), None);
+        assert_eq!(g.decide(t0 + 3 * TICK, true, true, false), None);
+        // The game closes, the next one starts the buffer again.
+        assert_eq!(g.decide(t0 + 4 * TICK, false, true, false), None);
+        assert_eq!(
+            g.decide(t0 + 5 * TICK, true, true, false),
+            Some(BufferAction::Start)
+        );
+    }
 }
