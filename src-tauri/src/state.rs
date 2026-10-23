@@ -21,6 +21,7 @@ pub struct AppState {
     pub exports: ExportManager,
     pub caps: Arc<CapabilityCache>,
     pub device_watcher: Mutex<Option<DeviceWatcher>>,
+    pub favorites: crate::library::Favorites,
 }
 
 impl AppState {

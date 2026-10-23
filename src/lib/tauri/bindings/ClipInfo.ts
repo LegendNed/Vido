@@ -9,4 +9,8 @@ modifiedMs: number, durationSec: number, width: number, height: number, fps: num
 /**
  * Absolute path of a PNG thumbnail (load via the asset protocol).
  */
-thumbnail?: string, };
+thumbnail?: string, 
+/**
+ * Starred in the library (filled in by `list_clips`).
+ */
+favorite: boolean, };

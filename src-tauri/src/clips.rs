@@ -38,6 +38,8 @@ pub struct ClipInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub thumbnail: Option<String>,
+    /// Starred in the library (filled in by `list_clips`).
+    pub favorite: bool,
 }
 
 #[derive(Serialize, TS, Clone, Debug)]
@@ -120,6 +122,7 @@ impl ClipLibrary {
                 .unwrap_or_default(),
             audio_tracks: m.audio.iter().map(|(_, a)| a.clone()).collect(),
             thumbnail: thumb.exists().then(|| thumb.to_string_lossy().into_owned()),
+            favorite: false,
         };
         self.cache
             .lock()

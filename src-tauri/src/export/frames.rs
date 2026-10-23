@@ -267,3 +267,112 @@ pub fn waveform(input: &Path, track: u32, buckets: usize) -> AppResult<Vec<f32>>
     collect(&mut g, &mut out, &mut peaks, &mut index)?;
     Ok(peaks)
 }
+
+/// Writes every audio track of `input` as its own 16-bit WAV file into `dir`
+/// (`01 Mix.wav`, `02 Desktop audio.wav`, ...), at the track's own sample rate
+/// and channel count. Returns the files written.
+pub fn export_wav_tracks(input: &Path, dir: &Path) -> AppResult<Vec<PathBuf>> {
+    let info = describe(&Demuxer::open(input)?)?;
+    if info.audio.is_empty() {
+        return Err(AppError::invalid("path", "the clip has no audio"));
+    }
+    std::fs::create_dir_all(dir)?;
+    let mut written = Vec::new();
+    for (i, (_, t)) in info.audio.iter().enumerate() {
+        let title = if t.title.trim().is_empty() {
+            format!("Track {}", i + 1)
+        } else {
+            t.title.clone()
+        };
+        let name = format!(
+            "{:02} {}.wav",
+            i + 1,
+            crate::util::sanitize_component(&title, 60)
+        );
+        let path = dir.join(name);
+        write_wav(input, i as u32, &path)?;
+        written.push(path);
+    }
+    Ok(written)
+}
+
+/// Decodes audio track `track` of `input` into a 16-bit PCM WAV at `out`.
+fn write_wav(input: &Path, track: u32, out: &Path) -> AppResult<()> {
+    use std::io::{Seek, SeekFrom, Write};
+
+    let mut dmx = Demuxer::open(input)?;
+    let info = describe(&dmx)?;
+    let (stream, _) = *info
+        .audio
+        .get(track as usize)
+        .ok_or_else(|| AppError::invalid("track", "no such audio track"))?;
+    let mut dec = av::open_decoder(&dmx, stream, 0)?;
+    let (rate, fmt, ch) = unsafe {
+        let c = dec.as_ptr();
+        (
+            (*c).sample_rate as u32,
+            (*c).sample_fmt,
+            (*c).ch_layout.nb_channels.max(1) as u32,
+        )
+    };
+    let tb = dmx.stream_time_base(stream);
+    let mut g = FilterGraph::new()?;
+    let src = g.add_audio_src("in", rate, fmt, ch, tb)?;
+    let sink = g.add_audio_sink("out")?;
+    g.build("[in]aformat=sample_fmts=s16[out]")?;
+
+    let mut file = std::io::BufWriter::new(std::fs::File::create(out)?);
+    // RIFF header; the two sizes are filled in at the end.
+    let block = ch * 2;
+    let mut header = Vec::with_capacity(44);
+    header.extend_from_slice(b"RIFF\0\0\0\0WAVEfmt ");
+    header.extend_from_slice(&16u32.to_le_bytes());
+    header.extend_from_slice(&1u16.to_le_bytes()); // PCM
+    header.extend_from_slice(&(ch as u16).to_le_bytes());
+    header.extend_from_slice(&rate.to_le_bytes());
+    header.extend_from_slice(&(rate * block).to_le_bytes());
+    header.extend_from_slice(&(block as u16).to_le_bytes());
+    header.extend_from_slice(&16u16.to_le_bytes());
+    header.extend_from_slice(b"data\0\0\0\0");
+    file.write_all(&header)?;
+
+    let mut bytes = 0u64;
+    let mut pkt = Packet::new();
+    let mut frame = Frame::new();
+    let mut pcm = Frame::new();
+    let mut drain =
+        |g: &mut FilterGraph, file: &mut std::io::BufWriter<std::fs::File>| -> AppResult<()> {
+            while let Pull::Frame = g.pull(sink, &mut pcm)? {
+                let n = pcm.nb_samples() * ch as usize * 2;
+                // SAFETY: packed s16 with `ch` channels: `n` bytes in plane 0.
+                let data = unsafe { std::slice::from_raw_parts((*pcm.as_ptr()).data[0], n) };
+                file.write_all(data)?;
+                bytes += n as u64;
+            }
+            Ok(())
+        };
+    while dmx.read(&mut pkt)? {
+        if pkt.stream_index() == stream && dec.send_packet(Some(&pkt)) >= 0 {
+            while dec.receive_frame(&mut frame) >= 0 {
+                g.push(src, Some(&mut frame))?;
+                drain(&mut g, &mut file)?;
+            }
+        }
+        pkt.unref();
+    }
+    let _ = dec.send_packet(None);
+    while dec.receive_frame(&mut frame) >= 0 {
+        g.push(src, Some(&mut frame))?;
+    }
+    g.push(src, None)?;
+    drain(&mut g, &mut file)?;
+
+    let data = u32::try_from(bytes)
+        .map_err(|_| AppError::new(ErrorCode::Export, "the audio is too long for a WAV file"))?;
+    file.seek(SeekFrom::Start(4))?;
+    file.write_all(&(36 + data).to_le_bytes())?;
+    file.seek(SeekFrom::Start(40))?;
+    file.write_all(&data.to_le_bytes())?;
+    file.flush()?;
+    Ok(())
+}

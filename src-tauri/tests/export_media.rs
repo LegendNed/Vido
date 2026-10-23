@@ -404,6 +404,34 @@ fn screenshot_thumbnail_and_waveform() {
 }
 
 #[test]
+fn audio_tracks_export_as_wav_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = make_clip(dir.path());
+    let out = dir.path().join("clip audio");
+    let files = frames::export_wav_tracks(&src, &out).unwrap();
+    assert_eq!(files.len(), 2, "one WAV per track");
+    for f in &files {
+        let b = std::fs::read(f).unwrap();
+        assert_eq!(&b[0..4], b"RIFF");
+        assert_eq!(&b[8..12], b"WAVE");
+        let riff = u32::from_le_bytes(b[4..8].try_into().unwrap()) as usize;
+        let data = u32::from_le_bytes(b[40..44].try_into().unwrap()) as usize;
+        assert_eq!(riff + 8, b.len(), "RIFF size patched");
+        assert_eq!(data + 44, b.len(), "data size patched");
+        let rate = u32::from_le_bytes(b[24..28].try_into().unwrap());
+        let ch = u16::from_le_bytes(b[22..24].try_into().unwrap());
+        // About the clip's length of 16-bit audio.
+        let secs = data as f64 / (rate as f64 * ch as f64 * 2.0);
+        assert!(secs > 3.5 && secs < 6.5, "{secs} s");
+    }
+    assert!(files[0]
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .starts_with("01 "));
+}
+
+#[test]
 fn audio_preview_copies_each_track_once() {
     use vido_lib::export::preview;
     let dir = tempfile::tempdir().unwrap();

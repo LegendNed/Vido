@@ -18,6 +18,7 @@ pub mod games;
 pub mod hotkeys;
 #[cfg(windows)]
 pub mod hud;
+pub mod library;
 pub mod logging;
 pub mod paths;
 pub mod settings;
@@ -180,6 +181,7 @@ fn setup(
     let _ = scope.allow_directory(state::thumbs_dir(&paths), true);
     let _ = scope.allow_directory(state::preview_dir(&paths), true);
 
+    let favorites_file = paths.data_dir.join("library.json");
     app.manage(AppState {
         paths,
         settings: store,
@@ -188,6 +190,7 @@ fn setup(
         exports,
         caps: caps.clone(),
         device_watcher: Mutex::new(None),
+        favorites: library::Favorites::load(favorites_file),
     });
 
     // Updates: leftovers of a portable update, an update downloaded last time
@@ -428,6 +431,9 @@ pub fn run() {
             commands::show_main_window,
             commands::pick_folder,
             commands::get_current_game,
+            commands::set_favorite,
+            commands::rename_clip,
+            commands::export_audio_tracks,
             commands::check_for_updates,
             commands::get_pending_update,
             commands::install_update,

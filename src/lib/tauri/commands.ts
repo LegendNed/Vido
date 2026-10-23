@@ -92,6 +92,13 @@ export const commands = {
   showMainWindow: (page?: string) => invoke<undefined>("show_main_window", { page }),
   pickFolder: (initial?: string) => invoke<string | null>("pick_folder", { initial }),
   getCurrentGame: () => invoke<string | null>("get_current_game"),
+  setFavorite: (path: string, favorite: boolean) =>
+    invoke<null>("set_favorite", { path, favorite }),
+  /** Renames a clip in its folder; returns the new path. */
+  renameClip: (path: string, name: string) => invoke<string>("rename_clip", { path, name }),
+  /** One WAV per audio track into "<clip> audio" next to it; returns that folder. */
+  exportAudioTracks: (path: string, reveal: boolean) =>
+    invoke<string>("export_audio_tracks", { path, reveal }),
 
   // Updates
   checkForUpdates: () => invoke<UpdateInfo | null>("check_for_updates"),

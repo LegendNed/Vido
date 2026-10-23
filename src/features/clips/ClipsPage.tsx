@@ -2,20 +2,16 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "../../components/Icon";
-import {
-  Badge,
-  Button,
-  Checkbox,
-  ConfirmButton,
-  Slider,
-  Select,
-  Spinner,
-} from "../../components/controls";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { Badge, Button, Checkbox, Slider, Select, Spinner } from "../../components/controls";
+import { Button as UiButton } from "../../components/ui/button";
+import { Input } from "../../components/ui/misc";
 import { formatBytes, formatDate, formatDuration } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import { errorMessage, type ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import { ClipActions } from "./ClipActions";
 import { ClipsHero } from "./ClipsHero";
 import {
   groupClips,
@@ -45,6 +41,11 @@ export function ClipsPage({ open }: { open?: string | null }) {
   const [view, setViewState] = useState<ClipView>(loadView);
   /** "" = all games, "\u0000" = clips without a game, else a game's name. */
   const [game, setGame] = useState("");
+  const [search, setSearch] = useState("");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  /** Select mode: paths of the selected clips (null = not selecting). */
+  const [selected, setSelected] = useState<Set<string> | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const setView = (patch: Partial<ClipView>) => {
     setViewState((v) => {
       const next = { ...v, ...patch };
@@ -103,21 +104,26 @@ export function ClipsPage({ open }: { open?: string | null }) {
     ...games.names.map((n) => ({ value: n, label: n })),
     ...(games.other ? [{ value: "\u0000", label: "No game" }] : []),
   ];
-  const filtered = useMemo(
-    () =>
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (
       clips?.filter((c) => {
-        if (!game) return true;
         const g = clipGame(c.path, root);
-        return game === "\u0000" ? g === null : g === game;
-      }) ?? null,
-    [clips, game, root],
-  );
+        if (game && (game === "\u0000" ? g !== null : g !== game)) return false;
+        if (favoritesOnly && !c.favorite) return false;
+        return (
+          !q || c.fileName.toLowerCase().includes(q) || (g?.toLowerCase().includes(q) ?? false)
+        );
+      }) ?? null
+    );
+  }, [clips, game, root, search, favoritesOnly]);
   const sorted = useMemo(
     () => (filtered ? sortClips(filtered, view.sort) : null),
     [filtered, view.sort],
   );
-  // The newest clip gets the "Latest clip" card (Play / Edit), only when sorting newest first.
-  const featured = view.sort === "newest" ? sorted?.[0] : undefined;
+  // The newest clip gets the "Latest clip" card (Play / Edit), only when sorting newest
+  // first and not while selecting.
+  const featured = view.sort === "newest" && !selected ? sorted?.[0] : undefined;
   const groups = useMemo(
     () => groupClips(sorted ?? [], view.groupByDate),
     [sorted, view.groupByDate],
@@ -125,6 +131,29 @@ export function ClipsPage({ open }: { open?: string | null }) {
   // The viewer steps through clips in the order shown (groups included).
   const shown = useMemo(() => groups.flatMap((g) => g.clips), [groups]);
   const viewIndex = viewing ? shown.findIndex((c) => c.path === viewing) : -1;
+
+  const toggle = (path: string) => {
+    setSelected((cur) => {
+      const next = new Set(cur ?? []);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+  const chosen = shown.filter((c) => selected?.has(c.path));
+  const allFavorite = chosen.length > 0 && chosen.every((c) => c.favorite);
+  const bulk = async (fn: (c: ClipInfo) => Promise<unknown>, done?: string) => {
+    let failed = 0;
+    for (const c of chosen) {
+      try {
+        await fn(c);
+      } catch {
+        failed += 1;
+      }
+    }
+    if (failed > 0) notify("error", `${failed} of ${chosen.length} clips failed`);
+    else if (done) notify("info", done);
+  };
 
   return (
     <div className="page page-wide">
@@ -176,6 +205,21 @@ export function ClipsPage({ open }: { open?: string | null }) {
       ) : (
         <>
           <div className="clips-toolbar">
+            <div className="relative w-56">
+              <Icon
+                name="search"
+                size={14}
+                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                className="h-9 pl-8"
+                placeholder="Search clips"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                }}
+              />
+            </div>
             <Select
               value={view.sort}
               options={SORT_OPTIONS}
@@ -192,6 +236,22 @@ export function ClipsPage({ open }: { open?: string | null }) {
                 onChange={setGame}
               />
             )}
+            <UiButton
+              variant={favoritesOnly ? "secondary" : "ghost"}
+              size="sm"
+              aria-pressed={favoritesOnly}
+              onClick={() => {
+                setFavoritesOnly((v) => !v);
+              }}
+            >
+              <Icon
+                name="star"
+                size={14}
+                filled={favoritesOnly}
+                className={favoritesOnly ? "text-warning" : undefined}
+              />
+              Favorites
+            </UiButton>
             <Checkbox
               checked={view.groupByDate}
               onChange={(v) => {
@@ -201,6 +261,16 @@ export function ClipsPage({ open }: { open?: string | null }) {
               Group by date
             </Checkbox>
             <div className="ml-auto flex items-center gap-3">
+              <Button
+                small
+                variant={selected ? "primary" : undefined}
+                icon="check"
+                onClick={() => {
+                  setSelected((s) => (s ? null : new Set()));
+                }}
+              >
+                {selected ? "Done" : "Select"}
+              </Button>
               <span className="muted small">
                 {shown.length} clip{shown.length === 1 ? "" : "s"}
               </span>
@@ -239,34 +309,51 @@ export function ClipsPage({ open }: { open?: string | null }) {
                       onEdit={() => {
                         openEditor(featured.path);
                       }}
-                      tools={<ClipTools path={featured.path} act={act} />}
+                      tools={<ClipActions clip={featured} />}
                     />
                   </div>
                 )}
                 {g.clips
                   .filter((c) => c !== featured)
                   .map((c) => (
-                    <div key={c.path} className="card clip-card">
+                    <div
+                      key={c.path}
+                      className={`card clip-card${selected?.has(c.path) ? " selected" : ""}`}
+                    >
                       <div
                         className="clip-thumb"
                         role="button"
                         tabIndex={0}
-                        title="Play"
+                        title={selected ? "Select" : "Play"}
                         style={
                           c.thumbnail
                             ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }
                             : undefined
                         }
                         onClick={() => {
-                          setViewing(c.path);
+                          if (selected) toggle(c.path);
+                          else setViewing(c.path);
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") setViewing(c.path);
+                          if (e.key !== "Enter") return;
+                          if (selected) toggle(c.path);
+                          else setViewing(c.path);
                         }}
                       >
-                        <div className="play">
-                          <Icon name="play" size={26} />
-                        </div>
+                        {selected ? (
+                          <span className="clip-check">
+                            <Checkbox
+                              checked={selected.has(c.path)}
+                              onChange={() => {
+                                toggle(c.path);
+                              }}
+                            />
+                          </span>
+                        ) : (
+                          <div className="play">
+                            <Icon name="play" size={26} />
+                          </div>
+                        )}
                         <span className="duration">{formatDuration(c.durationSec)}</span>
                       </div>
                       <div className="clip-meta">
@@ -306,7 +393,7 @@ export function ClipsPage({ open }: { open?: string | null }) {
                           Edit
                         </Button>
                         <span className="spacer" />
-                        <ClipTools path={c.path} act={act} />
+                        <ClipActions clip={c} />
                       </div>
                     </div>
                   ))}
@@ -314,6 +401,75 @@ export function ClipsPage({ open }: { open?: string | null }) {
             </section>
           ))}
         </>
+      )}
+
+      {selected && (
+        <div className="sticky bottom-4 z-20 mx-auto mt-4 flex w-fit flex-wrap items-center gap-2 rounded-lg border bg-popover px-3 py-2 shadow-lg">
+          <span className="px-1 text-sm font-medium">{chosen.length} selected</span>
+          <Button
+            small
+            variant="ghost"
+            onClick={() => {
+              setSelected(
+                chosen.length === shown.length ? new Set() : new Set(shown.map((c) => c.path)),
+              );
+            }}
+          >
+            {chosen.length === shown.length ? "Select none" : "Select all"}
+          </Button>
+          <Button
+            small
+            icon="star"
+            disabled={chosen.length === 0}
+            onClick={() => void bulk((c) => commands.setFavorite(c.path, !allFavorite))}
+          >
+            {allFavorite ? "Unfavorite" : "Favorite"}
+          </Button>
+          <Button
+            small
+            icon="audio"
+            disabled={!chosen.some((c) => c.audioTracks.length > 0)}
+            onClick={() =>
+              void bulk(
+                (c) =>
+                  c.audioTracks.length > 0
+                    ? commands.exportAudioTracks(c.path, false)
+                    : Promise.resolve(),
+                "Audio tracks exported next to each clip",
+              )
+            }
+          >
+            Export audio
+          </Button>
+          <Button
+            small
+            variant="danger"
+            icon="trash"
+            disabled={chosen.length === 0}
+            onClick={() => {
+              setConfirmDelete(true);
+            }}
+          >
+            Delete
+          </Button>
+        </div>
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Delete ${chosen.length} clip${chosen.length === 1 ? "" : "s"}?`}
+          confirmLabel="Delete"
+          onConfirm={() => {
+            setConfirmDelete(false);
+            void bulk((c) => commands.deleteClip(c.path)).then(() => {
+              setSelected(new Set());
+            });
+          }}
+          onCancel={() => {
+            setConfirmDelete(false);
+          }}
+        >
+          The files are deleted from disk.
+        </ConfirmDialog>
       )}
 
       {viewIndex >= 0 && (
@@ -327,52 +483,5 @@ export function ClipsPage({ open }: { open?: string | null }) {
         />
       )}
     </div>
-  );
-}
-
-/** Open in default player, show in folder, copy path, delete (cards and the featured tile). */
-function ClipTools({
-  path,
-  act,
-}: {
-  path: string;
-  act: (fn: () => Promise<unknown>) => Promise<void>;
-}) {
-  const notify = useApp((s) => s.notify);
-  return (
-    <>
-      <Button
-        small
-        variant="ghost"
-        icon="external"
-        title="Open in default player"
-        onClick={() => void act(() => commands.openClipExternal(path))}
-      />
-      <Button
-        small
-        variant="ghost"
-        icon="folder"
-        title="Show in folder"
-        onClick={() => void act(() => commands.revealClip(path))}
-      />
-      <Button
-        small
-        variant="ghost"
-        icon="copy"
-        title="Copy file path"
-        onClick={() =>
-          void act(async () => {
-            await commands.copyClipPath(path);
-            notify("info", "Path copied");
-          })
-        }
-      />
-      <ConfirmButton
-        small
-        icon="trash"
-        title="Delete clip"
-        onConfirm={() => void act(() => commands.deleteClip(path))}
-      />
-    </>
   );
 }

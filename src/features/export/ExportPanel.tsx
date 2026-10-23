@@ -9,6 +9,7 @@ import {
   type AppError,
   type ExportEstimate,
 } from "../../lib/tauri/types";
+import { useApp } from "../../stores/app";
 import { buildRequest, type EditState, type ExportOpts } from "../editor/model";
 import { EncodeOptions } from "./EncodeOptions";
 
@@ -81,6 +82,20 @@ export function ExportPanel({
 
   const willCopy = estimate?.willCopyVideo ?? false;
 
+  const notify = useApp((s) => s.notify);
+  const [exportingAudio, setExportingAudio] = useState(false);
+  const exportAudio = async () => {
+    setExportingAudio(true);
+    try {
+      await commands.exportAudioTracks(path, true);
+      notify("info", "Audio tracks exported", "One WAV file per track.");
+    } catch (e) {
+      notify("error", "Couldn't export the audio", errorMessage(e));
+    } finally {
+      setExportingAudio(false);
+    }
+  };
+
   return (
     <div className="export-panel">
       <div className="export-scroll">
@@ -135,6 +150,19 @@ export function ExportPanel({
             Save as…
           </Button>
         </div>
+        {state.lanes.length > 0 && (
+          <Button
+            small
+            variant="ghost"
+            icon="audio"
+            className="self-start"
+            disabled={exportingAudio}
+            title="Every audio track as its own WAV file, in a folder next to the clip"
+            onClick={() => void exportAudio()}
+          >
+            {exportingAudio ? "Exporting audio…" : "Export audio tracks (WAV)"}
+          </Button>
+        )}
       </div>
 
       <div className="export-footer">

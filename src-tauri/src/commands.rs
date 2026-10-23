@@ -380,9 +380,13 @@ pub async fn list_clips(app: AppHandle) -> AppResult<Vec<ClipInfo>> {
         let state = app.state::<AppState>();
         let dir = state.output_dir();
         let app2 = app.clone();
-        Ok(state
+        let mut clips = state
             .clips
-            .list(&dir, move || events::emit(&app2, events::CLIPS_CHANGED, ())))
+            .list(&dir, move || events::emit(&app2, events::CLIPS_CHANGED, ()));
+        for c in &mut clips {
+            c.favorite = state.favorites.contains(Path::new(&c.path));
+        }
+        Ok(clips)
     })
     .await
 }
@@ -405,8 +409,62 @@ pub async fn delete_clip(app: AppHandle, path: String) -> AppResult<()> {
         let state = app.state::<AppState>();
         let p = ensure_in_dir(&path, &state.output_dir())?;
         state.clips.delete(&p)?;
+        state.favorites.removed(&p);
         events::emit(&app, events::CLIPS_CHANGED, ());
         Ok(())
+    })
+    .await
+}
+
+/// Writes every audio track of a clip as its own WAV into `<clip name> audio`
+/// next to the clip; returns that folder. `reveal` opens it in Explorer.
+#[tauri::command]
+pub async fn export_audio_tracks(app: AppHandle, path: String, reveal: bool) -> AppResult<String> {
+    let p = ensure_clip(&app, &path)?;
+    blocking(move || {
+        let stem = p
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "clip".into());
+        let dir = p
+            .parent()
+            .unwrap_or(Path::new("."))
+            .join(format!("{stem} audio"));
+        let files = export::frames::export_wav_tracks(&p, &dir)?;
+        if reveal {
+            if let Some(first) = files.first() {
+                let _ = app.opener().reveal_item_in_dir(first);
+            }
+        }
+        Ok(dir.to_string_lossy().into_owned())
+    })
+    .await
+}
+
+/// Stars or unstars a clip in the library.
+#[tauri::command]
+pub fn set_favorite(app: AppHandle, path: String, favorite: bool) -> AppResult<()> {
+    let state = app.state::<AppState>();
+    let p = ensure_in_dir(&path, &state.output_dir())?;
+    state.favorites.set(&p, favorite);
+    events::emit(&app, events::CLIPS_CHANGED, ());
+    Ok(())
+}
+
+/// Renames a clip in its folder (extension kept); returns the new path.
+#[tauri::command]
+pub async fn rename_clip(app: AppHandle, path: String, name: String) -> AppResult<String> {
+    blocking(move || {
+        let state = app.state::<AppState>();
+        let p = ensure_in_dir(&path, &state.output_dir())?;
+        let to = crate::library::rename(&p, &name)?;
+        state.clips.invalidate(&p);
+        state.favorites.moved(&p, &to);
+        if state.clips.last_clip(&state.output_dir()).as_deref() == Some(p.as_path()) {
+            state.clips.set_last_saved(&to);
+        }
+        events::emit(&app, events::CLIPS_CHANGED, ());
+        Ok(to.to_string_lossy().into_owned())
     })
     .await
 }

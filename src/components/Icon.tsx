@@ -2,6 +2,8 @@
 
 import {
   AppWindow,
+  AudioLines,
+  Ellipsis,
   Ban,
   Camera,
   Check,
@@ -45,6 +47,7 @@ import {
   SlidersHorizontal,
   Square,
   SquareDashed,
+  Star,
   TriangleAlert,
   Trash2,
   Undo2,
@@ -109,6 +112,9 @@ const ICONS = {
   glyphError: CircleX,
   glyphSuccess: CircleCheck,
   blocked: Ban,
+  star: Star,
+  more: Ellipsis,
+  audio: AudioLines,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;
