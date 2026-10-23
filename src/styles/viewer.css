@@ -327,15 +327,6 @@
   .clip-group {
     container-type: inline-size;
   }
-  .clip-group-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 8px 0 10px;
-  }
-  .clip-group-head .clip-group-title {
-    margin: 0;
-  }
   .clip-group-title {
     margin: 8px 0 10px;
     font: 600 14px/20px var(--font);

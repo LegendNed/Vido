@@ -44,9 +44,6 @@ import {
 import { ClipViewer } from "./ClipViewer";
 import { clipSrc } from "./media";
 
-/** Clips shown per game before "Show all" (grouped by game). */
-const GAME_PREVIEW = 5;
-
 /** `open`: a clip to show in the viewer right away (e.g. picked on the Overview page). */
 export function ClipsPage({ open }: { open?: string | null }) {
   const [clips, setClips] = useState<ClipInfo[] | null>(null);
@@ -67,8 +64,6 @@ export function ClipsPage({ open }: { open?: string | null }) {
   const [selected, setSelected] = useState<Set<string> | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmShrink, setConfirmShrink] = useState(false);
-  /** Game groups showing all their clips (others show the first `GAME_PREVIEW`). */
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [shrinkLevel, setShrinkLevel] = useState<ShrinkLevel>("small");
   const shrinking = useSyncExternalStore(shrinkRun.subscribe, shrinkRun.get);
   const exportDefaults = useApp((s) => s.settings?.export);
@@ -315,59 +310,33 @@ export function ClipsPage({ open }: { open?: string | null }) {
               </div>
             </div>
           </div>
-          {groups.map((g, gi) => {
-            const key = g.title ?? "all-clips";
-            const hero = gi === 0 && featured ? 1 : 0;
-            const open = view.group !== "game" || expanded.has(key);
-            const rest = g.clips.filter((c) => c !== featured);
-            const cards = open ? rest : rest.slice(0, Math.max(0, GAME_PREVIEW - hero));
-            const more = g.clips.length > GAME_PREVIEW && view.group === "game";
-            return (
-              <section key={key} className="clip-group">
-                {g.title && (
-                  <div className="clip-group-head">
-                    <h2 className="clip-group-title">{g.title}</h2>
-                    {view.group === "game" && <span className="muted small">{g.clips.length}</span>}
-                    {more && (
-                      <Button
-                        small
-                        variant="ghost"
-                        onClick={() => {
-                          setExpanded((cur) => {
-                            const next = new Set(cur);
-                            if (open) next.delete(key);
-                            else next.add(key);
-                            return next;
-                          });
-                        }}
-                      >
-                        {open ? "Show less" : `Show all ${g.clips.length}`}
-                      </Button>
-                    )}
+          {groups.map((g, gi) => (
+            <section key={g.title ?? "all-clips"} className="clip-group">
+              {g.title && <h2 className="clip-group-title">{g.title}</h2>}
+              <div
+                className="clip-grid"
+                style={{
+                  gridTemplateColumns: `repeat(auto-fill, minmax(${cardWidth(view.size)}px, 1fr))`,
+                }}
+              >
+                {gi === 0 && featured && (
+                  <div className="clip-feature">
+                    <ClipsHero
+                      key={clipSrc(featured)}
+                      clip={featured}
+                      onPlay={() => {
+                        setViewing(featured.path);
+                      }}
+                      onEdit={() => {
+                        openEditor(featured.path);
+                      }}
+                      tools={<ClipActions clip={featured} />}
+                    />
                   </div>
                 )}
-                <div
-                  className="clip-grid"
-                  style={{
-                    gridTemplateColumns: `repeat(auto-fill, minmax(${cardWidth(view.size)}px, 1fr))`,
-                  }}
-                >
-                  {gi === 0 && featured && (
-                    <div className="clip-feature">
-                      <ClipsHero
-                        key={clipSrc(featured)}
-                        clip={featured}
-                        onPlay={() => {
-                          setViewing(featured.path);
-                        }}
-                        onEdit={() => {
-                          openEditor(featured.path);
-                        }}
-                        tools={<ClipActions clip={featured} />}
-                      />
-                    </div>
-                  )}
-                  {cards.map((c) => (
+                {g.clips
+                  .filter((c) => c !== featured)
+                  .map((c) => (
                     <div
                       key={c.path}
                       className={`card clip-card${selected?.has(c.path) ? " selected" : ""}`}
@@ -449,10 +418,9 @@ export function ClipsPage({ open }: { open?: string | null }) {
                       </div>
                     </div>
                   ))}
-                </div>
-              </section>
-            );
-          })}
+              </div>
+            </section>
+          ))}
         </>
       )}
 
