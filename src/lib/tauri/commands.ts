@@ -12,6 +12,7 @@ import type {
   ClipInfo,
   Container,
   CropRect,
+  DiskSpace,
   DisplayInfo,
   EncoderCapabilities,
   QualityTier,
@@ -92,6 +93,8 @@ export const commands = {
   showMainWindow: (page?: string) => invoke<undefined>("show_main_window", { page }),
   pickFolder: (initial?: string) => invoke<string | null>("pick_folder", { initial }),
   getCurrentGame: () => invoke<string | null>("get_current_game"),
+  /** Free/total space on the clips folder's drive. */
+  getDiskSpace: () => invoke<DiskSpace>("get_disk_space"),
   setFavorite: (path: string, favorite: boolean) =>
     invoke<null>("set_favorite", { path, favorite }),
   /** Renames a clip in its folder; returns the new path. */

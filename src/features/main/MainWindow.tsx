@@ -23,6 +23,7 @@ import {
   type SettingsTarget,
 } from "../settings/groups";
 import { SettingsPage } from "../settings/SettingsPage";
+import { StoragePage } from "../storage/StoragePage";
 import { AppSidebar, type PageId } from "./AppSidebar";
 import { UpdateDialog } from "../update/UpdateDialog";
 import { WindowControls } from "./WindowControls";
@@ -30,11 +31,12 @@ import { WindowControls } from "./WindowControls";
 const PAGE_TITLES: Record<PageId, string> = {
   overview: "Overview",
   clips: "Clips",
+  storage: "Storage",
   settings: "Settings",
 };
 
 function isPage(p: string | null | undefined): p is PageId {
-  return p === "overview" || p === "clips" || p === "settings";
+  return p === "overview" || p === "clips" || p === "storage" || p === "settings";
 }
 
 /**
@@ -211,6 +213,7 @@ export function MainWindow() {
           ))}
           {page === "overview" && <OverviewPage go={go} openClip={openClip} />}
           {page === "clips" && <ClipsPage key={openPath ?? ""} open={openPath} />}
+          {page === "storage" && <StoragePage openClip={openClip} />}
           {page === "settings" && <SettingsPage key={target?.seq ?? 0} target={target} />}
         </main>
       </div>

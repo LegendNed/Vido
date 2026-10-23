@@ -218,12 +218,41 @@ unsafe fn set_clipboard_bytes(format: u32, bytes: &[u8]) -> windows::core::Resul
     Ok(())
 }
 
+/// Free and total bytes on the drive holding `path` (`None` if unknown). The
+/// path need not exist yet: its nearest existing ancestor is asked.
+pub fn disk_space(path: &Path) -> Option<(u64, u64)> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+
+    let dir = path.ancestors().find(|p| p.exists())?;
+    let wide: Vec<u16> = dir.as_os_str().encode_wide().chain([0]).collect();
+    let (mut free, mut total) = (0u64, 0u64);
+    // SAFETY: `wide` is NUL-terminated and outlives the call; the outputs are valid.
+    unsafe {
+        GetDiskFreeSpaceExW(
+            PCWSTR(wide.as_ptr()),
+            Some(&mut free),
+            Some(&mut total),
+            None,
+        )
+    }
+    .ok()?;
+    Some((free, total))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn u32_at(b: &[u8], i: usize) -> u32 {
         u32::from_le_bytes(b[i..i + 4].try_into().unwrap())
+    }
+
+    #[test]
+    fn disk_space_of_a_missing_folder_uses_its_drive() {
+        let dir = std::env::temp_dir().join("vido-no-such-dir").join("deeper");
+        let (free, total) = disk_space(&dir).unwrap();
+        assert!(total > 0 && free <= total);
     }
 
     #[test]

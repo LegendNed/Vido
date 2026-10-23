@@ -491,6 +491,7 @@ pub fn run() {
             commands::set_favorite,
             commands::rename_clip,
             commands::export_audio_tracks,
+            commands::get_disk_space,
             commands::check_for_updates,
             commands::get_pending_update,
             commands::install_update,

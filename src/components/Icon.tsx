@@ -28,6 +28,7 @@ import {
   Keyboard,
   LayoutGrid,
   Grid3x3,
+  HardDrive,
   Maximize,
   Mic,
   Minimize,
@@ -115,6 +116,7 @@ const ICONS = {
   glyphSuccess: CircleCheck,
   blocked: Ban,
   star: Star,
+  storage: HardDrive,
   more: Ellipsis,
   audio: AudioLines,
 } satisfies Record<string, LucideIcon>;

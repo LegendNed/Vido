@@ -861,4 +861,163 @@
     font-size: 14px;
     font-weight: 600;
   }
+
+  /* Storage page */
+  .storage-card {
+    padding: 16px 20px;
+  }
+  .storage-disk {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .storage-figures {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+  }
+  .storage-big {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .storage-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--muted);
+  }
+  .storage-bar span,
+  .storage-legend i {
+    background: color-mix(in oklab, var(--foreground) 30%, transparent);
+  }
+  .storage-bar .clips,
+  .storage-legend i.clips {
+    background: var(--primary);
+  }
+  .storage-legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .storage-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .storage-legend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex: none;
+  }
+  .storage-legend > span:nth-child(3) i {
+    background: var(--muted);
+    outline: 1px solid var(--border);
+  }
+  .storage-legend > .ellipsis {
+    display: block;
+    min-width: 0;
+  }
+  .storage-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  .storage-games {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .storage-game {
+    display: grid;
+    grid-template-columns: minmax(0, 180px) 1fr 70px 80px;
+    align-items: center;
+    gap: 12px;
+  }
+  .storage-game-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--muted);
+    overflow: hidden;
+  }
+  .storage-game-bar > span {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    background: var(--primary);
+  }
+  .storage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .storage-clip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+  }
+  .storage-thumb {
+    flex: none;
+    width: 72px;
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+    background: var(--muted) center / cover;
+    display: grid;
+    place-items: center;
+    color: white;
+    border: 0;
+    cursor: pointer;
+  }
+  .storage-thumb svg {
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .storage-thumb:hover svg,
+  .storage-thumb:focus-visible svg {
+    opacity: 1;
+  }
+  .storage-star {
+    display: inline;
+    margin-right: 4px;
+    vertical-align: -1px;
+    color: var(--warning, #f5b301);
+  }
+  .storage-shrink {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .storage-shrink .storage-title {
+    margin: 0;
+  }
+  .storage-shrink p {
+    margin: 0;
+  }
+  .storage-shrink-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .storage-run {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  @media (max-width: 640px) {
+    .storage-game {
+      grid-template-columns: minmax(0, 1fr) 70px;
+    }
+    .storage-game-bar,
+    .storage-game > .muted {
+      display: none;
+    }
+  }
 }

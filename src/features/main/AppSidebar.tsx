@@ -11,11 +11,12 @@ import { cn } from "../../lib/utils";
 import { useApp } from "../../stores/app";
 import type { SettingsGroupId } from "../settings/groups";
 
-export type PageId = "overview" | "clips" | "settings";
+export type PageId = "overview" | "clips" | "storage" | "settings";
 
 const LIBRARY: { id: PageId; label: string; icon: IconName }[] = [
   { id: "overview", label: "Overview", icon: "home" },
   { id: "clips", label: "Clips", icon: "film" },
+  { id: "storage", label: "Storage", icon: "storage" },
 ];
 
 /** Settings pages in the sidebar, under shadcn-style group labels. */

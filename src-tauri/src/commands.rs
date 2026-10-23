@@ -721,6 +721,38 @@ pub fn get_current_game(state: AppStateRef<'_>) -> Option<String> {
     crate::actions::game_playing(&state)
 }
 
+/// The drive the clips folder is on (Storage page).
+#[derive(Serialize, TS, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DiskSpace {
+    /// The clips folder.
+    pub folder: String,
+    #[ts(type = "number")]
+    pub free_bytes: u64,
+    #[ts(type = "number")]
+    pub total_bytes: u64,
+}
+
+#[tauri::command]
+pub async fn get_disk_space(app: AppHandle) -> AppResult<DiskSpace> {
+    blocking(move || {
+        let dir = app.state::<AppState>().output_dir();
+        #[cfg(windows)]
+        let space = crate::win::disk_space(&dir);
+        #[cfg(not(windows))]
+        let space: Option<(u64, u64)> = None;
+        let (free_bytes, total_bytes) =
+            space.ok_or_else(|| AppError::internal("could not read the free disk space"))?;
+        Ok(DiskSpace {
+            folder: dir.to_string_lossy().into_owned(),
+            free_bytes,
+            total_bytes,
+        })
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn pick_sound_file(app: AppHandle, initial: Option<String>) -> AppResult<Option<String>> {
     blocking(move || {

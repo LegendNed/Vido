@@ -73,6 +73,7 @@ export type { Vendor } from "./bindings/Vendor";
 export type { VideoCodec } from "./bindings/VideoCodec";
 export type { WindowInfo } from "./bindings/WindowInfo";
 export type { WindowRef } from "./bindings/WindowRef";
+export type { DiskSpace } from "./bindings/DiskSpace";
 
 import type { AppError } from "./bindings/AppError";
 

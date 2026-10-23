@@ -103,6 +103,10 @@ Clips are saved to `Videos\Vido` (change it in Settings → Saving).
   background (e.g. to 20 MB for Discord) and tells you when it's ready.
 - **After saving:** copy the video (default) or its path, open the folder or editor, or run your
   own command.
+- **Make it longer:** missed the end? Save again within 15 seconds and the second save replaces
+  the first with one longer clip (can be turned off).
+- **Only while a game runs** (optional): the buffer starts when a game does and stops a minute
+  after it closes.
 - **Manual recording** for longer sessions, and **pause** the buffer when you don't need it.
 
 ![Video settings](docs/images/settings-video.png)
@@ -110,15 +114,26 @@ Clips are saved to `Videos\Vido` (change it in Settings → Saving).
 ### Watch and edit
 
 - A **Clips** library grouped by date, with a resizable grid and a built-in player
-  (←/→ to step through clips).
+  (←/→ to step through clips). **Search**, **favorites**, **rename**, and select several clips to
+  favorite, export or delete them together.
 - The **editor** has a timeline with one lane per audio track: trim with the handles, mute or
   change the volume of each track (heard live), crop, take a PNG of the current frame, undo/redo.
+- **Blur** names, chat or anything private: drag one or more boxes over it.
+- **Vertical (9:16)** for Shorts, TikTok and Reels: drag a 9:16 window, or fit the whole frame on
+  a blurred background.
+- **Export audio tracks** as WAV files (one per track) from the editor or the clip menu.
 - **Save** writes a copy next to the clip; **Save & override** replaces it (the original goes to
   the Recycle Bin).
 - **Export presets:** **Discord (no Nitro)** (20 MB), Original (instant, lossless when you only
   trim), 10 / 25 / 50 MB, High quality, Small (HEVC), or anything under Advanced.
 
 ![Editor](docs/images/editor.png)
+
+### Storage
+
+The **Storage** page shows how much space clips take per game and on the drive, lists the biggest
+clips, and can **shrink old clips**: re-encode clips older than a week, month or more to HEVC or
+H.264 at 1080p, skipping favorites and clips that are already small.
 
 ### Overlay and sound
 
