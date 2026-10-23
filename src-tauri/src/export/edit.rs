@@ -279,6 +279,8 @@ mod tests {
             trim_start: 2.0,
             trim_end: 12.0,
             crop: None,
+            blur: Vec::new(),
+            vertical_fit: false,
             speed: 1.0,
             scale: ScalePreset::P720,
             fps: 30,

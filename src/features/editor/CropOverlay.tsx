@@ -9,8 +9,10 @@ type Handle = "move" | "nw" | "ne" | "sw" | "se" | "n" | "s" | "e" | "w";
 const HANDLES: Exclude<Handle, "move">[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 /**
- * Crop rectangle editor drawn over a `object-fit: contain` video element.
- * Coordinates are in source pixels.
+ * Rectangle editor drawn over a `object-fit: contain` video element, for the crop
+ * or (`variant="blur"`) the selected blur area. Coordinates are in source pixels.
+ * Blur areas show a live blurred preview; `others` are the remaining blur areas
+ * (click one to edit it). With `crop` null only `others` are shown.
  */
 export function CropOverlay({
   videoWidth,
@@ -19,14 +21,22 @@ export function CropOverlay({
   aspect,
   onChange,
   onCommit,
+  variant = "crop",
+  others = [],
+  onSelectOther,
 }: {
   videoWidth: number;
   videoHeight: number;
-  crop: CropRect;
+  crop: CropRect | null;
   aspect: number | null;
   onChange: (c: CropRect) => void;
   onCommit: () => void;
+  variant?: "crop" | "blur";
+  others?: CropRect[];
+  onSelectOther?: (index: number) => void;
 }) {
+  const blur = variant === "blur";
+  const min = blur ? 16 : 64;
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const drag = useRef<{ handle: Handle; startX: number; startY: number; orig: CropRect } | null>(
@@ -55,6 +65,7 @@ export function CropOverlay({
     e.preventDefault();
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
+    if (!crop) return;
     drag.current = { handle, startX: e.clientX, startY: e.clientY, orig: crop };
   };
   const onMove = (e: React.PointerEvent) => {
@@ -69,15 +80,15 @@ export function CropOverlay({
       y = clamp(o.y + dy, 0, videoHeight - o.height);
     } else {
       if (d.handle.includes("w")) {
-        x = clamp(o.x + dx, 0, o.x + o.width - 64);
+        x = clamp(o.x + dx, 0, o.x + o.width - min);
         width = o.x + o.width - x;
       }
-      if (d.handle.includes("e")) width = clamp(o.width + dx, 64, videoWidth - o.x);
+      if (d.handle.includes("e")) width = clamp(o.width + dx, min, videoWidth - o.x);
       if (d.handle.includes("n")) {
-        y = clamp(o.y + dy, 0, o.y + o.height - 64);
+        y = clamp(o.y + dy, 0, o.y + o.height - min);
         height = o.y + o.height - y;
       }
-      if (d.handle.includes("s")) height = clamp(o.height + dy, 64, videoHeight - o.y);
+      if (d.handle.includes("s")) height = clamp(o.height + dy, min, videoHeight - o.y);
       if (aspect) {
         // Keep the aspect ratio, driven by the dominant axis.
         if (d.handle === "n" || d.handle === "s") width = height * aspect;
@@ -93,16 +104,56 @@ export function CropOverlay({
     drag.current = null;
   };
 
-  const r = {
-    left: offX + crop.x * scale,
-    top: offY + crop.y * scale,
-    width: crop.width * scale,
-    height: crop.height * scale,
-  };
+  const place = (c: CropRect) => ({
+    left: offX + c.x * scale,
+    top: offY + c.y * scale,
+    width: c.width * scale,
+    height: c.height * scale,
+  });
+  const r = place(crop ?? { x: 0, y: 0, width: 0, height: 0 });
+  // Blur strength in screen pixels, about what the export will look like.
+  const blurPx = (c: CropRect) => Math.max(4, Math.min(c.width, c.height) * scale * 0.12);
 
   return (
-    <div ref={box} className="crop-layer" onPointerMove={onMove} onPointerUp={onUp}>
-      {scale > 0 && (
+    <div
+      ref={box}
+      className={`crop-layer${crop ? "" : " passive"}`}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+    >
+      {scale > 0 &&
+        others.map((o, i) => (
+          <div
+            key={i}
+            className="blur-rect other"
+            style={{ ...place(o), backdropFilter: `blur(${blurPx(o)}px)` }}
+            onPointerDown={(e) => {
+              if (!onSelectOther) return;
+              e.stopPropagation();
+              onSelectOther(i);
+            }}
+          />
+        ))}
+      {scale > 0 && crop && blur && (
+        <div
+          className="crop-rect blur-rect"
+          style={{ ...r, backdropFilter: `blur(${blurPx(crop)}px)` }}
+          onPointerDown={(e) => {
+            onDown(e, "move");
+          }}
+        >
+          {HANDLES.map((h) => (
+            <span
+              key={h}
+              className={`crop-handle ${h}`}
+              onPointerDown={(e) => {
+                onDown(e, h);
+              }}
+            />
+          ))}
+        </div>
+      )}
+      {scale > 0 && crop && !blur && (
         <>
           <div
             className="crop-shade"

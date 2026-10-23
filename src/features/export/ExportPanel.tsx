@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { Banner, Button } from "../../components/controls";
+import { Banner, Button, Segmented } from "../../components/controls";
 import { formatBitrate, formatBytes, formatDuration, formatTime } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import {
@@ -10,10 +10,16 @@ import {
   type ExportEstimate,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
-import { buildRequest, type EditState, type ExportOpts } from "../editor/model";
+import { buildRequest, type EditState, type ExportOpts, type Vertical } from "../editor/model";
 import { EncodeOptions } from "./EncodeOptions";
 
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
+
+const SHAPES: { value: Vertical; label: string }[] = [
+  { value: "off", label: "Original" },
+  { value: "crop", label: "9:16 crop" },
+  { value: "fit", label: "9:16 fit" },
+];
 
 /**
  * The editor's export pane: preset chips, every encode option under "Advanced"
@@ -24,11 +30,13 @@ export function ExportPanel({
   path,
   state,
   setOpts,
+  onVertical,
   actions,
 }: {
   path: string;
   state: EditState;
   setOpts: (fn: (x: ExportOpts) => ExportOpts) => void;
+  onVertical: (v: Vertical) => void;
   actions: ReactNode;
 }) {
   const [estimate, setEstimate] = useState<ExportEstimate | null>(null);
@@ -100,6 +108,17 @@ export function ExportPanel({
     <div className="export-panel">
       <div className="export-scroll">
         <div className="side-title">Export</div>
+        <div className="export-shape">
+          <span className="muted small">Shape</span>
+          <Segmented<Vertical> value={state.vertical} options={SHAPES} onChange={onVertical} />
+          <span className="muted small">
+            {state.vertical === "crop"
+              ? "Drag the 9:16 window over the part to keep."
+              : state.vertical === "fit"
+                ? "The whole frame on a blurred 9:16 background."
+                : "As recorded."}
+          </span>
+        </div>
         <EncodeOptions
           value={x}
           onChange={update}

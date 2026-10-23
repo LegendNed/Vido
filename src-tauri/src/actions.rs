@@ -409,6 +409,8 @@ fn reencode_request(path: &Path, info: &MediaInfo, d: &ExportDefaults) -> Export
         trim_start: 0.0,
         trim_end: info.duration,
         crop: None,
+        blur: Vec::new(),
+        vertical_fit: false,
         speed: 1.0,
         scale: d.scale,
         fps: d.fps,

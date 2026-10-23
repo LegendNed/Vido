@@ -152,6 +152,8 @@ fn base_request(input: &Path) -> ExportRequest {
         trim_start: 1.5,
         trim_end: 4.0,
         crop: None,
+        blur: Vec::new(),
+        vertical_fit: false,
         speed: 1.0,
         scale: ScalePreset::Native,
         fps: 0,
@@ -261,6 +263,38 @@ fn crop_scale_speed_mix_export_reencodes() {
     // (4.0 - 1.5) / 2 = 1.25 s
     assert!((info.duration - 1.25).abs() < 0.15, "{}", info.duration);
     assert_eq!(info.audio.len(), 1, "mixed into one track");
+}
+
+#[test]
+fn blurred_vertical_fit_export() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = make_clip(dir.path());
+    let mut req = base_request(&src);
+    req.blur = vec![
+        CropRect {
+            x: 10,
+            y: 10,
+            width: 60,
+            height: 40,
+        },
+        CropRect {
+            x: 100,
+            y: 50,
+            width: 33,
+            height: 21,
+        },
+    ];
+    req.vertical_fit = true;
+    req.scale = ScalePreset::P720;
+    let (plan, out, _) = run_export(&req);
+    assert!(
+        matches!(plan.video, VideoPlan::Encode { .. }),
+        "blur re-encodes"
+    );
+    let info = probe::probe(&out).unwrap();
+    let v = info.video.unwrap();
+    assert_eq!((v.width, v.height), (720, 1280), "9:16 fit at 720p");
+    assert!((info.duration - 2.5).abs() < 0.15, "{}", info.duration);
 }
 
 #[test]

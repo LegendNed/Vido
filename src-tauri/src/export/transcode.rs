@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use super::remux::partial_path;
-use super::{AudioOut, Plan, VideoPlan};
+use super::{AudioOut, CropRect, Plan, VideoPlan};
 use crate::av::filter::{FilterGraph, Pull};
 use crate::av::{self, check, sys, CodecCtx, Demuxer, Frame, Muxer, Packet, StreamSpec};
 use crate::encode::audio::AudioEncoder;
@@ -173,6 +173,82 @@ fn decode_into(
     }
 }
 
+/// The video part of the filter graph (`[v_in]` → `[v_out]`): trim, blur areas
+/// (on the source frame), crop, then either a plain scale or the vertical "fit"
+/// layout (the frame in the middle of a 9:16 canvas filled with a blurred,
+/// enlarged copy), speed, frame rate and the encoder's pixel format.
+#[allow(clippy::too_many_arguments)]
+pub fn video_graph(
+    start: f64,
+    end: f64,
+    (src_w, src_h): (u32, u32),
+    crop: Option<&CropRect>,
+    blur: &[CropRect],
+    vertical_fit: bool,
+    (width, height): (u32, u32),
+    speed: f64,
+    fps: (i32, i32),
+    pix_fmt: &str,
+) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut n = 0;
+    let label = |n: &mut usize| {
+        *n += 1;
+        format!("v{n}")
+    };
+    let mut cur = label(&mut n);
+    parts.push(format!(
+        "[v_in]trim=start={start:.6}:end={end:.6},setpts=PTS-STARTPTS[{cur}]"
+    ));
+    for (i, b) in blur.iter().enumerate() {
+        // Strength scales with the area (a small box needs less radius).
+        let radius = (b.width.min(b.height) / 6).clamp(4, 40);
+        let (base, region, blurred, next) = (
+            format!("bb{i}"),
+            format!("br{i}"),
+            format!("bk{i}"),
+            label(&mut n),
+        );
+        parts.push(format!(
+            "[{cur}]split[{base}][{region}];[{region}]crop={}:{}:{}:{},boxblur={radius}:2[{blurred}];[{base}][{blurred}]overlay={}:{}[{next}]",
+            b.width, b.height, b.x, b.y, b.x, b.y
+        ));
+        cur = next;
+    }
+    let (mut cw, mut ch) = (src_w, src_h);
+    let mut chain = Vec::new();
+    if let Some(c) = crop {
+        chain.push(format!("crop={}:{}:{}:{}", c.width, c.height, c.x, c.y));
+        (cw, ch) = (c.width, c.height);
+    }
+    if vertical_fit {
+        if !chain.is_empty() {
+            let next = label(&mut n);
+            parts.push(format!("[{cur}]{}[{next}]", chain.join(",")));
+            cur = next;
+            chain.clear();
+        }
+        let next = label(&mut n);
+        parts.push(format!(
+            "[{cur}]split[vf_bg][vf_fg];\
+             [vf_bg]scale={width}:{height}:force_original_aspect_ratio=increase:flags=bilinear,\
+             crop={width}:{height},boxblur=30:3[vf_back];\
+             [vf_fg]scale={width}:-2:flags=bicubic[vf_front];\
+             [vf_back][vf_front]overlay=(W-w)/2:(H-h)/2[{next}]"
+        ));
+        cur = next;
+    } else if (cw, ch) != (width, height) {
+        chain.push(format!("scale={width}:{height}:flags=bicubic"));
+    }
+    if (speed - 1.0).abs() > 1e-6 {
+        chain.push(format!("setpts=PTS/{speed:.6}"));
+    }
+    chain.push(format!("fps={}/{}", fps.0, fps.1));
+    chain.push(format!("format={pix_fmt}"));
+    parts.push(format!("[{cur}]{}[v_out]", chain.join(",")));
+    parts
+}
+
 pub fn run(
     plan: &Plan,
     caps: Option<&EncoderCapabilities>,
@@ -247,6 +323,8 @@ fn run_inner(
     let mut total_frames = 0.0;
     if let VideoPlan::Encode {
         crop,
+        blur,
+        vertical_fit,
         width,
         height,
         fps,
@@ -290,24 +368,18 @@ fn run_inner(
         };
         vsrc = graph.add_video_src("v_in", dw, dh, dfmt, vtb, sar)?;
         vsink = graph.add_video_sink("v_out")?;
-        let mut chain = vec![
-            format!("trim=start={s_abs:.6}:end={end_abs:.6}"),
-            "setpts=PTS-STARTPTS".to_string(),
-        ];
-        let (mut cw, mut ch) = (dw, dh);
-        if let Some(c) = crop {
-            chain.push(format!("crop={}:{}:{}:{}", c.width, c.height, c.x, c.y));
-            (cw, ch) = (c.width, c.height);
-        }
-        if (cw, ch) != (*width, *height) {
-            chain.push(format!("scale={width}:{height}:flags=bicubic"));
-        }
-        if (plan.speed - 1.0).abs() > 1e-6 {
-            chain.push(format!("setpts=PTS/{:.6}", plan.speed));
-        }
-        chain.push(format!("fps={}/{}", fps.0, fps.1));
-        chain.push(format!("format={}", pix_fmt_name(enc.input.pix_fmt())));
-        parts.push(format!("[v_in]{}[v_out]", chain.join(",")));
+        parts.extend(video_graph(
+            s_abs,
+            end_abs,
+            (dw, dh),
+            crop.as_ref(),
+            blur,
+            *vertical_fit,
+            (*width, *height),
+            plan.speed,
+            *fps,
+            &pix_fmt_name(enc.input.pix_fmt()),
+        ));
         total_frames = out_dur * av::q2d(fps_q);
         vdec = Some(dec);
         venc = Some(enc);

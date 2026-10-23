@@ -45,6 +45,8 @@ fn req() -> ExportRequest {
         trim_start: 2.5,
         trim_end: 12.0,
         crop: None,
+        blur: Vec::new(),
+        vertical_fit: false,
         speed: 1.0,
         scale: ScalePreset::Native,
         fps: 0,

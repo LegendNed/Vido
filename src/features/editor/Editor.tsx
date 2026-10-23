@@ -17,7 +17,8 @@ import { activePreset } from "../export/presets";
 import type { LaneView } from "./AudioLane";
 import { CropBar } from "./CropBar";
 import { CropOverlay } from "./CropOverlay";
-import { aspectCrop } from "./cropMath";
+import { aspectCrop, normalizeCrop } from "./cropMath";
+import { BlurBar } from "./BlurBar";
 import { laneGains, mixWave, previewGain, previewNote } from "./lanes";
 import {
   hasEdits,
@@ -28,6 +29,7 @@ import {
   type EditState,
   type ExportOpts,
   type Lane,
+  type Vertical,
 } from "./model";
 import { SaveActions } from "./SaveEdit";
 import { Timeline } from "./Timeline";
@@ -38,6 +40,8 @@ import { useLaneAudio } from "./useLaneAudio";
 const WAVE_BUCKETS = 1600;
 /** Waveforms decoded at the same time (each one reads the whole file). */
 const WAVE_JOBS = 3;
+/** Most blur areas (the export allows 16). */
+const MAX_BLUR = 16;
 
 /** Loads a clip and shows the editor for it (inside the main window's editor modal). */
 export function ClipLoader({
@@ -128,6 +132,9 @@ function ClipEditor({
   const [loop, setLoop] = useState(true);
   const [cropMode, setCropMode] = useState(false);
   const [aspect, setAspect] = useState<number | null>(null);
+  const [blurMode, setBlurMode] = useState(false);
+  // The blur area being edited (index into `s.blur`).
+  const [blurSel, setBlurSel] = useState<number | null>(null);
   const [videoError, setVideoError] = useState(false);
   const video = useRef<HTMLVideoElement>(null);
   const {
@@ -272,17 +279,75 @@ function ClipEditor({
         : c,
     [info.width, info.height],
   );
+  // A 9:16 crop is the "Vertical · crop" shape; another aspect ends it.
   const chooseAspect = (a: number | null) => {
     setAspect(a);
-    if (a !== null) edit((d) => ({ ...d, crop: orNull(aspectCrop(a, info.width, info.height)) }));
+    const vertical = (v: Vertical): Vertical => (v === "crop" && a !== 9 / 16 ? "off" : v);
+    if (a !== null)
+      edit((d) => ({
+        ...d,
+        crop: orNull(aspectCrop(a, info.width, info.height)),
+        vertical: vertical(d.vertical),
+      }));
   };
   const resetCrop = () => {
     setAspect(null);
-    edit((d) => ({ ...d, crop: null }));
+    edit((d) => ({ ...d, crop: null, vertical: d.vertical === "crop" ? "off" : d.vertical }));
   };
   const closeCrop = useCallback(() => {
     setCropMode(false);
   }, []);
+
+  // Output shape (export pane). Crop picks a 9:16 window to drag; Fit keeps the
+  // whole frame on a blurred 9:16 fill.
+  const chooseVertical = (v: Vertical) => {
+    if (v === "crop") {
+      setAspect(9 / 16);
+      setBlurMode(false);
+      setCropMode(true);
+      edit((d) => ({
+        ...d,
+        vertical: v,
+        crop: orNull(aspectCrop(9 / 16, info.width, info.height)),
+      }));
+    } else if (s.vertical === "crop") {
+      setAspect(null);
+      setCropMode(false);
+      edit((d) => ({ ...d, vertical: v, crop: null }));
+    } else {
+      edit((d) => ({ ...d, vertical: v }));
+    }
+  };
+
+  // Blur areas.
+  const closeBlur = useCallback(() => {
+    setBlurMode(false);
+    setBlurSel(null);
+  }, []);
+  const addBlur = () => {
+    const w = Math.round(info.width / 4);
+    const h = Math.round(info.height / 4);
+    const box = normalizeCrop(
+      // Each new area a little lower-right, so they don't stack.
+      {
+        x: (info.width - w) / 2 + (((s.blur.length * info.width) / 24) % (info.width / 3)),
+        y: (info.height - h) / 2 + (((s.blur.length * info.height) / 24) % (info.height / 3)),
+        width: w,
+        height: h,
+      },
+      info.width,
+      info.height,
+    );
+    setBlurSel(s.blur.length);
+    edit((d) => ({ ...d, blur: [...d.blur, box] }));
+  };
+  const removeBlur = useCallback(() => {
+    if (blurSel === null) return;
+    setBlurSel(null);
+    edit((d) => ({ ...d, blur: d.blur.filter((_, i) => i !== blurSel) }));
+  }, [blurSel, edit]);
+  // An undo can drop the selected area.
+  const sel = blurSel !== null && blurSel < s.blur.length ? blurSel : null;
 
   // Save & override: the preview must not hold the file while it is replaced.
   const releaseVideo = useCallback(() => {
@@ -324,6 +389,12 @@ function ClipEditor({
       } else if (cropMode && (e.key === "Enter" || e.key === "Escape")) {
         e.preventDefault();
         closeCrop();
+      } else if (blurMode && (e.key === "Enter" || e.key === "Escape")) {
+        e.preventDefault();
+        closeBlur();
+      } else if (blurMode && (e.key === "Delete" || e.key === "Backspace")) {
+        e.preventDefault();
+        removeBlur();
       } else if (e.key === " " || key === "k") {
         e.preventDefault();
         togglePlay();
@@ -354,6 +425,9 @@ function ClipEditor({
     s.trimEnd,
     cropMode,
     closeCrop,
+    blurMode,
+    closeBlur,
+    removeBlur,
   ]);
 
   // Lanes: a recorded mix is shown on top, derived from the source lanes below it.
@@ -425,6 +499,34 @@ function ClipEditor({
                 onCommit={commit}
               />
             )}
+            {!cropMode && s.blur.length > 0 && !blurMode && (
+              <CropOverlay
+                videoWidth={info.width}
+                videoHeight={info.height}
+                crop={null}
+                aspect={null}
+                others={s.blur}
+                onChange={() => undefined}
+                onCommit={() => undefined}
+              />
+            )}
+            {blurMode && (
+              <CropOverlay
+                variant="blur"
+                videoWidth={info.width}
+                videoHeight={info.height}
+                crop={sel === null ? null : (s.blur[sel] ?? null)}
+                aspect={null}
+                others={s.blur.filter((_, i) => i !== sel)}
+                onSelectOther={(i) => {
+                  setBlurSel(sel !== null && i >= sel ? i + 1 : i);
+                }}
+                onChange={(c) => {
+                  preview((d) => ({ ...d, blur: d.blur.map((b, i) => (i === sel ? c : b)) }));
+                }}
+                onCommit={commit}
+              />
+            )}
           </div>
           {cropMode && (
             <CropBar
@@ -435,6 +537,16 @@ function ClipEditor({
               onAspect={chooseAspect}
               onReset={resetCrop}
               onDone={closeCrop}
+            />
+          )}
+          {blurMode && (
+            <BlurBar
+              count={s.blur.length}
+              selected={sel !== null}
+              max={MAX_BLUR}
+              onAdd={addBlur}
+              onRemove={removeBlur}
+              onDone={closeBlur}
             />
           )}
           {videoError && (
@@ -505,10 +617,33 @@ function ClipEditor({
                 variant={cropMode ? "primary" : undefined}
                 title={cropMode ? "Done cropping (Enter)" : "Crop the video"}
                 onClick={() => {
+                  closeBlur();
                   setCropMode((v) => !v);
                 }}
               >
                 {s.crop && !cropMode ? `Crop ${s.crop.width}×${s.crop.height}` : "Crop"}
+              </Button>
+              <Button
+                small
+                icon="blur"
+                variant={blurMode ? "primary" : undefined}
+                title={
+                  blurMode
+                    ? "Done blurring (Enter)"
+                    : s.blur.length > 0
+                      ? `${s.blur.length} blurred area${s.blur.length === 1 ? "" : "s"}`
+                      : "Blur names, chat or anything private"
+                }
+                onClick={() => {
+                  setCropMode(false);
+                  if (blurMode) closeBlur();
+                  else {
+                    setBlurMode(true);
+                    setBlurSel(s.blur.length > 0 ? 0 : null);
+                  }
+                }}
+              >
+                Blur
               </Button>
               <Button
                 small
@@ -565,6 +700,7 @@ function ClipEditor({
             path={info.path}
             state={s}
             setOpts={setOpts}
+            onVertical={chooseVertical}
             actions={
               <SaveActions
                 path={info.path}

@@ -15,6 +15,15 @@ export type ExportRequest = { inputPath: string,
  */
 outputPath?: string, trimStart: number, trimEnd: number, crop?: CropRect, 
 /**
+ * Areas to blur (source pixels, before the crop).
+ */
+blur: Array<CropRect>, 
+/**
+ * 9:16 output with the whole frame in the middle and a blurred copy filling
+ * the top and bottom (a 9:16 *crop* is just `crop`).
+ */
+verticalFit: boolean, 
+/**
  * Playback speed 0.25–4.
  */
 speed: number, scale: ScalePreset, 

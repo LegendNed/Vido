@@ -393,6 +393,25 @@
     inset: 0;
     touch-action: none;
   }
+  /* Only blur previews (outside the blur tool): clicks reach the video. */
+  .crop-layer.passive {
+    pointer-events: none;
+  }
+  .blur-rect {
+    position: absolute;
+    border: 1px dashed rgba(255, 255, 255, 0.7);
+  }
+  .blur-rect.other {
+    cursor: pointer;
+  }
+  .crop-layer.passive .blur-rect {
+    border-color: transparent;
+  }
+  .export-shape {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
   .crop-shade {
     position: absolute;
     background: rgba(0, 0, 0, 0.55);

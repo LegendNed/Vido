@@ -63,6 +63,13 @@ pub struct ExportRequest {
     pub trim_end: f64,
     #[ts(optional)]
     pub crop: Option<CropRect>,
+    /// Areas to blur (source pixels, before the crop).
+    #[serde(default)]
+    pub blur: Vec<CropRect>,
+    /// 9:16 output with the whole frame in the middle and a blurred copy filling
+    /// the top and bottom (a 9:16 *crop* is just `crop`).
+    #[serde(default)]
+    pub vertical_fit: bool,
     /// Playback speed 0.25–4.
     pub speed: f64,
     pub scale: ScalePreset,
@@ -177,6 +184,8 @@ pub enum VideoPlan {
     Copy,
     Encode {
         crop: Option<CropRect>,
+        blur: Vec<CropRect>,
+        vertical_fit: bool,
         width: u32,
         height: u32,
         fps: (i32, i32),
@@ -275,6 +284,19 @@ fn check(cond: bool, field: &str, msg: impl Into<String>) -> AppResult<()> {
     }
 }
 
+/// Most blur areas one export may have.
+pub const MAX_BLUR_BOXES: usize = 16;
+
+/// 9:16 output size for vertical "fit" exports: 1080×1920, or 720×1280 with the
+/// 720p preset.
+pub fn vertical_dims(scale: ScalePreset) -> (u32, u32) {
+    if scale == ScalePreset::P720 {
+        (720, 1280)
+    } else {
+        (1080, 1920)
+    }
+}
+
 /// Output size after crop + downscale preset (even dimensions, never upscaled).
 pub fn output_dims(
     src_w: u32,
@@ -302,6 +324,12 @@ pub fn video_copy_blocker(
     let v = info.video.as_ref()?;
     if req.crop.is_some() {
         return Some("cropping requires re-encoding".into());
+    }
+    if !req.blur.is_empty() {
+        return Some("blurring requires re-encoding".into());
+    }
+    if req.vertical_fit {
+        return Some("vertical video requires re-encoding".into());
     }
     if (req.speed - 1.0).abs() > 1e-6 {
         return Some("changing speed requires re-encoding".into());
@@ -406,6 +434,23 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
             "crop area is outside the frame",
         )?;
     }
+    check(
+        req.blur.len() <= MAX_BLUR_BOXES,
+        "blur",
+        "too many blur areas",
+    )?;
+    for b in &req.blur {
+        check(
+            b.width >= 8 && b.height >= 8,
+            "blur",
+            "blur area is too small",
+        )?;
+        check(
+            b.x.saturating_add(b.width) <= v.width && b.y.saturating_add(b.height) <= v.height,
+            "blur",
+            "blur area is outside the frame",
+        )?;
+    }
     let mut seen = std::collections::HashSet::new();
     for t in &req.audio_tracks {
         check(
@@ -451,7 +496,18 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
             width: c.width & !1,
             height: c.height & !1,
         });
-        let (width, height) = output_dims(v.width, v.height, crop, req.scale);
+        let (width, height) = if req.vertical_fit {
+            vertical_dims(req.scale)
+        } else {
+            output_dims(v.width, v.height, crop, req.scale)
+        };
+        let even = |r: &CropRect| CropRect {
+            x: r.x & !1,
+            y: r.y & !1,
+            width: (r.width & !1).max(8),
+            height: (r.height & !1).max(8),
+        };
+        let blur = req.blur.iter().map(even).collect();
         let fps = if req.fps == 0 {
             if v.fps_q.num > 0 && v.fps_q.den > 0 && v.fps <= 240.0 {
                 (v.fps_q.num, v.fps_q.den)
@@ -477,6 +533,8 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
         };
         VideoPlan::Encode {
             crop,
+            blur,
+            vertical_fit: req.vertical_fit,
             width,
             height,
             fps,

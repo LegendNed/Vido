@@ -29,10 +29,16 @@ export interface Lane {
   volume: number;
 }
 
+/** Output shape: as recorded, a 9:16 crop, or 9:16 with the whole frame on a blurred fill. */
+export type Vertical = "off" | "crop" | "fit";
+
 export interface EditState {
   trimStart: number;
   trimEnd: number;
   crop: CropRect | null;
+  /** Areas to blur, in source pixels. */
+  blur: CropRect[];
+  vertical: Vertical;
   /** One per audio track of the clip, by track index. */
   lanes: Lane[];
   /**
@@ -58,6 +64,8 @@ export function initialState(d: ClipDetails, defaults: ExportDefaults): EditStat
     trimStart: 0,
     trimEnd: d.info.durationSec,
     crop: null,
+    blur: [],
+    vertical: "off",
     lanes: d.info.audioTracks.map(() => UNITY),
     recordedMix: hasMixStructure(d),
     x: {
@@ -141,6 +149,8 @@ function request(path: string, s: EditState, audio: AudioOut): ExportRequest {
     trimStart: s.trimStart,
     trimEnd: s.trimEnd,
     ...(s.crop ? { crop: s.crop } : {}),
+    blur: s.blur,
+    verticalFit: s.vertical === "fit",
     // The editor offers no speed change or fades (the backend still supports them).
     speed: 1,
     scale: s.x.scale,
@@ -169,6 +179,7 @@ export function buildRequest(path: string, s: EditState): ExportRequest {
 
 /** Whether `s` changes the clip itself (export-only options don't count). */
 export function hasEdits(s: EditState, initial: EditState): boolean {
-  const key = (e: EditState) => JSON.stringify([e.trimStart, e.trimEnd, e.crop, e.lanes]);
+  const key = (e: EditState) =>
+    JSON.stringify([e.trimStart, e.trimEnd, e.crop, e.blur, e.vertical, e.lanes]);
   return key(s) !== key(initial);
 }
