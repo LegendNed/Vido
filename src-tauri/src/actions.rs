@@ -81,9 +81,72 @@ pub fn save_blocking(app: &AppHandle) -> AppResult<crate::clips::ClipInfo> {
     state.clips.info(Path::new(&clip.path))
 }
 
+/// The previous save, so "Make it longer" can replace it.
+struct PrevSave {
+    /// The clip as saved: in the clips folder, or staged for re-encoding.
+    path: PathBuf,
+    /// Its re-encode job, while it may still run.
+    job: Option<String>,
+    /// The re-encoded clip, once it exists.
+    done: Option<PathBuf>,
+}
+
+static PREV_SAVE: parking_lot::Mutex<Option<PrevSave>> = parking_lot::Mutex::new(None);
+/// Staged clips replaced by an extended clip before their re-encode ended.
+static SUPERSEDED: parking_lot::Mutex<Vec<PathBuf>> = parking_lot::Mutex::new(Vec::new());
+
+fn take_superseded(staged: &Path) -> bool {
+    let mut v = SUPERSEDED.lock();
+    let before = v.len();
+    v.retain(|p| p != staged);
+    v.len() != before
+}
+
+/// "Make it longer": `new` replaces the previous clip, which goes to the Recycle
+/// Bin (a re-encode still running for it is cancelled; its staged file is dropped).
+fn replace_previous(state: &AppState, new: &Path) {
+    let Some(prev) = PREV_SAVE.lock().take() else {
+        return;
+    };
+    let old = match (prev.done, prev.job) {
+        (Some(done), _) => Some(done),
+        (None, Some(job)) => {
+            SUPERSEDED.lock().push(prev.path.clone());
+            state.exports.cancel(&job);
+            None
+        }
+        (None, None) => Some(prev.path),
+    };
+    if let Some(old) = old {
+        if state.favorites.contains(&old) {
+            state.favorites.moved(&old, new);
+        }
+        state.clips.invalidate(&old);
+        if let Err(e) = crate::util::move_to_recycle_bin(&old) {
+            tracing::warn!(
+                "could not recycle {} after extending it: {e}",
+                old.display()
+            );
+        }
+    }
+}
+
 fn after_save(app: &AppHandle, state: &AppState, clip: &SavedClip) {
     let settings = state.settings.get();
     let path = Path::new(&clip.path);
+    if clip.extended {
+        replace_previous(state, path);
+    }
+    *PREV_SAVE.lock() = Some(PrevSave {
+        path: path.to_path_buf(),
+        job: None,
+        done: None,
+    });
+    let title = if clip.extended {
+        "Clip extended"
+    } else {
+        "Clip saved"
+    };
     if path.starts_with(Engine::staging_dir(&settings, &state.paths)) {
         // Re-encode-on-save: the clip is ready (sound, clipboard, ...) once the
         // re-encoded file is in the clips folder.
@@ -91,13 +154,13 @@ fn after_save(app: &AppHandle, state: &AppState, clip: &SavedClip) {
             app,
             ToastKind::Saved,
             format!(
-                "Clip saved ({}) · re-encoding…",
+                "{title} ({}) · re-encoding…",
                 crate::util::fmt_duration(clip.duration_sec)
             ),
         );
         reencode_saved(app, state, path, clip.duration_sec);
     } else {
-        clip_ready(app, state, path, clip.duration_sec, "Clip saved", true);
+        clip_ready(app, state, path, clip.duration_sec, title, true);
     }
 }
 
@@ -216,16 +279,32 @@ fn reencode_saved(app: &AppHandle, state: &AppState, staged: &Path, duration_sec
             let Some(state) = app2.try_state::<AppState>() else {
                 return;
             };
+            let superseded = take_superseded(&staged2);
             match r {
+                // An extended clip replaced this one meanwhile.
+                Ok(r) if superseded => {
+                    let _ = std::fs::remove_file(&staged2);
+                    let _ = crate::util::move_to_recycle_bin(Path::new(&r.output_path));
+                }
+                Err(_) if superseded => {
+                    let _ = std::fs::remove_file(&staged2);
+                }
                 Ok(r) => {
                     let _ = std::fs::remove_file(&staged2);
                     let out = Path::new(&r.output_path);
+                    if let Some(p) = PREV_SAVE.lock().as_mut().filter(|p| p.path == staged2) {
+                        p.done = Some(out.to_path_buf());
+                        p.job = None;
+                    }
                     clip_ready(&app2, &state, out, duration_sec, "Clip ready", popup);
                 }
                 Err(e) => keep_staged(&app2, &state, &staged2, duration_sec, e),
             }
         });
-        state.exports.submit_then(plan, Finish::Keep, Some(on_done));
+        let job = state.exports.submit_then(plan, Finish::Keep, Some(on_done));
+        if let Some(p) = PREV_SAVE.lock().as_mut().filter(|p| p.path == staged) {
+            p.job = Some(job);
+        }
         Ok(())
     })();
     if let Err(e) = result {

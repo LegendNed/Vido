@@ -30,4 +30,9 @@ reencodeDonePopup: boolean,
  * Clips of a detected game go into `<clips folder>\<game>`; others stay in
  * the clips folder itself.
  */
-gameFolders: boolean, postSave: PostSaveActions, };
+gameFolders: boolean, 
+/**
+ * "Make it longer": saving again within [`EXTEND_WINDOW_SECS`] of a save
+ * replaces that clip with one from its start to now.
+ */
+extendOnResave: boolean, postSave: PostSaveActions, };

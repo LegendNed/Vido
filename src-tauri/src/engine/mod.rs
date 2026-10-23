@@ -102,6 +102,18 @@ pub struct SavedClip {
     pub duration_sec: f64,
     #[ts(type = "number")]
     pub size_bytes: u64,
+    /// "Make it longer": this clip starts where the previous save started and
+    /// replaces it.
+    #[serde(skip)]
+    #[ts(skip)]
+    pub extended: bool,
+}
+
+/// The last save, for "Make it longer".
+struct LastSave {
+    epoch: u64,
+    start_us: i64,
+    at: Instant,
 }
 
 struct Session {
@@ -137,6 +149,7 @@ struct Inner {
     state: Mutex<State>,
     meters: AtomicBool,
     shutting_down: AtomicBool,
+    last_save: Mutex<Option<LastSave>>,
 }
 
 #[derive(Clone)]
@@ -192,9 +205,18 @@ pub fn restart_required(old: &Settings, new: &Settings) -> bool {
 
 fn limits_for(s: &Settings) -> Limits {
     Limits {
-        // Keep one extra keyframe interval so a full-length save is always possible.
-        target_us: i64::from(s.capture.buffer_seconds + s.capture.keyframe_interval_sec)
-            * 1_000_000,
+        // Keep one extra keyframe interval so a full-length save is always possible,
+        // and the "Make it longer" window so a second save can reach back to the
+        // first one's start.
+        target_us: i64::from(
+            s.capture.buffer_seconds
+                + s.capture.keyframe_interval_sec
+                + if s.saving.extend_on_resave {
+                    crate::settings::EXTEND_WINDOW_SECS
+                } else {
+                    0
+                },
+        ) * 1_000_000,
         max_bytes: s
             .capture
             .buffer_max_mb
@@ -327,6 +349,7 @@ impl Engine {
             }),
             meters: AtomicBool::new(false),
             shutting_down: AtomicBool::new(false),
+            last_save: Mutex::new(None),
         });
         let engine = Self { inner };
         engine.clean_stale_buffers();
@@ -700,12 +723,22 @@ impl Engine {
             (st.settings.clone(), end, st.last_source_name.clone())
         };
         // The buffer holds a little extra (keyframe margin, whole segments); the clip is
-        // the configured length.
-        let dur_us = i64::from(settings.capture.buffer_seconds) * 1_000_000;
+        // the configured length, or - for a second save soon after the last one
+        // ("Make it longer") - everything since that clip's start.
         let end = self
             .inner
             .buffer
             .wait_for_streams(end_us, Duration::from_millis(700));
+        let epoch = self.inner.buffer.epoch().map(|e| e.id);
+        let window = Duration::from_secs(u64::from(crate::settings::EXTEND_WINDOW_SECS));
+        let extend_from = self.inner.last_save.lock().as_ref().and_then(|l| {
+            (settings.saving.extend_on_resave && Some(l.epoch) == epoch && l.at.elapsed() <= window)
+                .then_some(l.start_us)
+        });
+        let dur_us = match extend_from {
+            Some(start) => end - start,
+            None => i64::from(settings.capture.buffer_seconds) * 1_000_000,
+        };
         let snap = self.inner.buffer.snapshot(dur_us, end)?;
         let dir = if settings.saving.save_mode == SaveMode::Reencode {
             Self::staging_dir(&settings, &self.inner.paths)
@@ -738,10 +771,20 @@ impl Engine {
             written.size_bytes / 1024,
             started.elapsed().as_millis()
         );
+        // The next save may extend this one: it starts where this clip starts
+        // (an extended clip keeps the original start).
+        if let Some(epoch) = epoch {
+            *self.inner.last_save.lock() = Some(LastSave {
+                epoch,
+                start_us: extend_from.unwrap_or(snap.start_us),
+                at: Instant::now(),
+            });
+        }
         Ok(SavedClip {
             path: written.path.to_string_lossy().into_owned(),
             duration_sec: written.duration_sec,
             size_bytes: written.size_bytes,
+            extended: extend_from.is_some(),
         })
     }
 
@@ -1053,8 +1096,11 @@ mod tests {
         s.capture.buffer_seconds = 30;
         s.capture.keyframe_interval_sec = 2;
         s.capture.buffer_max_mb = Some(2048);
+        // "Make it longer" (on by default) keeps its 15 s window too.
         let l = limits_for(&s);
-        assert_eq!(l.target_us, 32_000_000);
+        assert_eq!(l.target_us, 47_000_000);
         assert_eq!(l.max_bytes, Some(2048 * 1024 * 1024));
+        s.saving.extend_on_resave = false;
+        assert_eq!(limits_for(&s).target_us, 32_000_000);
     }
 }

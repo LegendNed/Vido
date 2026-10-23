@@ -137,6 +137,20 @@ export function SavingPage() {
           />
         </Field>
         <Field
+          label="Make it longer"
+          description="Save again within 15 seconds and both saves become one longer clip from the first save's start (the shorter one goes to the Recycle Bin). The buffer keeps 15 s more for this."
+        >
+          <Toggle
+            label="Make it longer"
+            value={sv.extendOnResave}
+            onChange={(v) => {
+              update((d) => {
+                d.saving.extendOnResave = v;
+              });
+            }}
+          />
+        </Field>
+        <Field
           label="When saving"
           description={
             reencode

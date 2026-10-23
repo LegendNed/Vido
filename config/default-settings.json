@@ -105,6 +105,7 @@
     },
     "reencodeDonePopup": true,
     "gameFolders": true,
+    "extendOnResave": true,
     "postSave": {
       "openEditor": false,
       "openFolder": false,

@@ -20,6 +20,8 @@ pub const BUFFER_MAX_MB_MAX: u32 = 20 * 1024;
 pub const ALLOWED_FPS: [u32; 6] = [0, 24, 30, 48, 60, 120];
 /// Audio sources (checked devices) per session; the clip gets these plus the mix track.
 pub const MAX_AUDIO_TRACKS: usize = 16;
+/// How long after a save a second save extends it (see `extend_on_resave`).
+pub const EXTEND_WINDOW_SECS: u32 = 15;
 pub const FILENAME_TOKENS: [&str; 5] = ["date", "time", "game", "source", "duration"];
 
 // ---------------------------------------------------------------------------
@@ -559,6 +561,9 @@ pub struct SavingSettings {
     /// Clips of a detected game go into `<clips folder>\<game>`; others stay in
     /// the clips folder itself.
     pub game_folders: bool,
+    /// "Make it longer": saving again within [`EXTEND_WINDOW_SECS`] of a save
+    /// replaces that clip with one from its start to now.
+    pub extend_on_resave: bool,
     pub post_save: PostSaveActions,
 }
 
@@ -764,6 +769,7 @@ impl Default for SavingSettings {
             reencode: ExportDefaults::high_quality(),
             reencode_done_popup: true,
             game_folders: true,
+            extend_on_resave: true,
             post_save: PostSaveActions::default(),
         }
     }
