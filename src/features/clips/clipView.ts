@@ -4,12 +4,20 @@ import type { ClipInfo } from "../../lib/tauri/types";
 
 export type ClipSort = "newest" | "oldest" | "longest" | "shortest" | "largest" | "name";
 
+export type ClipGrouping = "date" | "game" | "none";
+
 export interface ClipView {
   sort: ClipSort;
-  groupByDate: boolean;
+  group: ClipGrouping;
   /** Grid size step, 1 (smallest cards) to `GRID_STEPS`. */
   size: number;
 }
+
+export const GROUP_OPTIONS: { value: ClipGrouping; label: string }[] = [
+  { value: "date", label: "Group by date" },
+  { value: "game", label: "Group by game" },
+  { value: "none", label: "No grouping" },
+];
 
 export const SORT_OPTIONS: { value: ClipSort; label: string }[] = [
   { value: "newest", label: "Newest first" },
@@ -31,7 +39,7 @@ export function cardWidth(step: number): number {
 
 // v2: grouping by date became the default.
 const KEY = "vido.clips.view.v2";
-const DEFAULT_VIEW: ClipView = { sort: "newest", groupByDate: true, size: 3 };
+const DEFAULT_VIEW: ClipView = { sort: "newest", group: "date", size: 3 };
 /** Sizes saved before the slider (S / M / L). */
 const OLD_SIZES: Record<string, number> = { small: 1, medium: 3, large: 7 };
 
@@ -39,7 +47,11 @@ export function loadView(): ClipView {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      const v = { ...DEFAULT_VIEW, ...(JSON.parse(raw) as Partial<ClipView>) };
+      const saved = JSON.parse(raw) as Partial<ClipView> & { groupByDate?: boolean };
+      const v = { ...DEFAULT_VIEW, ...saved };
+      // Saved before grouping by game: a checkbox.
+      if (saved.group === undefined && saved.groupByDate === false) v.group = "none";
+      if (!GROUP_OPTIONS.some((o) => o.value === v.group)) v.group = DEFAULT_VIEW.group;
       const size: unknown = v.size;
       if (typeof size === "string") v.size = OLD_SIZES[size] ?? DEFAULT_VIEW.size;
       return v;
@@ -83,15 +95,33 @@ export function dateGroup(ms: number, now = new Date()): string {
   return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
+/** Heading for clips that are not in a game's folder. */
+const NO_GAME = "Other clips";
+
 /**
- * Clips under date headings: one group per heading, newest heading first; within a
- * group the clips keep the current sort order.
+ * Clips under headings. By date: newest heading first. By game: in the order the
+ * current sort first shows each game, clips without one last. Within a group the
+ * clips keep the current sort order.
  */
 export function groupClips(
   clips: ClipInfo[],
-  byDate: boolean,
+  by: ClipGrouping,
+  root: string | undefined,
 ): { title: string | null; clips: ClipInfo[] }[] {
-  if (!byDate) return [{ title: null, clips }];
+  if (by === "none") return [{ title: null, clips }];
+  if (by === "game") {
+    const games = new Map<string, ClipInfo[]>();
+    for (const c of clips) {
+      const title = clipGame(c.path, root) ?? NO_GAME;
+      const g = games.get(title);
+      if (g) g.push(c);
+      else games.set(title, [c]);
+    }
+    const other = games.get(NO_GAME);
+    games.delete(NO_GAME);
+    if (other) games.set(NO_GAME, other);
+    return [...games.entries()].map(([title, g]) => ({ title, clips: g }));
+  }
   const groups = new Map<string, { clips: ClipInfo[]; newest: number }>();
   for (const c of clips) {
     const title = dateGroup(c.modifiedMs);

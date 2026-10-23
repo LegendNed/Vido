@@ -31,6 +31,7 @@ import { ClipActions } from "./ClipActions";
 import { ClipsHero } from "./ClipsHero";
 import {
   groupClips,
+  GROUP_OPTIONS,
   loadView,
   saveView,
   SORT_OPTIONS,
@@ -145,8 +146,8 @@ export function ClipsPage({ open }: { open?: string | null }) {
   // first and not while selecting.
   const featured = view.sort === "newest" && !selected ? sorted?.[0] : undefined;
   const groups = useMemo(
-    () => groupClips(sorted ?? [], view.groupByDate),
-    [sorted, view.groupByDate],
+    () => groupClips(sorted ?? [], view.group, root),
+    [sorted, view.group, root],
   );
   // The viewer steps through clips in the order shown (groups included).
   const shown = useMemo(() => groups.flatMap((g) => g.clips), [groups]);
@@ -272,14 +273,14 @@ export function ClipsPage({ open }: { open?: string | null }) {
               />
               Favorites
             </UiButton>
-            <Checkbox
-              checked={view.groupByDate}
+            <Select
+              value={view.group}
+              options={GROUP_OPTIONS}
+              width={150}
               onChange={(v) => {
-                setView({ groupByDate: v });
+                setView({ group: v });
               }}
-            >
-              Group by date
-            </Checkbox>
+            />
             <div className="ml-auto flex items-center gap-3">
               <Button
                 small
