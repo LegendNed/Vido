@@ -425,6 +425,23 @@ export function CaptureSettings() {
           </ConfirmDialog>
         )}
         <Field
+          label="Only while a game runs"
+          description="Starts the buffer when a game is detected and stops it a minute after the game closes. Off: the buffer also runs on the desktop."
+        >
+          <Toggle
+            label="Only while a game runs"
+            value={c.bufferOnlyInGames}
+            onChange={(v) => {
+              update(
+                (d) => {
+                  d.capture.bufferOnlyInGames = v;
+                },
+                { immediate: true },
+              );
+            }}
+          />
+        </Field>
+        <Field
           label="Size limit"
           description="Oldest footage is dropped when the limit is reached."
           error={err("capture.bufferMaxMb")}

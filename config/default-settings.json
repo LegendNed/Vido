@@ -31,6 +31,7 @@
     "bufferSeconds": 30,
     "bufferStorage": "auto",
     "bufferMaxMb": null,
+    "bufferOnlyInGames": false,
     "videoCodec": "h264",
     "encoder": "auto",
     "quality": "custom",

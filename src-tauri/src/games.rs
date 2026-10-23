@@ -73,6 +73,8 @@ struct Detector {
     names: Option<HashMap<String, String>>,
     /// Last game seen in the foreground, and when.
     last: Option<(String, Instant)>,
+    /// Process id of that game.
+    last_pid: Option<u32>,
 }
 
 static DETECTOR: Mutex<Detector> = Mutex::new(Detector {
@@ -81,6 +83,7 @@ static DETECTOR: Mutex<Detector> = Mutex::new(Detector {
     scanned: None,
     names: None,
     last: None,
+    last_pid: None,
 });
 
 /// Where remembered names are stored (set once at startup).
@@ -130,7 +133,7 @@ pub fn start_sampler(
 
 /// The game in the foreground right now (remembered as the last one seen).
 fn sample() -> Option<String> {
-    let (exe, title) = foreground()?;
+    let (exe, title, pid) = foreground()?;
     let key = norm_path(&exe);
     let mut d = DETECTOR.lock();
     let mut library = find(&d.games, &key);
@@ -155,6 +158,7 @@ fn sample() -> Option<String> {
         None => remembered_name(&mut d, &key, &exe, &title),
     };
     d.last = Some((name.clone(), Instant::now()));
+    d.last_pid = Some(pid);
     Some(name)
 }
 
@@ -475,9 +479,42 @@ fn is_store_game(key: &str, name: &str, publisher: &str) -> bool {
     key.starts_with("Uplay Install ") || publisher.to_lowercase().contains("electronic arts")
 }
 
-/// The foreground window's executable and title (not Vido's own windows).
+/// Whether a game is running: one is in the foreground, or the last one seen
+/// there is still open (e.g. while you alt-tab to Discord).
+pub fn game_running() -> bool {
+    if sample().is_some() {
+        return true;
+    }
+    let pid = DETECTOR.lock().last_pid;
+    pid.is_some_and(process_alive)
+}
+
 #[cfg(windows)]
-fn foreground() -> Option<(PathBuf, String)> {
+fn process_alive(pid: u32) -> bool {
+    use windows::Win32::Foundation::{CloseHandle, STILL_ACTIVE};
+    use windows::Win32::System::Threading::{
+        GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+    // SAFETY: the handle is closed before returning.
+    unsafe {
+        let Ok(h) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) else {
+            return false;
+        };
+        let mut code = 0u32;
+        let alive = GetExitCodeProcess(h, &mut code).is_ok() && code == STILL_ACTIVE.0 as u32;
+        let _ = CloseHandle(h);
+        alive
+    }
+}
+
+#[cfg(not(windows))]
+fn process_alive(_pid: u32) -> bool {
+    false
+}
+
+/// The foreground window's executable, title and process id (not Vido's own windows).
+#[cfg(windows)]
+fn foreground() -> Option<(PathBuf, String, u32)> {
     use windows::core::PWSTR;
     use windows::Win32::Foundation::CloseHandle;
     use windows::Win32::System::Threading::{
@@ -514,12 +551,12 @@ fn foreground() -> Option<(PathBuf, String)> {
         let mut t = [0u16; 512];
         let n = GetWindowTextW(hwnd, &mut t);
         let title = String::from_utf16_lossy(&t[..n.max(0) as usize]);
-        Some((exe, title))
+        Some((exe, title, pid))
     }
 }
 
 #[cfg(not(windows))]
-fn foreground() -> Option<(PathBuf, String)> {
+fn foreground() -> Option<(PathBuf, String, u32)> {
     None
 }
 

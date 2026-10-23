@@ -21,7 +21,12 @@ fps: 0 | 24 | 30 | 48 | 60 | 120, scale: ScalePreset, captureCursor: boolean, bu
 /**
  * Upper bound for buffer storage in MB; `null` = limited only by duration.
  */
-bufferMaxMb: number | null, videoCodec: VideoCodec, encoder: EncoderPreference, quality: BufferQuality, 
+bufferMaxMb: number | null, 
+/**
+ * Run the buffer only while a game is running (detected like for game
+ * folders): it starts with the game and stops a minute after it closes.
+ */
+bufferOnlyInGames: boolean, videoCodec: VideoCodec, encoder: EncoderPreference, quality: BufferQuality, 
 /**
  * Used when `quality` is `custom`.
  */

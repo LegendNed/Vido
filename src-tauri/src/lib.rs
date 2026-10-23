@@ -156,6 +156,56 @@ fn watch_output_dir(app: &tauri::AppHandle) {
     }
 }
 
+/// "Only buffer while a game runs": starts the buffer when a game runs and stops
+/// it a minute after the game closes. Only a buffer this started is stopped, so a
+/// buffer started by hand keeps running.
+#[derive(Default)]
+struct GameBuffer {
+    /// The running buffer was started here.
+    started: bool,
+    /// When the game was last seen running.
+    last_seen: Option<std::time::Instant>,
+}
+
+impl GameBuffer {
+    /// How long the buffer keeps running after the game closes (to save the end).
+    const LINGER: std::time::Duration = std::time::Duration::from_secs(60);
+
+    fn tick(&mut self, state: &AppState) {
+        use crate::engine::BufferState;
+        let s = state.settings.get();
+        let stopped = state.engine.status().state == BufferState::Stopped;
+        if !s.capture.buffer_only_in_games || !s.first_run_completed {
+            self.started = false;
+            return;
+        }
+        if stopped {
+            // Stopped by hand or by an error: not ours any more.
+            self.started = false;
+        }
+        if games::game_running() {
+            self.last_seen = Some(std::time::Instant::now());
+            if stopped {
+                match state.engine.start() {
+                    Ok(_) => {
+                        tracing::info!("game running: buffer started");
+                        self.started = true;
+                    }
+                    Err(e) => tracing::warn!("buffer did not start: {}", e.message),
+                }
+            }
+        } else if self.started
+            && !stopped
+            && !state.engine.is_recording()
+            && self.last_seen.is_none_or(|t| t.elapsed() >= Self::LINGER)
+        {
+            tracing::info!("no game for a minute: buffer stopped");
+            state.engine.stop();
+            self.started = false;
+        }
+    }
+}
+
 fn setup(
     app: &mut tauri::App,
     paths: AppPaths,
@@ -265,9 +315,12 @@ fn setup(
         let h3 = handle.clone();
         let shown: Mutex<Option<String>> = Mutex::new(None);
         let active = move || {
-            h3.try_state::<AppState>()
-                .is_some_and(|s| s.engine.status().state != crate::engine::BufferState::Stopped)
+            h3.try_state::<AppState>().is_some_and(|s| {
+                s.settings.get().capture.buffer_only_in_games
+                    || s.engine.status().state != crate::engine::BufferState::Stopped
+            })
         };
+        let auto = Mutex::new(GameBuffer::default());
         games::start_sampler(
             &handle.state::<AppState>().paths.data_dir,
             active,
@@ -275,6 +328,7 @@ fn setup(
                 let Some(state) = h2.try_state::<AppState>() else {
                     return;
                 };
+                auto.lock().tick(&state);
                 let game = actions::game_playing(&state);
                 let mut last = shown.lock();
                 if *last != game {
@@ -320,7 +374,10 @@ fn setup(
                 c.best_av1,
                 c.gpus
             );
-            if settings.first_run_completed && settings.general.start_buffer_on_launch {
+            // With "only while a game runs", the game watcher starts it instead.
+            let at_launch =
+                settings.general.start_buffer_on_launch && !settings.capture.buffer_only_in_games;
+            if settings.first_run_completed && at_launch {
                 if let Err(e) = engine.start() {
                     tracing::warn!("buffer did not start: {}", e.message);
                 }

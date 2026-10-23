@@ -125,9 +125,11 @@ function useIdlePhrase(): string {
 function BufferStatus({ collapsed }: { collapsed: boolean }) {
   const status = useApp((s) => s.status);
   const game = useGame();
+  const onlyInGames = useApp((s) => s.settings?.capture.bufferOnlyInGames ?? false);
   const idle = useIdlePhrase();
   if (!status) return null;
   const activity = game ? `Playing ${game}` : idle;
+  const waitingForGame = onlyInGames;
   const live = status.state === "buffering";
   const memory = status.state !== "stopped" && status.sizeBytes > 0;
   const text = [
@@ -136,7 +138,9 @@ function BufferStatus({ collapsed }: { collapsed: boolean }) {
       : live
         ? `Buffering · ${Math.floor(status.bufferedSeconds)} s`
         : status.state === "stopped"
-          ? "Buffer off"
+          ? waitingForGame
+            ? "Waiting for a game"
+            : "Buffer off"
           : status.state.charAt(0).toUpperCase() + status.state.slice(1),
     memory ? formatBytes(status.sizeBytes) : null,
   ]

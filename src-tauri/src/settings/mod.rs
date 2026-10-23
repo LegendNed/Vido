@@ -434,6 +434,9 @@ pub struct CaptureSettings {
     pub buffer_storage: BufferStorage,
     /// Upper bound for buffer storage in MB; `null` = limited only by duration.
     pub buffer_max_mb: Option<u32>,
+    /// Run the buffer only while a game is running (detected like for game
+    /// folders): it starts with the game and stops a minute after it closes.
+    pub buffer_only_in_games: bool,
     pub video_codec: VideoCodec,
     pub encoder: EncoderPreference,
     pub quality: BufferQuality,
@@ -671,6 +674,7 @@ impl Default for CaptureSettings {
             buffer_seconds: 30,
             buffer_storage: BufferStorage::Auto,
             buffer_max_mb: None,
+            buffer_only_in_games: false,
             video_codec: VideoCodec::H264,
             encoder: EncoderPreference::Auto,
             quality: BufferQuality::Custom,

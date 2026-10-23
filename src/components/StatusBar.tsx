@@ -25,6 +25,7 @@ export function StatusBar() {
   const notify = useApp((s) => s.notify);
   const sidebar = useApp((s) => s.settings?.general.sidebar ?? "full");
   const pendingUpdate = useApp((s) => s.pendingUpdate);
+  const onlyInGames = useApp((s) => s.settings?.capture.bufferOnlyInGames ?? false);
   const setUpdateOpen = useApp((s) => s.setUpdateOpen);
   const [busy, setBusy] = useState(false);
   if (!status) return null;
@@ -72,7 +73,9 @@ export function StatusBar() {
           />
           {status.recording
             ? `REC ${formatTime(status.recording.elapsedSeconds, 0)}`
-            : LABELS[status.state]}
+            : status.state === "stopped" && onlyInGames
+              ? "Waiting for a game"
+              : LABELS[status.state]}
           {!status.recording && live && (
             <span className="font-normal text-muted-foreground">
               {Math.floor(status.bufferedSeconds)} s
