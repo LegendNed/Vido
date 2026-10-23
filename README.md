@@ -14,8 +14,8 @@ watermark or telemetry**. Everything stays on your PC.
   hotkey and the clip is saved in milliseconds, with no re-encoding.
 - **Paste it anywhere:** a saved clip is copied to the clipboard, so you can **Ctrl+V** it straight
   into Discord or a folder.
-- **Quick edits:** trim, crop, mute or turn down individual audio tracks, and shrink clips to fit
-  Discord's upload limit.
+- **Quick edits:** trim, crop, blur private details, make a vertical 9:16 version, mute or turn
+  down individual audio tracks, and shrink clips to fit Discord's upload limit.
 - **Lightweight:** about **30 MB of RAM** idling in the tray (closing the window unloads the UI
   completely), plus the buffer itself (roughly 50–200 MB for 30 s). Capture and encoding stay on
   your GPU (NVIDIA, AMD or Intel), so CPU use is tiny.
@@ -106,16 +106,16 @@ Clips are saved to `Videos\Vido` (change it in Settings → Saving).
 - **Make it longer:** missed the end? Save again within 15 seconds and the second save replaces
   the first with one longer clip (can be turned off).
 - **Only while a game runs** (optional): the buffer starts when a game does and stops a minute
-  after it closes.
+  after it closes. Stop it by hand mid-game and it stays stopped until that game closes.
 - **Manual recording** for longer sessions, and **pause** the buffer when you don't need it.
 
 ![Video settings](docs/images/settings-video.png)
 
 ### Watch and edit
 
-- A **Clips** library grouped by date, with a resizable grid and a built-in player
-  (←/→ to step through clips). **Search**, **favorites**, **rename**, and select several clips to
-  favorite, export or delete them together.
+- A **Clips** library grouped by date, by game or not at all, with a resizable grid and a
+  built-in player (←/→ to step through clips). **Search**, **favorites** and **rename** clips, or
+  select several to favorite, export audio from, shrink or delete them together.
 - The **editor** has a timeline with one lane per audio track: trim with the handles, mute or
   change the volume of each track (heard live), crop, take a PNG of the current frame, undo/redo.
 - **Blur** names, chat or anything private: drag one or more boxes over it.
@@ -131,9 +131,11 @@ Clips are saved to `Videos\Vido` (change it in Settings → Saving).
 
 ### Storage
 
-The **Storage** page shows how much space clips take per game and on the drive, lists the biggest
-clips, and can **shrink old clips**: re-encode clips older than a week, month or more to HEVC or
-H.264 at 1080p, skipping favorites and clips that are already small.
+The **Storage** page shows how full the drive is, which games' clips take the most space, and the
+biggest clips (play, show in folder or delete). **Shrink old clips** re-encodes clips older than a
+week, month or more to HEVC or H.264 at 1080p and replaces them (the originals go to the Recycle
+Bin), skipping favorites and clips that are already small. It keeps running while you use the rest
+of the app.
 
 ### Overlay and sound
 
