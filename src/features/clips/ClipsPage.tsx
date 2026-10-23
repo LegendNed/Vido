@@ -1,9 +1,17 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { Icon } from "../../components/Icon";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Badge, Button, Checkbox, Slider, Select, Spinner } from "../../components/controls";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Segmented,
+  Slider,
+  Select,
+  Spinner,
+} from "../../components/controls";
 import { Button as UiButton } from "../../components/ui/button";
 import { Input } from "../../components/ui/misc";
 import { formatBytes, formatDate, formatDuration } from "../../lib/format";
@@ -11,6 +19,14 @@ import { commands } from "../../lib/tauri/commands";
 import { useEvent } from "../../lib/tauri/events";
 import { errorMessage, type ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
+import {
+  cancelShrink,
+  runShrink,
+  SHRINK_LEVELS,
+  shrinkRun,
+  shrinkSummary,
+  type ShrinkLevel,
+} from "../storage/shrink";
 import { ClipActions } from "./ClipActions";
 import { ClipsHero } from "./ClipsHero";
 import {
@@ -46,6 +62,10 @@ export function ClipsPage({ open }: { open?: string | null }) {
   /** Select mode: paths of the selected clips (null = not selecting). */
   const [selected, setSelected] = useState<Set<string> | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmShrink, setConfirmShrink] = useState(false);
+  const [shrinkLevel, setShrinkLevel] = useState<ShrinkLevel>("small");
+  const shrinking = useSyncExternalStore(shrinkRun.subscribe, shrinkRun.get);
+  const exportDefaults = useApp((s) => s.settings?.export);
   const setView = (patch: Partial<ClipView>) => {
     setViewState((v) => {
       const next = { ...v, ...patch };
@@ -417,14 +437,23 @@ export function ClipsPage({ open }: { open?: string | null }) {
           >
             {chosen.length === shown.length ? "Select none" : "Select all"}
           </Button>
-          <Button
-            small
-            icon="star"
+          <span className="h-5 w-px bg-border" aria-hidden />
+          <UiButton
+            variant="ghost"
+            size="icon-sm"
             disabled={chosen.length === 0}
+            title={allFavorite ? "Remove from favorites" : "Add to favorites"}
+            aria-label={allFavorite ? "Remove from favorites" : "Add to favorites"}
             onClick={() => void bulk((c) => commands.setFavorite(c.path, !allFavorite))}
           >
-            {allFavorite ? "Unfavorite" : "Favorite"}
-          </Button>
+            <Icon
+              name="star"
+              size={14}
+              filled={allFavorite}
+              className={allFavorite ? "text-warning" : undefined}
+            />
+          </UiButton>
+          <span className="h-5 w-px bg-border" aria-hidden />
           <Button
             small
             icon="audio"
@@ -441,6 +470,24 @@ export function ClipsPage({ open }: { open?: string | null }) {
           >
             Export audio
           </Button>
+          {shrinking && !shrinking.done ? (
+            <Button small icon="x" title="Stop shrinking" onClick={cancelShrink}>
+              Shrinking {shrinking.at + 1}/{shrinking.total}
+            </Button>
+          ) : (
+            <Button
+              small
+              icon="storage"
+              disabled={chosen.length === 0 || !exportDefaults}
+              title="Re-encode the selected clips smaller and replace them"
+              onClick={() => {
+                setConfirmShrink(true);
+              }}
+            >
+              Shrink size
+            </Button>
+          )}
+          <span className="h-5 w-px bg-border" aria-hidden />
           <Button
             small
             variant="danger"
@@ -453,6 +500,39 @@ export function ClipsPage({ open }: { open?: string | null }) {
             Delete
           </Button>
         </div>
+      )}
+      {confirmShrink && (
+        <ConfirmDialog
+          title={`Shrink ${chosen.length} clip${chosen.length === 1 ? "" : "s"}?`}
+          confirmLabel="Shrink"
+          onConfirm={() => {
+            setConfirmShrink(false);
+            if (!exportDefaults) return;
+            void runShrink(chosen, exportDefaults, shrinkLevel).then((r) => {
+              if (r)
+                notify(
+                  "info",
+                  r.cancelled ? "Shrinking stopped" : "Clips shrunk",
+                  shrinkSummary(r),
+                );
+            });
+          }}
+          onCancel={() => {
+            setConfirmShrink(false);
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <Segmented<ShrinkLevel>
+              value={shrinkLevel}
+              options={SHRINK_LEVELS.map((l) => ({ value: l.value, label: l.label }))}
+              onChange={setShrinkLevel}
+            />
+            <span>
+              {SHRINK_LEVELS.find((l) => l.value === shrinkLevel)?.hint} Each clip is replaced; the
+              originals go to the Recycle Bin. Clips that wouldn't get much smaller are left alone.
+            </span>
+          </div>
+        </ConfirmDialog>
       )}
       {confirmDelete && (
         <ConfirmDialog

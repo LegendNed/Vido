@@ -1,6 +1,7 @@
 // "Shrink old clips": re-encodes a clip in place (Save & override) with a smaller
 // encoding, keeping every audio track. The original goes to the Recycle Bin.
 
+import { formatBytes } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import { on } from "../../lib/tauri/events";
 import {
@@ -152,9 +153,16 @@ function show(patch: Partial<ShrinkRun>) {
   for (const fn of listeners) fn();
 }
 
-/** Shrinks `clips` one after another (does nothing while a run is going). */
-export async function runShrink(clips: ClipInfo[], defaults: ExportDefaults, level: ShrinkLevel) {
-  if (job) return;
+/**
+ * Shrinks `clips` one after another; resolves to the finished run, or `null` when
+ * another run is still going.
+ */
+export async function runShrink(
+  clips: ClipInfo[],
+  defaults: ExportDefaults,
+  level: ShrinkLevel,
+): Promise<ShrinkRun | null> {
+  if (job) return null;
   const me = { id: null as string | null, cancelled: false };
   job = me;
   run = {
@@ -196,6 +204,19 @@ export async function runShrink(clips: ClipInfo[], defaults: ExportDefaults, lev
   }
   job = null;
   show({ done: true, cancelled: me.cancelled, pct: 100 });
+  return run;
+}
+
+/** One line about a finished run, e.g. "Freed 1.2 GB from 4 clips." */
+export function shrinkSummary(r: ShrinkRun): string {
+  const n = (k: number) => `${k} clip${k === 1 ? "" : "s"}`;
+  return [
+    r.shrunk > 0 ? `Freed ${formatBytes(r.saved)} from ${n(r.shrunk)}.` : "Nothing was shrunk.",
+    r.skipped > 0 ? `${n(r.skipped)} already small.` : "",
+    r.failed > 0 ? `${r.failed} failed.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 /** Stops the run after cancelling the clip being shrunk (it stays as it was). */
