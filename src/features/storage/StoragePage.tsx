@@ -24,6 +24,8 @@ const BIGGEST = 8;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const AGES = [7, 30, 90, 180].map((d) => ({ value: d, label: `Older than ${d} days` }));
 const NO_GAME = "Other clips";
+/** Games listed before "Show all"; the full list scrolls. */
+const TOP_GAMES = 5;
 
 /**
  * Where the disk space goes: the clips folder's drive, usage per game, the
@@ -35,6 +37,7 @@ export function StoragePage({ openClip }: { openClip: (path: string) => void }) 
   const [reload, setReload] = useState(0);
   // "Older than" counts from when the page was opened.
   const [now] = useState(() => Date.now());
+  const [allGames, setAllGames] = useState(false);
   const [deleting, setDeleting] = useState<ClipInfo | null>(null);
   const [age, setAge] = useState(30);
   const [level, setLevel] = useState<ShrinkLevel>("small");
@@ -186,8 +189,8 @@ export function StoragePage({ openClip }: { openClip: (path: string) => void }) 
         <>
           <section className="card storage-card">
             <h2 className="storage-title">By game</h2>
-            <div className="storage-games">
-              {games.map(([g, e]) => (
+            <div className={`storage-games${allGames ? " all" : ""}`}>
+              {(allGames ? games : games.slice(0, TOP_GAMES)).map(([g, e]) => (
                 <div key={g} className="storage-game">
                   <span className="ellipsis" title={g}>
                     {g}
@@ -202,6 +205,18 @@ export function StoragePage({ openClip }: { openClip: (path: string) => void }) 
                 </div>
               ))}
             </div>
+            {games.length > TOP_GAMES && (
+              <Button
+                small
+                variant="ghost"
+                className="storage-more"
+                onClick={() => {
+                  setAllGames((v) => !v);
+                }}
+              >
+                {allGames ? "Show top 5" : `Show all ${games.length} games`}
+              </Button>
+            )}
           </section>
 
           <section className="card storage-card">
