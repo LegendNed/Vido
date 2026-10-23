@@ -10,6 +10,7 @@ import { useEvent } from "../../lib/tauri/events";
 import { errorMessage, type ClipInfo, type DiskSpace } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 import { clipGame } from "../clips/clipView";
+import { dragOut } from "../clips/media";
 import {
   cancelShrink,
   runShrink,
@@ -227,6 +228,7 @@ export function StoragePage({ openClip }: { openClip: (path: string) => void }) 
                   <button
                     type="button"
                     className="storage-thumb"
+                    {...dragOut(c.path)}
                     title="Play"
                     style={
                       c.thumbnail

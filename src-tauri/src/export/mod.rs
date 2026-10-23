@@ -8,6 +8,7 @@
 pub mod bitrate;
 pub mod edit;
 pub mod frames;
+pub mod gif;
 pub mod manager;
 pub mod preview;
 pub mod probe;
@@ -97,6 +98,21 @@ pub struct ExportRequest {
     pub container: Container,
     /// Copy video packets instead of re-encoding when possible.
     pub stream_copy: bool,
+    /// Animated GIF instead of a video: no sound, 15 fps, long side 480 px, at
+    /// most `GIF_MAX_SECONDS` (`container` and the encode options are ignored).
+    #[serde(default)]
+    pub gif: bool,
+}
+
+impl ExportRequest {
+    /// File extension of the output.
+    pub fn extension(&self) -> &'static str {
+        if self.gif {
+            "gif"
+        } else {
+            self.container.extension()
+        }
+    }
 }
 
 #[derive(Serialize, TS, Clone, Debug)]
@@ -194,6 +210,15 @@ pub enum VideoPlan {
         preset: QualityPreset,
         rate: Rate,
     },
+    /// Animated GIF (palette per clip, no audio).
+    Gif {
+        crop: Option<CropRect>,
+        blur: Vec<CropRect>,
+        vertical_fit: bool,
+        width: u32,
+        height: u32,
+        fps: (i32, i32),
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -284,6 +309,24 @@ fn check(cond: bool, field: &str, msg: impl Into<String>) -> AppResult<()> {
     }
 }
 
+/// GIF frame rate.
+pub const GIF_FPS: i32 = 15;
+/// Longest side of a GIF in pixels.
+pub const GIF_MAX_SIDE: u32 = 480;
+/// Longest GIF (output seconds): they get big fast.
+pub const GIF_MAX_SECONDS: f64 = 30.0;
+
+/// `(w, h)` scaled down so the longer side is at most `GIF_MAX_SIDE` (even sizes).
+pub fn gif_dims(w: u32, h: u32) -> (u32, u32) {
+    let long = w.max(h);
+    if long <= GIF_MAX_SIDE {
+        return ((w & !1).max(16), (h & !1).max(16));
+    }
+    let f = f64::from(GIF_MAX_SIDE) / f64::from(long);
+    let s = |v: u32| ((f64::from(v) * f).round() as u32 & !1).max(16);
+    (s(w), s(h))
+}
+
 /// Most blur areas one export may have.
 pub const MAX_BLUR_BOXES: usize = 16;
 
@@ -322,6 +365,9 @@ pub fn video_copy_blocker(
     keyframe: Option<f64>,
 ) -> Option<String> {
     let v = info.video.as_ref()?;
+    if req.gif {
+        return Some("a GIF is always re-encoded".into());
+    }
     if req.crop.is_some() {
         return Some("cropping requires re-encoding".into());
     }
@@ -486,6 +532,11 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
         "fadeOut",
         "fades are longer than the clip",
     )?;
+    check(
+        !req.gif || out_dur <= GIF_MAX_SECONDS + 1e-6,
+        "trimEnd",
+        format!("a GIF can be at most {GIF_MAX_SECONDS:.0} s long; trim the selection"),
+    )?;
 
     let video = if copy_video {
         VideoPlan::Copy
@@ -508,6 +559,30 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
             height: (r.height & !1).max(8),
         };
         let blur = req.blur.iter().map(even).collect();
+        if req.gif {
+            let (width, height) = gif_dims(width, height);
+            let fps = if v.fps > 0.0 && v.fps < f64::from(GIF_FPS) {
+                (v.fps.round().max(1.0) as i32, 1)
+            } else {
+                (GIF_FPS, 1)
+            };
+            return finish_plan(
+                req,
+                info,
+                input,
+                end,
+                effective_start,
+                VideoPlan::Gif {
+                    crop,
+                    blur,
+                    vertical_fit: req.vertical_fit,
+                    width,
+                    height,
+                    fps,
+                },
+                Vec::new(),
+            );
+        }
         let fps = if req.fps == 0 {
             if v.fps_q.num > 0 && v.fps_q.den > 0 && v.fps <= 240.0 {
                 (v.fps_q.num, v.fps_q.den)
@@ -595,6 +670,7 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
     let out_video_codec = match &video {
         VideoPlan::Copy => v.codec_name.clone(),
         VideoPlan::Encode { codec, .. } => codec_ffmpeg_name(*codec).to_string(),
+        VideoPlan::Gif { .. } => unreachable!("GIF plans are finished above"),
     };
     check(
         container_accepts_video(req.container, &out_video_codec),
@@ -621,6 +697,20 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
         )?;
     }
 
+    finish_plan(req, info, input, end, effective_start, video, audio)
+}
+
+/// Output path, the plan, and the target-size bitrate.
+fn finish_plan(
+    req: &ExportRequest,
+    info: &MediaInfo,
+    input: PathBuf,
+    end: f64,
+    effective_start: f64,
+    video: VideoPlan,
+    audio: Vec<AudioOut>,
+) -> AppResult<Plan> {
+    let ext = req.extension();
     let output = match &req.output_path {
         Some(p) => {
             let p = PathBuf::from(p);
@@ -630,9 +720,9 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
                     .and_then(|e| e.to_str())
                     .map(str::to_ascii_lowercase)
                     .as_deref()
-                    == Some(req.container.extension()),
+                    == Some(ext),
                 "outputPath",
-                format!("extension must be .{}", req.container.extension()),
+                format!("extension must be .{ext}"),
             )?;
             check(
                 p.parent().is_some_and(Path::is_dir),
@@ -653,7 +743,7 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
                 .file_stem()
                 .map(|s| s.to_string_lossy().into_owned())
                 .unwrap_or_else(|| "clip".into());
-            crate::util::unique_path(dir, &format!("{stem}_export"), req.container.extension())
+            crate::util::unique_path(dir, &format!("{stem}_export"), ext)
         }
     };
 
@@ -674,7 +764,7 @@ pub fn plan(req: &ExportRequest, info: &MediaInfo, keyframes: &[f64]) -> AppResu
         container: req.container,
         target_bytes: None,
     };
-    if req.rate_mode == RateMode::TargetSize {
+    if req.rate_mode == RateMode::TargetSize && !req.gif {
         let audio_kbps = plan.total_audio_kbps(|i| source_audio_kbps(info, i));
         let kbps = bitrate::bitrate_for_target_size(
             req.target_size_mb,
@@ -750,6 +840,15 @@ pub fn estimate(
                     (*width, *height, *kbps, false)
                 }
             }
+        }
+        VideoPlan::Gif {
+            width, height, fps, ..
+        } => {
+            // About 0.6 bits per pixel for game footage with a per-clip palette.
+            let f = f64::from(fps.0) / f64::from(fps.1.max(1));
+            let kbps = (f64::from(*width) * f64::from(*height) * f * 0.6 / 1000.0) as u32;
+            warnings.push("GIFs have no sound".into());
+            (*width, *height, kbps, true)
         }
     };
     if (req.trim_start - p.effective_start).abs() > 0.01 {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { Banner, Button, Segmented } from "../../components/controls";
+import { Banner, Button, Segmented, Select } from "../../components/controls";
 import { formatBitrate, formatBytes, formatDuration, formatTime } from "../../lib/format";
 import { commands } from "../../lib/tauri/commands";
 import {
@@ -10,16 +10,29 @@ import {
   type ExportEstimate,
 } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
-import { buildRequest, type EditState, type ExportOpts, type Vertical } from "../editor/model";
+import {
+  buildRequest,
+  quickFormat,
+  type EditState,
+  type ExportOpts,
+  type QuickFormat,
+  type Vertical,
+} from "../editor/model";
 import { EncodeOptions } from "./EncodeOptions";
 
 const fileName = (p: string) => p.split(/[\\/]/).pop() ?? p;
 
-const SHAPES: { value: Vertical; label: string }[] = [
-  { value: "off", label: "Original" },
-  { value: "crop", label: "9:16 crop" },
-  { value: "fit", label: "9:16 fit" },
+const FORMATS: { value: QuickFormat; label: string }[] = [
+  { value: "original", label: "Original" },
+  { value: "phone", label: "Phone (9:16)" },
+  { value: "gif", label: "GIF" },
 ];
+const PHONE: { value: Exclude<Vertical, "off">; label: string }[] = [
+  { value: "crop", label: "Crop" },
+  { value: "fit", label: "Fit" },
+];
+const SPEEDS = [0.25, 0.5, 1, 1.5, 2, 4].map((v) => ({ value: v, label: `${v}×` }));
+const FADES = [0, 0.5, 1, 2].map((v) => ({ value: v, label: v === 0 ? "None" : `${v} s` }));
 
 /**
  * The editor's export pane: preset chips, every encode option under "Advanced"
@@ -31,12 +44,16 @@ export function ExportPanel({
   state,
   setOpts,
   onVertical,
+  onFormat,
+  onTiming,
   actions,
 }: {
   path: string;
   state: EditState;
   setOpts: (fn: (x: ExportOpts) => ExportOpts) => void;
   onVertical: (v: Vertical) => void;
+  onFormat: (f: QuickFormat) => void;
+  onTiming: (patch: Partial<Pick<EditState, "speed" | "fadeIn" | "fadeOut">>) => void;
   actions: ReactNode;
 }) {
   const [estimate, setEstimate] = useState<ExportEstimate | null>(null);
@@ -83,8 +100,10 @@ export function ExportPanel({
   }, [reqKey]);
 
   const stem = path.replace(/\.[^.\\/]+$/, "");
+  const ext = state.gif ? "gif" : x.container;
+  const format = quickFormat(state);
   const browse = async () => {
-    const p = await commands.pickExportPath(`${stem}_edit.${x.container}`, x.container);
+    const p = await commands.pickExportPath(`${stem}_edit.${ext}`, x.container, state.gif);
     if (p) setOpts((o) => ({ ...o, outputPath: p }));
   };
 
@@ -109,26 +128,69 @@ export function ExportPanel({
       <div className="export-scroll">
         <div className="side-title">Export</div>
         <div className="export-shape">
-          <span className="muted small">Shape</span>
-          <Segmented<Vertical> value={state.vertical} options={SHAPES} onChange={onVertical} />
+          <span className="muted small">Quick formats</span>
+          <Segmented<QuickFormat> value={format} options={FORMATS} onChange={onFormat} />
+          {format === "phone" && (
+            <Segmented<Exclude<Vertical, "off">>
+              value={state.vertical === "fit" ? "fit" : "crop"}
+              options={PHONE}
+              onChange={onVertical}
+            />
+          )}
           <span className="muted small">
-            {state.vertical === "crop"
-              ? "Drag the 9:16 window over the part to keep."
-              : state.vertical === "fit"
-                ? "The whole frame on a blurred 9:16 background."
-                : "As recorded."}
+            {format === "gif"
+              ? "Animated GIF: 15 fps, up to 480 px, no sound, at most 30 s. Crop and blur apply."
+              : state.vertical === "crop"
+                ? "For Shorts, TikTok and Reels: drag the 9:16 window over the part to keep."
+                : state.vertical === "fit"
+                  ? "For Shorts, TikTok and Reels: the whole frame on a blurred 9:16 background."
+                  : "As recorded."}
           </span>
         </div>
-        <EncodeOptions
-          value={x}
-          onChange={update}
-          scope="editor"
-          copy={{
-            available: estimate?.canStreamCopy ?? false,
-            blocker: estimate?.streamCopyBlocker ?? null,
-            active: willCopy,
-          }}
-        />
+        <div className="export-timing">
+          <label className="export-timing-field">
+            <span className="muted small">Speed</span>
+            <Select<number>
+              value={state.speed}
+              options={SPEEDS}
+              onChange={(speed) => {
+                onTiming({ speed });
+              }}
+            />
+          </label>
+          <label className="export-timing-field">
+            <span className="muted small">Fade in</span>
+            <Select<number>
+              value={state.fadeIn}
+              options={FADES}
+              onChange={(fadeIn) => {
+                onTiming({ fadeIn });
+              }}
+            />
+          </label>
+          <label className="export-timing-field">
+            <span className="muted small">Fade out</span>
+            <Select<number>
+              value={state.fadeOut}
+              options={FADES}
+              onChange={(fadeOut) => {
+                onTiming({ fadeOut });
+              }}
+            />
+          </label>
+        </div>
+        {!state.gif && (
+          <EncodeOptions
+            value={x}
+            onChange={update}
+            scope="editor"
+            copy={{
+              available: estimate?.canStreamCopy ?? false,
+              blocker: estimate?.streamCopyBlocker ?? null,
+              active: willCopy,
+            }}
+          />
+        )}
 
         {problem && (
           <Banner tone="error">
@@ -146,7 +208,7 @@ export function ExportPanel({
           <div className="export-dest-text">
             <span className="muted small">Save writes</span>
             <span className="ellipsis" title={x.outputPath ?? undefined}>
-              {x.outputPath ? fileName(x.outputPath) : `${fileName(stem)}_edit.${x.container}`}
+              {x.outputPath ? fileName(x.outputPath) : `${fileName(stem)}_edit.${ext}`}
             </span>
             <span className="muted small ellipsis" title={x.outputPath ?? undefined}>
               {x.outputPath
@@ -169,7 +231,7 @@ export function ExportPanel({
             Save as…
           </Button>
         </div>
-        {state.lanes.length > 0 && (
+        {state.lanes.length > 0 && !state.gif && (
           <Button
             small
             variant="ghost"

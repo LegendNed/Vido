@@ -154,6 +154,7 @@ fn base_request(input: &Path) -> ExportRequest {
         crop: None,
         blur: Vec::new(),
         vertical_fit: false,
+        gif: false,
         speed: 1.0,
         scale: ScalePreset::Native,
         fps: 0,
@@ -295,6 +296,36 @@ fn blurred_vertical_fit_export() {
     let v = info.video.unwrap();
     assert_eq!((v.width, v.height), (720, 1280), "9:16 fit at 720p");
     assert!((info.duration - 2.5).abs() < 0.15, "{}", info.duration);
+}
+
+#[test]
+fn gif_export_with_speed_and_fades() {
+    let dir = tempfile::tempdir().unwrap();
+    let src = make_clip(dir.path());
+    let mut req = base_request(&src);
+    req.gif = true;
+    req.speed = 2.0;
+    req.fade_in = 0.2;
+    req.fade_out = 0.2;
+    req.blur = vec![CropRect {
+        x: 10,
+        y: 10,
+        width: 60,
+        height: 40,
+    }];
+    let (plan, out, bytes) = run_export(&req);
+    assert!(matches!(plan.video, VideoPlan::Gif { .. }));
+    assert!(plan.audio.is_empty(), "GIFs have no sound");
+    assert_eq!(out.extension().unwrap(), "gif");
+    assert!(bytes > 1000, "{bytes} bytes");
+    let data = std::fs::read(&out).unwrap();
+    assert_eq!(&data[..6], b"GIF89a");
+    let info = probe::probe(&out).unwrap();
+    let v = info.video.unwrap();
+    let (w, h) = export::gif_dims(W, H);
+    assert_eq!((v.width, v.height), (w, h));
+    // 2.5 s of source at 2x.
+    assert!((info.duration - 1.25).abs() < 0.2, "{}", info.duration);
 }
 
 #[test]

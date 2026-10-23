@@ -115,12 +115,15 @@ Clips are saved to `Videos\Vido` (change it in Settings → Saving).
 
 - A **Clips** library grouped by date, by game or not at all, with a resizable grid and a
   built-in player (←/→ to step through clips). **Search**, **favorites** and **rename** clips, or
-  select several to favorite, export audio from, shrink or delete them together.
+  select several to favorite, export audio from, shrink or delete them together. **Drag a clip**
+  straight into Discord, a folder or a browser upload box.
 - The **editor** has a timeline with one lane per audio track: trim with the handles, mute or
   change the volume of each track (heard live), crop, take a PNG of the current frame, undo/redo.
 - **Blur** names, chat or anything private: drag one or more boxes over it.
-- **Vertical (9:16)** for Shorts, TikTok and Reels: drag a 9:16 window, or fit the whole frame on
-  a blurred background.
+- **Quick formats:** **Phone (9:16)** for Shorts, TikTok and Reels (drag a 9:16 window, or fit
+  the whole frame on a blurred background), or an animated **GIF** (15 fps, up to 480 px, at most
+  30 s).
+- **Speed** from 0.25× to 4× and **fade in / fade out** (to black and silence), previewed live.
 - **Export audio tracks** as WAV files (one per track) from the editor or the clip menu.
 - **Save** writes a copy next to the clip; **Save & override** replaces it (the original goes to
   the Recycle Bin).
@@ -186,6 +189,8 @@ frame (Shift: 1 s), **I/O** set in/out, **Ctrl+Z / Ctrl+Y** undo/redo.
   administrator. Run Vido as administrator in that case.
 - **Microphone:** allow desktop apps under _Windows Settings → Privacy & security → Microphone_.
 - **HDR** screens are recorded as SDR.
+- **Low disk space:** with less than 10 GB free on the clips (or buffer) drive, the buffer stops
+  and won't start until there's more room, so a full disk never breaks a save.
 - **Disk buffer:** keeping the buffer on disk instead of RAM writes constantly and wears out
   SSDs; Vido asks before you turn it on.
 

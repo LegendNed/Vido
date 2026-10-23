@@ -97,8 +97,14 @@ pub fn save_request(
     let output = match mode {
         SaveEditMode::New => match &r.output_path {
             Some(p) => PathBuf::from(p),
-            None => edit_output_path(input, r.container.extension()),
+            None => edit_output_path(input, r.extension()),
         },
+        SaveEditMode::Override if r.gif => {
+            return Err(
+                AppError::invalid("gif", "Save & override can't turn a clip into a GIF")
+                    .with_hint("Use Save instead."),
+            );
+        }
         SaveEditMode::Override => {
             let ext = input
                 .extension()
@@ -281,6 +287,7 @@ mod tests {
             crop: None,
             blur: Vec::new(),
             vertical_fit: false,
+            gif: false,
             speed: 1.0,
             scale: ScalePreset::P720,
             fps: 30,

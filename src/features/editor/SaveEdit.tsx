@@ -166,11 +166,13 @@ export function SaveActions({
       <Button
         variant="ghost"
         icon="refresh"
-        disabled={!canOverride}
+        disabled={!canOverride || state.gif}
         title={
-          canOverride
-            ? "Replace this clip with the edit (the original goes to the Recycle Bin)"
-            : "No changes to save"
+          state.gif
+            ? "A GIF is saved as a new file"
+            : canOverride
+              ? "Replace this clip with the edit (the original goes to the Recycle Bin)"
+              : "No changes to save"
         }
         onClick={() => {
           setConfirming(true);

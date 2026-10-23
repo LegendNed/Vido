@@ -721,6 +721,32 @@ pub fn get_current_game(state: AppStateRef<'_>) -> Option<String> {
     crate::actions::game_playing(&state)
 }
 
+/// Starts dragging a clip out of the window as a file (call from a dragstart:
+/// the mouse button must still be down). Returns once the drag is over.
+#[tauri::command]
+pub fn drag_clip(app: AppHandle, window: tauri::WebviewWindow, path: String) -> AppResult<()> {
+    let p = ensure_clip(&app, &path)?;
+    #[cfg(windows)]
+    {
+        let hwnd = window
+            .hwnd()
+            .map_err(|e| AppError::internal(format!("no window handle: {e}")))?;
+        // Ole drag and drop belongs on the UI thread.
+        let hwnd = hwnd.0 as isize;
+        window
+            .run_on_main_thread(move || {
+                let h = windows::Win32::Foundation::HWND(hwnd as *mut _);
+                if let Err(e) = crate::win::drag_file(h, &p) {
+                    tracing::warn!("dragging {} failed: {e}", p.display());
+                }
+            })
+            .map_err(|e| AppError::internal(format!("drag failed: {e}")))?;
+    }
+    #[cfg(not(windows))]
+    let _ = (window, p);
+    Ok(())
+}
+
 /// The drive the clips folder is on (Storage page).
 #[derive(Serialize, TS, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -784,10 +810,15 @@ pub async fn pick_export_path(
     app: AppHandle,
     suggested: String,
     container: Container,
+    gif: Option<bool>,
 ) -> AppResult<Option<String>> {
     blocking(move || {
         let sp = PathBuf::from(&suggested);
-        let ext = container.extension();
+        let ext = if gif == Some(true) {
+            "gif"
+        } else {
+            container.extension()
+        };
         let mut d = app
             .dialog()
             .file()

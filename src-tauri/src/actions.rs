@@ -411,6 +411,7 @@ fn reencode_request(path: &Path, info: &MediaInfo, d: &ExportDefaults) -> Export
         crop: None,
         blur: Vec::new(),
         vertical_fit: false,
+        gif: false,
         speed: 1.0,
         scale: d.scale,
         fps: d.fps,

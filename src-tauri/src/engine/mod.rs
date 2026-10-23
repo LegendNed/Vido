@@ -5,7 +5,7 @@
 pub mod recording;
 
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -29,6 +29,34 @@ use crate::capture::enumerate;
 use crate::capture::pipeline::{TargetSpec, VideoConfig, VideoPipeline};
 use crate::encode::CapabilityCache;
 use crate::error::{AppError, AppResult, ErrorCode};
+
+/// The buffer doesn't run with less free space than this on the clips or buffer
+/// drive (clips, recordings and disk buffers would fill it up).
+pub const MIN_FREE_BYTES: u64 = 10 * 1024 * 1024 * 1024;
+const LOW_DISK: &str = "Less than 10 GB free";
+
+fn disk_space(dir: &Path) -> Option<(u64, u64)> {
+    #[cfg(windows)]
+    return crate::win::disk_space(dir);
+    #[cfg(not(windows))]
+    {
+        let _ = dir;
+        None
+    }
+}
+
+/// "Less than 10 GB free on C: (3.2 GB left)".
+fn low_disk_message(dir: &Path, free: u64) -> String {
+    let drive = dir
+        .components()
+        .next()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .unwrap_or_else(|| dir.display().to_string());
+    format!(
+        "{LOW_DISK} on {drive} ({:.1} GB left)",
+        free as f64 / (1024.0 * 1024.0 * 1024.0)
+    )
+}
 use crate::events::{self, CaptureIssue, Severity};
 use crate::export::remux::write_snapshot;
 use crate::paths::AppPaths;
@@ -361,6 +389,50 @@ impl Engine {
         engine
     }
 
+    /// Why the buffer can't run for lack of space: less than `MIN_FREE_BYTES` on
+    /// the clips folder's drive or the buffer cache's drive.
+    pub fn low_disk(&self) -> Option<String> {
+        let s = self.inner.state.lock().settings.clone();
+        let dirs = [
+            Self::output_dir(&s, &self.inner.paths),
+            self.buffer_root(&s),
+        ];
+        dirs.iter().find_map(|d| {
+            let (free, _) = disk_space(d)?;
+            (free < MIN_FREE_BYTES).then(|| low_disk_message(d, free))
+        })
+    }
+
+    /// Stops the buffer (and a recording) when space runs low; `Some(why)` when
+    /// it did. Called every few seconds while buffering.
+    pub fn check_disk(&self) -> Option<String> {
+        if self.status().state == BufferState::Stopped {
+            return None;
+        }
+        let msg = self.low_disk()?;
+        tracing::warn!("{msg}: stopping the buffer");
+        self.stop();
+        self.set_low_disk_warning(Some(&msg));
+        Some(msg)
+    }
+
+    fn set_low_disk_warning(&self, msg: Option<&str>) {
+        let changed = {
+            let mut st = self.inner.state.lock();
+            let before = st.warnings.len();
+            st.warnings.retain(|w| !w.starts_with(LOW_DISK));
+            let removed = st.warnings.len() != before;
+            if let Some(m) = msg {
+                st.warnings
+                    .push(format!("{m}. Buffering is off until there is more room."));
+            }
+            removed || msg.is_some()
+        };
+        if changed {
+            self.emit_status();
+        }
+    }
+
     fn buffer_root(&self, s: &Settings) -> PathBuf {
         s.advanced
             .cache_dir
@@ -397,6 +469,12 @@ impl Engine {
     // ------------------------------------------------------------------
 
     pub fn start(&self) -> AppResult<BufferStatus> {
+        if let Some(msg) = self.low_disk() {
+            self.set_low_disk_warning(Some(&msg));
+            return Err(AppError::new(ErrorCode::Io, msg)
+                .with_hint("Free up space or pick another clips folder, then start the buffer."));
+        }
+        self.set_low_disk_warning(None);
         {
             let mut st = self.inner.state.lock();
             st.want_running = true;
@@ -1058,6 +1136,13 @@ impl Engine {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn low_disk_message_names_the_drive() {
+        let m = low_disk_message(Path::new(r"D:\Clips\Vido"), 3 * 1024 * 1024 * 1024 + 1);
+        assert_eq!(m, "Less than 10 GB free on D: (3.0 GB left)");
+        assert!(m.starts_with(LOW_DISK));
+    }
 
     #[test]
     fn restart_rules() {

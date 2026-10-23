@@ -10,7 +10,7 @@ import { commands } from "../../lib/tauri/commands";
 import { errorMessage, type ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 import { clipGame } from "./clipView";
-import { clipSrc, unloadVideo } from "./media";
+import { clipSrc, dragOut, unloadVideo } from "./media";
 
 const VOLUME_KEY = "vido.viewer.volume";
 /** Controls fade out after this long without mouse movement (while playing). */
@@ -301,6 +301,7 @@ export function ClipViewer({
         <video
           ref={video}
           className="viewer-video"
+          {...dragOut(clip.path)}
           poster={clip.thumbnail ? convertFileSrc(clip.thumbnail) : undefined}
           playsInline
           onClick={togglePlay}

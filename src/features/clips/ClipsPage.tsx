@@ -42,7 +42,7 @@ import {
   type ClipView,
 } from "./clipView";
 import { ClipViewer } from "./ClipViewer";
-import { clipSrc } from "./media";
+import { clipSrc, dragOut } from "./media";
 
 /** `open`: a clip to show in the viewer right away (e.g. picked on the Overview page). */
 export function ClipsPage({ open }: { open?: string | null }) {
@@ -345,7 +345,8 @@ export function ClipsPage({ open }: { open?: string | null }) {
                         className="clip-thumb"
                         role="button"
                         tabIndex={0}
-                        title={selected ? "Select" : "Play"}
+                        title={selected ? "Select" : "Play · drag into Discord or a folder"}
+                        {...(selected ? {} : dragOut(c.path))}
                         style={
                           c.thumbnail
                             ? { backgroundImage: `url("${convertFileSrc(c.thumbnail)}")` }

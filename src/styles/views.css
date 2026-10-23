@@ -407,6 +407,29 @@
   .crop-layer.passive .blur-rect {
     border-color: transparent;
   }
+  .export-timing {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .export-timing-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  /* Three dropdowns side by side: narrower than the usual minimum (a utility). */
+  .export-timing-field > button {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  /* Fades previewed over the video (the export fades to black). */
+  .fade-preview {
+    position: absolute;
+    inset: 0;
+    background: black;
+    pointer-events: none;
+  }
   .export-shape {
     display: flex;
     flex-direction: column;

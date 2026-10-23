@@ -6,7 +6,7 @@ import { formatBytes, formatDate, formatDuration } from "../../lib/format";
 import type { ClipInfo } from "../../lib/tauri/types";
 import { useApp } from "../../stores/app";
 import { clipGame } from "./clipView";
-import { clipSrc } from "./media";
+import { clipSrc, dragOut } from "./media";
 
 /**
  * Store-style banner for the newest clip. The small thumbnail shows at once;
@@ -33,6 +33,7 @@ export function ClipsHero({
   const at = Math.min(clip.durationSec / 3, 1).toFixed(2);
   return (
     <section
+      {...dragOut(clip.path)}
       className="clips-hero theme-dark"
       style={
         clip.thumbnail ? { backgroundImage: `url("${convertFileSrc(clip.thumbnail)}")` } : undefined

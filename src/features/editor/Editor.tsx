@@ -29,6 +29,7 @@ import {
   type EditState,
   type ExportOpts,
   type Lane,
+  type QuickFormat,
   type Vertical,
 } from "./model";
 import { SaveActions } from "./SaveEdit";
@@ -223,6 +224,23 @@ function ClipEditor({
     v.muted = gain <= 0;
   }, [gain, live]);
 
+  // Speed is previewed live (the lanes follow the video's rate).
+  useEffect(() => {
+    if (video.current) video.current.playbackRate = s.speed;
+  }, [s.speed]);
+  // Fades: how dark the preview is at the playhead (fade lengths are output
+  // seconds, so they cover `speed` times as much of the clip).
+  const fadeIn = s.fadeIn * s.speed;
+  const fadeOut = s.fadeOut * s.speed;
+  const darkness =
+    current < s.trimStart || current > s.trimEnd
+      ? 0
+      : Math.max(
+          fadeIn > 0 ? 1 - (current - s.trimStart) / fadeIn : 0,
+          fadeOut > 0 ? 1 - (s.trimEnd - current) / fadeOut : 0,
+          0,
+        );
+
   const seek = useCallback(
     (t: number) => {
       const v = video.current;
@@ -317,6 +335,22 @@ function ClipEditor({
     } else {
       edit((d) => ({ ...d, vertical: v }));
     }
+  };
+
+  // Quick formats: Phone starts as a 9:16 crop; GIF keeps the crop and blur.
+  const chooseFormat = (f: QuickFormat) => {
+    if (f === "gif") {
+      // A 9:16 crop stays (a vertical GIF); the blurred "fit" layout doesn't.
+      edit((d) => ({ ...d, gif: true, vertical: "off" }));
+      setCropMode(false);
+      return;
+    }
+    if (s.gif) edit((d) => ({ ...d, gif: false }));
+    if (f === "phone" && s.vertical === "off") chooseVertical("crop");
+    else if (f === "original" && s.vertical !== "off") chooseVertical("off");
+  };
+  const setTiming = (patch: Partial<Pick<EditState, "speed" | "fadeIn" | "fadeOut">>) => {
+    edit((d) => ({ ...d, ...patch }));
   };
 
   // Blur areas.
@@ -475,6 +509,7 @@ function ClipEditor({
               onLoadedMetadata={(e) => {
                 // Continue where the clip preview was.
                 if (at) e.currentTarget.currentTime = at;
+                e.currentTarget.playbackRate = s.speed;
               }}
               onPlay={() => {
                 setPlaying(true);
@@ -487,6 +522,9 @@ function ClipEditor({
               }}
               onClick={togglePlay}
             />
+            {darkness > 0 && (
+              <div className="fade-preview" style={{ opacity: Math.min(1, darkness) }} />
+            )}
             {cropMode && (
               <CropOverlay
                 videoWidth={info.width}
@@ -701,6 +739,8 @@ function ClipEditor({
             state={s}
             setOpts={setOpts}
             onVertical={chooseVertical}
+            onFormat={chooseFormat}
+            onTiming={setTiming}
             actions={
               <SaveActions
                 path={info.path}

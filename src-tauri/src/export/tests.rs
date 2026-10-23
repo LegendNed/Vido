@@ -47,6 +47,7 @@ fn req() -> ExportRequest {
         crop: None,
         blur: Vec::new(),
         vertical_fit: false,
+        gif: false,
         speed: 1.0,
         scale: ScalePreset::Native,
         fps: 0,
@@ -298,4 +299,61 @@ fn estimate_reports_copy_and_size() {
     assert!(!e.will_copy_video);
     // 9.5 s * (8000 + 3*160) kbps / 8 * 1.02
     assert_eq!(e.estimated_bytes, bitrate::estimate_bytes(8000, 480, 9.5));
+}
+
+#[test]
+fn gif_plan_is_small_silent_and_15_fps() {
+    let mut r = req();
+    r.gif = true;
+    let p = plan(&r, &info(), &KF).unwrap();
+    match &p.video {
+        VideoPlan::Gif {
+            width, height, fps, ..
+        } => {
+            assert_eq!((*width, *height), (480, 270));
+            assert_eq!(*fps, (15, 1));
+        }
+        v => panic!("{v:?}"),
+    }
+    assert!(p.audio.is_empty());
+    assert_eq!(
+        p.effective_start, r.trim_start,
+        "never copied from a keyframe"
+    );
+    assert_eq!(p.output.extension().unwrap(), "gif");
+    r.vertical_fit = true;
+    let p = plan(&r, &info(), &KF).unwrap();
+    assert!(matches!(
+        p.video,
+        VideoPlan::Gif {
+            width: 270,
+            height: 480,
+            ..
+        }
+    ));
+    let e = estimate(&r, &info(), &KF).unwrap();
+    assert_eq!(e.audio_bitrate_kbps, 0);
+    assert!(e.estimate_is_rough && e.estimated_bytes > 0);
+}
+
+#[test]
+fn gif_length_is_limited() {
+    let mut r = req();
+    r.gif = true;
+    r.trim_start = 0.0;
+    r.trim_end = 30.0;
+    r.speed = 0.5;
+    assert_eq!(
+        plan(&r, &info(), &KF).unwrap_err().field.as_deref(),
+        Some("trimEnd")
+    );
+    r.speed = 2.0;
+    assert!(plan(&r, &info(), &KF).is_ok(), "15 s of output");
+}
+
+#[test]
+fn gif_dims_keep_the_aspect_ratio() {
+    assert_eq!(gif_dims(1920, 1080), (480, 270));
+    assert_eq!(gif_dims(1080, 1920), (270, 480));
+    assert_eq!(gif_dims(320, 240), (320, 240));
 }

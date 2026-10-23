@@ -240,6 +240,36 @@ pub fn disk_space(path: &Path) -> Option<(u64, u64)> {
     Some((free, total))
 }
 
+/// Drags `path` out of the window as a file (into Discord, Explorer, a browser
+/// upload box…): the shell's own drag and drop, so every target understands it.
+/// Runs a modal loop until the drop; call it on the UI thread while the mouse
+/// button is down.
+pub fn drag_file(hwnd: windows::Win32::Foundation::HWND, path: &Path) -> std::io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::Win32::System::Com::CoTaskMemFree;
+    use windows::Win32::System::Com::IDataObject;
+    use windows::Win32::System::Ole::{OleInitialize, DROPEFFECT_COPY};
+    use windows::Win32::UI::Shell::Common::ITEMIDLIST;
+    use windows::Win32::UI::Shell::{SHCreateDataObject, SHDoDragDrop, SHParseDisplayName};
+
+    let wide: Vec<u16> = path.as_os_str().encode_wide().chain([0]).collect();
+    // SAFETY: `wide` is NUL-terminated and outlives the calls; the PIDL is freed
+    // after the data object (which copies it) is made.
+    unsafe {
+        // Already initialised on the UI thread (S_FALSE); needed for drag and drop.
+        let _ = OleInitialize(None);
+        let mut pidl: *mut ITEMIDLIST = std::ptr::null_mut();
+        SHParseDisplayName(PCWSTR(wide.as_ptr()), None, &mut pidl, 0, None)?;
+        let items = [pidl as *const ITEMIDLIST];
+        let data: windows::core::Result<IDataObject> = SHCreateDataObject(None, Some(&items), None);
+        CoTaskMemFree(Some(pidl as *const _));
+        let data = data?;
+        // The drop result doesn't matter (cancelled is fine).
+        let _ = SHDoDragDrop(Some(hwnd), &data, None, DROPEFFECT_COPY);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

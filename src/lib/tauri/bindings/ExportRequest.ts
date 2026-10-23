@@ -43,4 +43,9 @@ keepMixedTracks: boolean, fadeIn: number, fadeOut: number, audioCodec: AudioCode
 /**
  * Copy video packets instead of re-encoding when possible.
  */
-streamCopy: boolean, };
+streamCopy: boolean, 
+/**
+ * Animated GIF instead of a video: no sound, 15 fps, long side 480 px, at
+ * most `GIF_MAX_SECONDS` (`container` and the encode options are ignored).
+ */
+gif: boolean, };

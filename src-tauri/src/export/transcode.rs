@@ -145,7 +145,7 @@ impl Ctx<'_> {
 }
 
 /// Decodes everything currently available from `dec` into graph source `src`.
-fn decode_into(
+pub(super) fn decode_into(
     dec: &mut CodecCtx,
     pkt: Option<&Packet>,
     graph: &mut FilterGraph,
@@ -176,7 +176,8 @@ fn decode_into(
 /// The video part of the filter graph (`[v_in]` → `[v_out]`): trim, blur areas
 /// (on the source frame), crop, then either a plain scale or the vertical "fit"
 /// layout (the frame in the middle of a 9:16 canvas filled with a blurred,
-/// enlarged copy), speed, frame rate and the encoder's pixel format.
+/// enlarged copy), speed, fades to/from black (`(in, out, output duration)`),
+/// frame rate and the encoder's pixel format.
 #[allow(clippy::too_many_arguments)]
 pub fn video_graph(
     start: f64,
@@ -187,6 +188,7 @@ pub fn video_graph(
     vertical_fit: bool,
     (width, height): (u32, u32),
     speed: f64,
+    (fade_in, fade_out, out_dur): (f64, f64, f64),
     fps: (i32, i32),
     pix_fmt: &str,
 ) -> Vec<String> {
@@ -243,6 +245,15 @@ pub fn video_graph(
     if (speed - 1.0).abs() > 1e-6 {
         chain.push(format!("setpts=PTS/{speed:.6}"));
     }
+    if fade_in > 0.0 {
+        chain.push(format!("fade=t=in:st=0:d={fade_in:.4}"));
+    }
+    if fade_out > 0.0 {
+        chain.push(format!(
+            "fade=t=out:st={:.4}:d={fade_out:.4}",
+            (out_dur - fade_out).max(0.0)
+        ));
+    }
     chain.push(format!("fps={}/{}", fps.0, fps.1));
     chain.push(format!("format={pix_fmt}"));
     parts.push(format!("[{cur}]{}[v_out]", chain.join(",")));
@@ -256,7 +267,11 @@ pub fn run(
     progress: &mut dyn FnMut(f64, f64),
 ) -> AppResult<RunStats> {
     let tmp = partial_path(&plan.output);
-    let result = run_inner(plan, &tmp, caps, cancel, progress);
+    let result = if matches!(plan.video, VideoPlan::Gif { .. }) {
+        super::gif::run(plan, &tmp, cancel, progress).map(|()| Some("gif".to_string()))
+    } else {
+        run_inner(plan, &tmp, caps, cancel, progress)
+    };
     match result {
         Ok(encoder) => {
             if plan.output.exists() {
@@ -377,6 +392,7 @@ fn run_inner(
             *vertical_fit,
             (*width, *height),
             plan.speed,
+            (plan.fade_in, plan.fade_out, out_dur),
             *fps,
             &pix_fmt_name(enc.input.pix_fmt()),
         ));
@@ -594,6 +610,7 @@ fn run_inner(
                     ctx.mux.write_packet(&mut pkt, 0)?;
                     (ctx.progress)(((t - e_abs) / copy_span).clamp(0.0, 0.999), 0.0);
                 }
+                VideoPlan::Gif { .. } => unreachable!("GIFs are written by export::gif"),
                 VideoPlan::Encode { .. } => {
                     if !video_done && t.is_finite() && t > end_abs + 1.0 {
                         video_done = true;

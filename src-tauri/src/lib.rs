@@ -197,9 +197,17 @@ impl GameBuffer {
             state.engine.is_recording(),
         );
         match action {
+            // Low on space: the engine shows why; try again on the next tick.
+            Some(BufferAction::Start) if state.engine.low_disk().is_some() => {
+                self.was_running = false;
+            }
             Some(BufferAction::Start) => match state.engine.start() {
                 Ok(_) => tracing::info!("game running: buffer started"),
-                Err(e) => tracing::warn!("buffer did not start: {}", e.message),
+                Err(e) => {
+                    tracing::warn!("buffer did not start: {}", e.message);
+                    // Not a stop by hand.
+                    self.was_running = false;
+                }
             },
             Some(BufferAction::Stop) => {
                 tracing::info!("no game for a minute: buffer stopped");
@@ -362,6 +370,9 @@ fn setup(
                 let Some(state) = h2.try_state::<AppState>() else {
                     return;
                 };
+                if let Some(why) = state.engine.check_disk() {
+                    events::toast(&h2, ToastKind::Error, format!("Buffer stopped: {why}"));
+                }
                 auto.lock().tick(&state);
                 let game = actions::game_playing(&state);
                 let mut last = shown.lock();
@@ -527,6 +538,7 @@ pub fn run() {
             commands::rename_clip,
             commands::export_audio_tracks,
             commands::get_disk_space,
+            commands::drag_clip,
             commands::check_for_updates,
             commands::get_pending_update,
             commands::install_update,

@@ -113,8 +113,10 @@ export const commands = {
   pickSoundFile: (initial?: string) => invoke<string | null>("pick_sound_file", { initial }),
   previewSaveSound: (sound: SaveSound, path: string | null, volume: number) =>
     invoke<null>("preview_save_sound", { sound, path, volume }),
-  pickExportPath: (suggested: string, container: Container) =>
-    invoke<string | null>("pick_export_path", { suggested, container }),
+  pickExportPath: (suggested: string, container: Container, gif = false) =>
+    invoke<string | null>("pick_export_path", { suggested, container, gif }),
+  /** Drags a clip out of the window as a file; call from `dragstart`. */
+  dragClip: (path: string) => invoke<null>("drag_clip", { path }),
   openFolder: (which: FolderKind) => invoke<undefined>("open_folder", { which }),
 
   // Hotkeys & region

@@ -32,6 +32,9 @@ export interface Lane {
 /** Output shape: as recorded, a 9:16 crop, or 9:16 with the whole frame on a blurred fill. */
 export type Vertical = "off" | "crop" | "fit";
 
+/** Quick formats: the clip as recorded, vertical for phones, or an animated GIF. */
+export type QuickFormat = "original" | "phone" | "gif";
+
 export interface EditState {
   trimStart: number;
   trimEnd: number;
@@ -39,6 +42,13 @@ export interface EditState {
   /** Areas to blur, in source pixels. */
   blur: CropRect[];
   vertical: Vertical;
+  /** Animated GIF instead of a video (no sound, 15 fps, up to 480 px). */
+  gif: boolean;
+  /** Playback speed, 0.25–4. */
+  speed: number;
+  /** Fade from / to black and silence, in output seconds. */
+  fadeIn: number;
+  fadeOut: number;
   /** One per audio track of the clip, by track index. */
   lanes: Lane[];
   /**
@@ -66,6 +76,10 @@ export function initialState(d: ClipDetails, defaults: ExportDefaults): EditStat
     crop: null,
     blur: [],
     vertical: "off",
+    gif: false,
+    speed: 1,
+    fadeIn: 0,
+    fadeOut: 0,
     lanes: d.info.audioTracks.map(() => UNITY),
     recordedMix: hasMixStructure(d),
     x: {
@@ -151,8 +165,8 @@ function request(path: string, s: EditState, audio: AudioOut): ExportRequest {
     ...(s.crop ? { crop: s.crop } : {}),
     blur: s.blur,
     verticalFit: s.vertical === "fit",
-    // The editor offers no speed change or fades (the backend still supports them).
-    speed: 1,
+    gif: s.gif,
+    speed: s.speed,
     scale: s.x.scale,
     fps: s.x.fps,
     videoCodec: s.x.videoCodec,
@@ -164,8 +178,8 @@ function request(path: string, s: EditState, audio: AudioOut): ExportRequest {
     maxBitrateKbps: s.x.maxBitrateKbps,
     targetSizeMb: s.x.targetSizeMb,
     ...audio,
-    fadeIn: 0,
-    fadeOut: 0,
+    fadeIn: s.fadeIn,
+    fadeOut: s.fadeOut,
     audioCodec: s.x.audioCodec,
     audioBitrateKbps: s.x.audioBitrateKbps,
     container: s.x.container,
@@ -180,6 +194,19 @@ export function buildRequest(path: string, s: EditState): ExportRequest {
 /** Whether `s` changes the clip itself (export-only options don't count). */
 export function hasEdits(s: EditState, initial: EditState): boolean {
   const key = (e: EditState) =>
-    JSON.stringify([e.trimStart, e.trimEnd, e.crop, e.blur, e.vertical, e.lanes]);
+    JSON.stringify([
+      e.trimStart,
+      e.trimEnd,
+      e.crop,
+      e.blur,
+      e.vertical,
+      e.speed,
+      e.fadeIn,
+      e.fadeOut,
+      e.lanes,
+    ]);
   return key(s) !== key(initial);
 }
+
+export const quickFormat = (s: EditState): QuickFormat =>
+  s.gif ? "gif" : s.vertical !== "off" ? "phone" : "original";

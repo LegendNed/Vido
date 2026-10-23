@@ -139,7 +139,10 @@ export function useLaneAudio(
     const g = graph.current;
     if (!live || !v || !g) return;
     const align = () => {
-      for (const a of g.els) a.currentTime = v.currentTime;
+      for (const a of g.els) {
+        a.currentTime = v.currentTime;
+        a.playbackRate = v.playbackRate;
+      }
     };
     const start = () => {
       void g.ctx.resume();
@@ -153,6 +156,7 @@ export function useLaneAudio(
     v.addEventListener("play", start);
     v.addEventListener("pause", stop);
     v.addEventListener("seeking", align);
+    v.addEventListener("ratechange", align);
     // Separate elements drift apart slowly; pull them back while playing.
     const timer = window.setInterval(() => {
       if (v.paused) return;
@@ -167,6 +171,7 @@ export function useLaneAudio(
       v.removeEventListener("play", start);
       v.removeEventListener("pause", stop);
       v.removeEventListener("seeking", align);
+      v.removeEventListener("ratechange", align);
       window.clearInterval(timer);
       for (const a of g.els) a.pause();
     };
