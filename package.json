@@ -1,7 +1,7 @@
 {
   "name": "vido",
   "private": true,
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "Local-first replay buffer and clip editor. No accounts, no cloud, no telemetry.",
   "license": "GPL-3.0-or-later",
   "type": "module",
