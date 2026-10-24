@@ -721,30 +721,29 @@ pub fn get_current_game(state: AppStateRef<'_>) -> Option<String> {
     crate::actions::game_playing(&state)
 }
 
-/// Starts dragging a clip out of the window as a file (call from a dragstart:
-/// the mouse button must still be down). Returns once the drag is over.
+/// Starts dragging a clip out of the window as a file, with its thumbnail as the
+/// drag image (call from a dragstart: the mouse button must still be down).
 #[tauri::command]
 pub fn drag_clip(app: AppHandle, window: tauri::WebviewWindow, path: String) -> AppResult<()> {
     let p = ensure_clip(&app, &path)?;
-    #[cfg(windows)]
-    {
-        let hwnd = window
-            .hwnd()
-            .map_err(|e| AppError::internal(format!("no window handle: {e}")))?;
-        // Ole drag and drop belongs on the UI thread.
-        let hwnd = hwnd.0 as isize;
-        window
-            .run_on_main_thread(move || {
-                let h = windows::Win32::Foundation::HWND(hwnd as *mut _);
-                if let Err(e) = crate::win::drag_file(h, &p) {
-                    tracing::warn!("dragging {} failed: {e}", p.display());
-                }
-            })
-            .map_err(|e| AppError::internal(format!("drag failed: {e}")))?;
-    }
-    #[cfg(not(windows))]
-    let _ = (window, p);
-    Ok(())
+    let thumb = app
+        .state::<AppState>()
+        .clips
+        .info(&p)
+        .ok()
+        .and_then(|i| i.thumbnail)
+        .map(PathBuf::from);
+    let w = window.clone();
+    // OLE drag and drop runs a modal loop on the UI thread until the drop.
+    window
+        .run_on_main_thread(move || {
+            let image = thumb.map_or(drag::Image::Raw(Vec::new()), drag::Image::File);
+            let item = drag::DragItem::Files(vec![p.clone()]);
+            if let Err(e) = drag::start_drag(&w, item, image, |_, _| {}, drag::Options::default()) {
+                tracing::warn!("dragging {} failed: {e}", p.display());
+            }
+        })
+        .map_err(|e| AppError::internal(format!("drag failed: {e}")))
 }
 
 /// The drive the clips folder is on (Storage page).

@@ -45,6 +45,7 @@ time = { version = "0.3", features = ["formatting"] }
 zip = { version = "4", default-features = false, features = ["deflate"] }
 
 ffmpeg-sys-next = { version = "=8.1.0", default-features = false, features = ["avcodec", "avfilter", "avformat", "swresample", "swscale"] }
+drag = "2.1"
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"
@@ -87,7 +88,6 @@ windows = { version = "0.62", features = [
     "Win32_System_WinRT_Graphics_Capture",
     "Win32_UI_HiDpi",
     "Win32_UI_Shell",
-    "Win32_UI_Shell_Common",
     "Win32_UI_Shell_PropertiesSystem",
     "Win32_UI_WindowsAndMessaging",
 ] }

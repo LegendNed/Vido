@@ -173,6 +173,9 @@ pub(super) fn decode_into(
     }
 }
 
+/// Size the vertical "fit" background is blurred at (9:16).
+const FIT_FILL: (u32, u32) = (64, 114);
+
 /// The video part of the filter graph (`[v_in]` → `[v_out]`): trim, blur areas
 /// (on the source frame), crop, then either a plain scale or the vertical "fit"
 /// layout (the frame in the middle of a 9:16 canvas filled with a blurred,
@@ -231,10 +234,14 @@ pub fn video_graph(
             chain.clear();
         }
         let next = label(&mut n);
+        // The fill is the whole frame squashed into a tiny 9:16 image, blurred
+        // there and scaled back up: a soft wash of the clip's colours. (Zooming
+        // into the middle third instead turns any hard edge there into blocks.)
+        let (bw, bh) = FIT_FILL;
         parts.push(format!(
             "[{cur}]split[vf_bg][vf_fg];\
-             [vf_bg]scale={width}:{height}:force_original_aspect_ratio=increase:flags=bilinear,\
-             crop={width}:{height},boxblur=30:3[vf_back];\
+             [vf_bg]scale={bw}:{bh}:flags=bilinear,boxblur=12:3,\
+             scale={width}:{height}:flags=bicubic,eq=brightness=-0.10:saturation=1.1[vf_back];\
              [vf_fg]scale={width}:-2:flags=bicubic[vf_front];\
              [vf_back][vf_front]overlay=(W-w)/2:(H-h)/2[{next}]"
         ));
