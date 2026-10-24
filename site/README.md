@@ -47,5 +47,12 @@ Then submit `https://vido.rip/sitemap.xml` in Google Search Console and Bing Web
 - **Text and layout:** [public/index.html](public/index.html). The desktop layout comes first;
   the `@media` rules at the end of the `<style>` stack it for tablets and phones.
 - **Screenshots:** `public/img/` (taken from the trailer's UI captures in `trailer/shots/`).
+- **Hero video:** `public/video/vido-trailer.mp4`, a web copy (1600 px, about 5 MB) of
+  `trailer/Vido-trailer.mp4`, plus `poster.jpg`. After re-rendering the trailer, run from the
+  repo root:
+
+  ```powershell
+  third_party/ffmpeg/bin/ffmpeg.exe -i trailer/Vido-trailer.mp4 -vf scale=1600:-2:flags=lanczos -c:v libx264 -preset slow -crf 25 -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart site/public/video/vido-trailer.mp4
+  ```
 - **What AI assistants read:** [public/llms.txt](public/llms.txt). Keep it in step with the page.
 - **After big changes:** update `<lastmod>` in [public/sitemap.xml](public/sitemap.xml).

@@ -19,6 +19,11 @@
 <meta name="twitter:image" content="https://vido.rip/img/og.png" />
 <meta name="twitter:title" content="Vido: clip the moment you just played" />
 <meta name="twitter:description" content="A tiny, private replay buffer for Windows. One key saves the last 30 seconds. Free and open source." />
+<meta property="og:video" content="https://vido.rip/video/vido-trailer.mp4" />
+<meta property="og:video:type" content="video/mp4" />
+<meta property="og:video:width" content="1600" />
+<meta property="og:video:height" content="900" />
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoObject", "name": "Vido: 60-second trailer", "description": "Vido keeps your last 30 seconds ready: one key saves the clip, saving again makes it longer, re-encode to Discord size in the background, a multi-track editor, a storage page, and no account or telemetry.", "thumbnailUrl": "https://vido.rip/video/poster.jpg", "contentUrl": "https://vido.rip/video/vido-trailer.mp4", "uploadDate": "2026-10-24", "duration": "PT1M", "embedUrl": "https://vido.rip/"}</script>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="Vido for AI assistants" />
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Vido", "url": "https://vido.rip/", "description": "A free, open-source replay-buffer clipper for Windows. One key saves the last 30 seconds of your game instantly. No account, no cloud, no ads, no telemetry.", "applicationCategory": "MultimediaApplication", "applicationSubCategory": "Game clipping and screen recording", "operatingSystem": "Windows 10, Windows 11", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "license": "https://www.gnu.org/licenses/gpl-3.0.html", "downloadUrl": "https://github.com/LegendNed/Vido/releases/latest", "codeRepository": "https://github.com/LegendNed/Vido", "image": "https://vido.rip/img/og.png", "screenshot": "https://vido.rip/img/clips-game.png", "featureList": ["Instant replay buffer: one hotkey saves the last 30 seconds without re-encoding", "Make it longer: save again within 15 seconds to extend the clip", "Re-encode on save to Discord size in the background", "Multi-track audio editor: every device on its own track", "Privacy blur", "Phone (9:16) and GIF exports, speed and fades", "Clips sorted by game", "About 30 MB RAM when idle"]}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does Vido slow down my game?", "acceptedAnswer": {"@type": "Answer", "text": "Capture and encoding run on your GPU's video engine, separate from the parts that render your game. CPU use stays tiny."}}, {"@type": "Question", "name": "Where do my clips go?", "acceptedAnswer": {"@type": "Answer", "text": "Into Videos\\Vido on your PC, sorted into a folder per game. Nothing is ever uploaded."}}, {"@type": "Question", "name": "Can Vido record fullscreen games?", "acceptedAnswer": {"@type": "Answer", "text": "Borderless and windowed games, yes. True exclusive fullscreen can't be captured by Windows' capture API."}}, {"@type": "Question", "name": "Is Vido really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Vido is open source under GPL-3.0: no premium tier, no watermark, no account."}}]}</script>
@@ -64,6 +69,15 @@
   .ctas { display: flex; gap: 14px; justify-content: center; margin-top: 38px; }
   .fine { margin-top: 18px; color: var(--dim); font-size: 14px; display: flex; gap: 18px; justify-content: center; }
   .fine span::before { content: "✓"; color: var(--green); margin-right: 7px; }
+  .hero-video { position: relative; width: calc(100% + 160px); margin: 40px -80px 0; aspect-ratio: 16 / 9; }
+  .hero-video video { display: block; width: 100%; height: 100%; object-fit: cover;
+    -webkit-mask-image: radial-gradient(ellipse 72% 78% at 50% 50%, #000 58%, transparent 100%);
+    mask-image: radial-gradient(ellipse 72% 78% at 50% 50%, #000 58%, transparent 100%); }
+  .sound { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 10px;
+    height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line2); background: rgba(18,19,24,.78);
+    color: var(--fg); font: 600 15px "Geist", sans-serif; cursor: pointer; backdrop-filter: blur(8px); }
+  .sound svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .sound:hover { border-color: rgba(255,255,255,.3); }
   .shot { position: relative; margin: 64px auto 0; width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid var(--line2);
     box-shadow: 0 50px 140px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04); }
   .shot img { display: block; width: 100%; height: auto; }
@@ -169,6 +183,9 @@
     .fine { flex-wrap: wrap; gap: 8px 16px; }
     .hero { padding-top: 48px; }
     .shot .float, .visual .float { display: none; }
+    .hero-video { width: calc(100% + 48px); margin: 24px -24px 0; }
+    .hero-video video { -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent); }
+    .sound { bottom: 4%; height: 38px; font-size: 14px; }
     .visual { height: 340px; }
     .grid, .faq { grid-template-columns: 1fr; }
     .stats { grid-template-columns: 1fr; }
@@ -205,11 +222,10 @@
       <a class="btn big ghost" href="https://github.com/LegendNed/Vido">View on GitHub →</a>
     </div>
     <div class="fine"><span>Free & open source (GPL-3.0)</span><span>Windows 10 & 11</span><span>NVIDIA, AMD & Intel</span></div>
-    <div class="shot">
-      <img src="img/clips-game.png" alt="Vido's clip library, sorted by game" width="1920" height="1080" />
-      <div class="float" style="right:28px;top:84px"><div class="ic">✓</div><div><div class="t1">Clip saved · 0:30</div><div class="t2">Copied. Ctrl+V to paste it anywhere</div></div></div>
-      <div class="float" style="left:28px;bottom:120px;gap:12px"><span class="t2" style="margin:0;font-size:14px">Save the last 30 s</span><div class="keys"><div class="key">Ctrl</div><div class="key">Shift</div><div class="key">F6</div></div></div>
-      <div class="fade-bottom"></div>
+    <div class="hero-video">
+      <video id="trailer" src="video/vido-trailer.mp4" poster="video/poster.jpg" autoplay muted loop playsinline preload="auto"
+        aria-label="Vido trailer: one key saves the last 30 seconds of your game" width="1600" height="900"></video>
+      <button class="sound" id="sound" type="button"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg><span>Watch with sound</span></button>
     </div>
   </div>
 </header>
@@ -368,5 +384,28 @@
     <span class="spacer"></span><a href="https://github.com/LegendNed/Vido">GitHub</a><a href="https://github.com/LegendNed/Vido/releases">Releases</a><a href="https://github.com/LegendNed/Vido#documentation">Docs</a><a href="https://github.com/LegendNed/Vido/issues/new">Report a bug</a>
   </footer>
 </div>
+<script>
+  // Plays muted (browsers only autoplay silently); the button restarts it with sound.
+  const video = document.getElementById("trailer");
+  const sound = document.getElementById("sound");
+  const label = sound.querySelector("span");
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    video.removeAttribute("autoplay");
+    video.pause();
+    video.controls = true;
+    sound.hidden = true;
+  }
+  sound.addEventListener("click", () => {
+    if (video.muted) {
+      video.currentTime = 0;
+      video.muted = false;
+      video.play();
+      label.textContent = "Mute";
+    } else {
+      video.muted = true;
+      label.textContent = "Watch with sound";
+    }
+  });
+</script>
 </body>
 </html>
