@@ -1,0 +1,13 @@
+{
+  "name": "vido-site",
+  "private": true,
+  "description": "Vido's website, published to Cloudflare with Wrangler.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

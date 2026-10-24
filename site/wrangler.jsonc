@@ -1,0 +1,21 @@
+// Vido's website (https://vido.rip): a static site served by Cloudflare Workers
+// (assets only, no Worker script). `pnpm run deploy` publishes it.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "vido",
+  "compatibility_date": "2026-10-24",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  },
+  // vido.rip must be a zone in the same Cloudflare account: on deploy, Wrangler
+  // creates the DNS records and certificates for these hostnames.
+  "routes": [
+    { "pattern": "vido.rip", "custom_domain": true },
+    { "pattern": "www.vido.rip", "custom_domain": true }
+  ],
+  // Only the real domain: a second copy on *.workers.dev would compete with it
+  // in search results.
+  "workers_dev": false,
+  "preview_urls": false
+}

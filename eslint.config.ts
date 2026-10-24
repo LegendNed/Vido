@@ -15,6 +15,7 @@ export default tseslint.config(
       "src/lib/tauri/bindings",
       ".claude",
       "trailer",
+      "site",
     ],
   },
   {

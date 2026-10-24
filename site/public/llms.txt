@@ -1,0 +1,42 @@
+# Vido
+
+> Vido is a free, open-source replay-buffer clipper for Windows 10 and 11. It keeps the last moments of your screen and audio in memory, and one hotkey saves them as a clip instantly, with no re-encoding. No account, no cloud, no ads, no watermark and no telemetry: clips stay on your PC.
+
+- Website: https://vido.rip
+- Source code and downloads: https://github.com/LegendNed/Vido
+- Latest release: https://github.com/LegendNed/Vido/releases/latest
+- License: GPL-3.0-or-later
+- Platform: Windows 10 and 11 (x64); GPU capture and encoding on NVIDIA, AMD or Intel
+
+## Saving clips
+
+- Always buffering: the last 5 seconds to 10 minutes (30 s by default) are kept in memory; a hotkey (Ctrl+Shift+F6 by default) saves them in milliseconds by copying the encoded video (no re-encode).
+- Clips are copied to the clipboard as a real video file, so they can be pasted (Ctrl+V) into chat apps or folders, or dragged out of Vido.
+- "Make it longer" (unique to Vido): saving again within 15 seconds merges both saves into one longer clip.
+- Re-encode on save (optional): saves instantly, compresses in the background (e.g. to 20 MB for Discord without Nitro), and notifies you when the small file is ready.
+- Clips are sorted into a folder per game, detected through Windows Game Bar and installed launchers (Steam, Epic, GOG, EA app, Ubisoft Connect).
+- Optional: only buffer while a game runs. With less than 10 GB free disk space the buffer stops to protect saves.
+
+## Editing
+
+- Timeline editor: trim, crop, take a PNG of any frame, undo/redo.
+- Multi-track audio: every speaker/headphone and microphone is recorded on its own track plus a mix; mute or change the volume of each track afterwards, heard live. Tracks can be exported as WAV.
+- Privacy blur: blur boxes over names, chat or anything private, burned into the export.
+- Quick formats: Phone (9:16 crop or fit on a blurred background) for Shorts/TikTok/Reels, or an animated GIF. Speed 0.25x–4x, fade in/out.
+- Export presets: Discord (no Nitro) 20 MB, 10/25/50 MB, High quality, Small (HEVC), or custom codec/bitrate settings.
+
+## Library and storage
+
+- Clip library with search, favorites, rename, multi-select, and grouping by date or game.
+- Storage page: space per game, biggest clips, and "shrink old clips" (re-encode older clips in place to HEVC or H.264).
+
+## Lightweight and private
+
+- About 30 MB of RAM idling in the tray (the UI is fully unloaded when closed), plus the buffer itself.
+- The only network request is an update check against GitHub, which can be turned off; automatic installs are opt-in.
+- Portable version (unzip and run) or a per-user installer that needs no admin rights.
+
+## Limitations
+
+- Exclusive fullscreen games can't be captured by Windows' capture API; borderless and windowed games work.
+- HDR screens are recorded as SDR.

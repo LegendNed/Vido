@@ -12,3 +12,5 @@ src/lib/tauri/bindings
 .claude
 # Trailer tooling (standalone scripts, generated capture steps)
 trailer
+# Website (static page, deployed with Wrangler)
+site
