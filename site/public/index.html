@@ -108,7 +108,9 @@
   .row ul { list-style: none; margin-top: 22px; display: grid; gap: 10px; }
   .row li { color: #d4d4d8; font-size: 16px; display: flex; gap: 10px; }
   .row li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--red); margin-top: 9px; flex: none; }
-  .visual { position: relative; height: 420px; border-radius: 18px; background: linear-gradient(160deg, #15161b, #0d0e11); border: 1px solid var(--line); overflow: hidden; }
+  .visual { position: relative; aspect-ratio: 696 / 420; border-radius: 18px; background: linear-gradient(160deg, #15161b, #0d0e11); border: 1px solid var(--line); overflow: hidden; }
+  /* A card's contents are laid out at the desktop size and scaled to fit (script below). */
+  .stage { position: absolute; left: 0; top: 0; width: 696px; height: 420px; transform-origin: 0 0; }
   .crop { position: absolute; border-radius: 12px; overflow: hidden; border: 1px solid var(--line2); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
   .crop img { position: absolute; }
 
@@ -177,16 +179,12 @@
     .lead { font-size: 18px; }
     .ctas { flex-direction: column; align-items: stretch; }
     .ctas .btn { justify-content: center; }
-    .seg { font-size: 13px; padding: 0 10px; }
-    .seg.win { font-size: 0; }
-    .tl { left: 20px; right: 20px; }
     .fine { flex-wrap: wrap; gap: 8px 16px; }
     .hero { padding-top: 48px; }
-    .shot .float, .visual .float { display: none; }
+    .shot .float { display: none; }
     .hero-video { width: calc(100% + 48px); margin: 24px -24px 0; }
     .hero-video video { -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent); }
     .sound { bottom: 4%; height: 38px; font-size: 14px; }
-    .visual { height: 340px; }
     .grid, .faq { grid-template-columns: 1fr; }
     .stats { grid-template-columns: 1fr; }
     .stat { border-right: 0; border-bottom: 1px solid var(--line); }
@@ -244,7 +242,7 @@
       <h3>Missed the ending? Just save again.</h3>
       <p>Press save within 15 seconds and both saves become one longer clip. The short one goes to the Recycle Bin, so there's nothing to stitch together.</p>
     </div>
-    <div class="visual">
+    <div class="visual"><div class="stage">
       <div class="tl">
         <div class="axis"></div>
         <div class="tick" style="left:0">0s</div><div class="tick" style="left:20%">12s</div><div class="tick" style="left:40%">24s</div><div class="tick" style="left:60%">36s</div><div class="tick" style="left:80%">48s</div><div class="tick" style="left:100%">60s</div>
@@ -254,7 +252,7 @@
         <div class="now" style="left:76.7%"></div>
       </div>
       <div class="float" style="right:28px;bottom:26px"><div class="ic">✓</div><div><div class="t1">Clip extended · 0:40</div><div class="t2">One longer clip, nothing to stitch</div></div></div>
-    </div>
+    </div></div>
   </div>
 
   <!-- Re-encode on save -->
@@ -265,11 +263,11 @@
       <p>Vido saves instantly, compresses in the background, and only pings you when the small file is ready to paste.</p>
       <ul><li>Presets for Discord's 10 / 20 / 25 / 50 MB limits</li><li>Hardware encoding on your GPU</li><li>The big original never shows up in your folder</li></ul>
     </div>
-    <div class="visual">
+    <div class="visual"><div class="stage">
       <div class="crop" style="left:40px;top:40px;width:640px;height:340px"><img loading="lazy" alt="Re-encode on save setting" src="img/settings-saving.png" style="width:1440px;left:-480px;top:-336px" /></div>
       <div class="float" style="left:110px;top:250px;width:380px"><div class="ic" style="background:rgba(255,255,255,.1);color:#fff">↻</div><div style="flex:1"><div class="t1">Clip saved · re-encoding…</div><div style="height:5px;border-radius:3px;background:rgba(255,255,255,.12);margin-top:9px"><div style="width:68%;height:100%;border-radius:3px;background:#fff"></div></div></div></div>
       <div class="float" style="left:250px;top:328px"><div class="ic">✓</div><div><div class="t1">Clip ready · 19.4 MB</div><div class="t2">Fits Discord. Copied, Ctrl+V to paste</div></div></div>
-    </div>
+    </div></div>
   </div>
 
   <!-- Multi-track -->
@@ -280,10 +278,10 @@
       <p>Game audio, voice chat and your mic are recorded separately, plus a mix that plays everywhere. Mute your mic after the fact and hear the change live.</p>
       <ul><li>Volume and mute per track, previewed live</li><li>Export every track as WAV</li><li>Optional noise suppression for mics</li></ul>
     </div>
-    <div class="visual">
+    <div class="visual"><div class="stage">
       <div class="crop" style="left:36px;top:36px;width:668px;height:348px"><img loading="lazy" alt="Vido's editor with one audio lane per device" src="img/editor.png" style="width:1500px;left:-100px;top:-496px" /></div>
       <div class="float" style="right:34px;top:34px;padding:10px 14px"><span style="background:var(--red);color:#fff;font-weight:700;font-size:13px;padding:5px 10px;border-radius:7px">MIC MUTED</span><span class="t2" style="margin:0">after the match</span></div>
-    </div>
+    </div></div>
   </div>
 
   <!-- Blur -->
@@ -293,9 +291,9 @@
       <h3>Hide names and chat in two drags.</h3>
       <p>Drop blur boxes over usernames, chat or anything private. You see the blur live, and it's burned into the export.</p>
     </div>
-    <div class="visual">
+    <div class="visual"><div class="stage">
       <div class="crop" style="left:36px;top:36px;width:668px;height:348px"><img loading="lazy" alt="Privacy blur boxes over team chat and player names in Vido's editor" src="img/editor-blur-edit.png" style="width:1180px;left:-100px;top:-60px" /></div>
-    </div>
+    </div></div>
   </div>
 
   <!-- Quick formats -->
@@ -306,12 +304,12 @@
       <p>9:16 for Shorts, TikTok and Reels: drag a vertical window or fit the whole frame on a soft blurred background. Or turn the moment into a GIF.</p>
       <ul><li>Speed from 0.25× to 4×, fade in and out</li><li>Trim, crop and screenshot any frame</li><li>Save as a copy or replace the clip</li></ul>
     </div>
-    <div class="visual">
+    <div class="visual"><div class="stage">
       <div class="crop" style="left:36px;top:36px;width:470px;height:348px"><img loading="lazy" alt="Phone 9:16 crop in Vido's editor" src="img/editor-phone.png" style="width:1200px;left:-240px;top:-40px" /></div>
       <div style="position:absolute;right:46px;top:30px;width:176px;height:360px;border-radius:30px;background:#050506;border:3px solid #2b2d35;padding:9px;box-shadow:0 30px 70px rgba(0,0,0,.7)">
         <div style="width:100%;height:100%;border-radius:22px;overflow:hidden;position:relative"><img loading="lazy" alt="" src="img/g0.png" style="position:absolute;height:100%;left:50%;transform:translateX(-50%)" /></div>
       </div>
-    </div>
+    </div></div>
   </div>
 
   <!-- More -->
@@ -384,6 +382,15 @@
     <span class="spacer"></span><a href="https://github.com/LegendNed/Vido">GitHub</a><a href="https://github.com/LegendNed/Vido/releases">Releases</a><a href="https://github.com/LegendNed/Vido#documentation">Docs</a><a href="https://github.com/LegendNed/Vido/issues/new">Report a bug</a>
   </footer>
 </div>
+<script>
+  // Feature cards: scale the desktop-sized contents to the card's width.
+  const fit = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      e.target.firstElementChild.style.transform = `scale(${e.contentRect.width / 696})`;
+    }
+  });
+  document.querySelectorAll(".visual").forEach((v) => fit.observe(v));
+</script>
 <script>
   // Plays muted (browsers only autoplay silently); the button restarts it with sound.
   const video = document.getElementById("trailer");
