@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Vido trailer</title>
+<style>
+  @font-face { font-family: "Geist"; src: url("fonts/geist.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono.woff2") format("woff2"); font-weight: 100 900; }
+  :root {
+    --bg: #0a0b0e;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --dim: #71717a;
+    --line: rgba(255, 255, 255, 0.09);
+    --card: #15161b;
+    --red: #ff4d4f;
+    --green: #34d399;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  body { font-family: "Geist", "Segoe UI", sans-serif; color: var(--fg); -webkit-font-smoothing: antialiased; }
+  #stage { position: absolute; inset: 0; overflow: hidden; background: var(--bg); }
+  .abs { position: absolute; }
+  .scene { position: absolute; inset: 0; display: none; }
+  .glow { position: absolute; border-radius: 50%; pointer-events: none; }
+
+  /* Type */
+  .eyebrow { font-size: 22px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 12px; }
+  .eyebrow .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); box-shadow: 0 0 18px var(--red); }
+  .eyebrow.unique { color: #ffd2d2; }
+  .title { font-size: 66px; font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; }
+  .sub { font-size: 30px; line-height: 1.35; color: var(--muted); font-weight: 400; letter-spacing: -0.005em; }
+  .copy { position: absolute; left: 96px; top: 300px; width: 560px; display: flex; flex-direction: column; gap: 26px; }
+  .copy .swap { position: relative; }
+
+  /* Framed screenshot */
+  .frame { position: absolute; left: 700px; top: 170px; width: 1140px; height: 641px; border-radius: 18px; overflow: hidden; background: #000;
+    box-shadow: 0 40px 120px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1); }
+  .frame .cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  .frame .cam img { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  .hl { position: absolute; border: 4px solid #fff; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.0), 0 0 40px rgba(255, 255, 255, 0.55); opacity: 0; }
+  .hl.red { border-color: var(--red); box-shadow: 0 0 40px rgba(255, 77, 79, 0.7); }
+
+  /* Vido popup (the in-game HUD) */
+  .popup { position: absolute; width: 470px; padding: 20px 24px; border-radius: 18px; background: rgba(18, 19, 24, 0.94); border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); display: flex; gap: 18px; align-items: center; opacity: 0; }
+  .popup .ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; flex: none; background: rgba(52, 211, 153, 0.16); color: var(--green); font-size: 28px; font-weight: 700; }
+  .popup .ic.rec { background: rgba(255, 77, 79, 0.16); color: var(--red); }
+  .popup .t1 { font-size: 26px; font-weight: 650; }
+  .popup .t2 { font-size: 19px; color: var(--muted); margin-top: 3px; }
+  .popup .bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); margin-top: 10px; overflow: hidden; }
+  .popup .bar span { display: block; height: 100%; background: #fff; width: 0; }
+  .popup .brand { position: absolute; right: 18px; top: 14px; width: 22px; height: 22px; opacity: 0.85; }
+
+  /* Keycaps */
+  .keys { position: absolute; display: flex; gap: 14px; opacity: 0; }
+  .key { min-width: 86px; height: 78px; padding: 0 22px; border-radius: 14px; background: linear-gradient(#2a2c34, #1d1f25); border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 7px 0 #0c0d10, 0 18px 36px rgba(0, 0, 0, 0.5); display: grid; place-items: center; font-size: 30px; font-weight: 600; color: #f4f4f5; }
+  .keys.small .key { min-width: 58px; height: 52px; font-size: 21px; padding: 0 14px; border-radius: 10px; box-shadow: 0 5px 0 #0c0d10; }
+
+  /* Buffer strip */
+  .strip { position: absolute; left: 160px; top: 812px; width: 1600px; height: 150px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(0, 0, 0, 0.45); }
+  .strip .tiles { position: absolute; top: 14px; height: 122px; display: flex; gap: 8px; }
+  .strip .tiles img { height: 122px; width: 217px; border-radius: 8px; object-fit: cover; opacity: 0.9; }
+  .bracket { position: absolute; top: 4px; height: 142px; border: 4px solid #fff; border-radius: 12px; box-shadow: 0 0 34px rgba(255, 255, 255, 0.45); }
+  .bracket .lab { position: absolute; top: -52px; right: 0; font-size: 24px; font-weight: 600; white-space: nowrap; background: #fff; color: #0a0b0e; padding: 6px 14px; border-radius: 10px; }
+  .live { position: absolute; top: 0; bottom: 0; width: 4px; background: var(--red); box-shadow: 0 0 18px var(--red); }
+
+  /* Make-it-longer timeline */
+  .tl { position: absolute; left: 720px; top: 360px; width: 1100px; height: 360px; }
+  .tl .axis { position: absolute; left: 0; right: 0; top: 230px; height: 2px; background: rgba(255, 255, 255, 0.25); }
+  .tl .tick { position: absolute; top: 244px; font-size: 20px; color: var(--dim); transform: translateX(-50%); font-family: "Geist Mono", monospace; }
+  .tl .seg { position: absolute; top: 120px; height: 96px; border-radius: 14px; }
+  .tl .clip1 { border: 4px solid rgba(255, 255, 255, 0.95); background: rgba(255, 255, 255, 0.07); }
+  .tl .clipx { border: 4px solid var(--green); background: rgba(52, 211, 153, 0.12); box-shadow: 0 0 40px rgba(52, 211, 153, 0.35); }
+  .tl .win15 { background: repeating-linear-gradient(135deg, rgba(255, 77, 79, 0.25) 0 12px, rgba(255, 77, 79, 0.08) 12px 24px); border: 2px dashed rgba(255, 77, 79, 0.8); }
+  .tl .seg .lab { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 26px; font-weight: 650; white-space: nowrap; }
+  .tl .head { position: absolute; top: 90px; width: 4px; height: 150px; background: var(--red); box-shadow: 0 0 20px var(--red); }
+  .tl .head::after { content: "now"; position: absolute; top: -34px; left: 50%; transform: translateX(-50%); color: var(--red); font-size: 20px; font-weight: 600; }
+  .tl .note { position: absolute; font-size: 22px; color: var(--muted); white-space: nowrap; }
+
+  /* Chat mock */
+  .chat { position: absolute; left: 760px; top: 170px; width: 1020px; height: 680px; border-radius: 18px; background: #16171c; border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6); overflow: hidden; }
+  .chat .hdr { height: 74px; border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 30px; font-size: 26px; font-weight: 650; gap: 10px; }
+  .chat .hdr span { color: var(--dim); }
+  .msg { position: absolute; left: 30px; display: flex; gap: 18px; opacity: 0; }
+  .msg .av { width: 52px; height: 52px; border-radius: 50%; flex: none; }
+  .msg .who { font-size: 22px; font-weight: 650; }
+  .msg .who em { font-style: normal; font-weight: 400; color: var(--dim); font-size: 18px; margin-left: 8px; }
+  .msg .txt { font-size: 23px; color: #d4d4d8; margin-top: 4px; }
+  .att { margin-top: 12px; width: 460px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.12); background: #0f1014; }
+  .att img { width: 460px; height: 259px; display: block; object-fit: cover; }
+  .att .meta { padding: 10px 14px; font-size: 18px; color: var(--muted); display: flex; justify-content: space-between; }
+  .att .play { position: absolute; width: 72px; height: 72px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); display: grid; place-items: center; }
+  .chat .input { position: absolute; left: 30px; right: 30px; bottom: 26px; height: 64px; border-radius: 14px; background: #202128; display: flex; align-items: center; padding: 0 22px; font-size: 22px; color: var(--dim); }
+  .cursor { position: absolute; width: 34px; height: 34px; opacity: 0; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6)); }
+  .dragcard { position: absolute; width: 300px; border-radius: 12px; overflow: hidden; background: #111; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6); opacity: 0; }
+  .dragcard img { width: 300px; height: 169px; display: block; object-fit: cover; }
+  .dragcard div { padding: 8px 12px; font-size: 17px; color: var(--muted); }
+
+  /* Phone */
+  .phone { position: absolute; width: 300px; height: 600px; border-radius: 44px; background: #050506; border: 3px solid #2b2d35; box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7); padding: 14px; opacity: 0; }
+  .phone .scr { width: 100%; height: 100%; border-radius: 32px; overflow: hidden; position: relative; }
+  .phone .scr img { position: absolute; height: 100%; left: 50%; transform: translateX(-50%); }
+  .phone .notch { position: absolute; left: 50%; top: 22px; width: 90px; height: 24px; border-radius: 12px; background: #050506; transform: translateX(-50%); z-index: 2; }
+
+  /* Stats */
+  .stats { position: absolute; left: 160px; top: 360px; width: 1600px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+  .stat { height: 230px; border-radius: 22px; background: linear-gradient(160deg, #191a20, #111216); border: 1px solid rgba(255, 255, 255, 0.09); padding: 34px 38px; opacity: 0;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; }
+  .stat .big { font-size: 74px; font-weight: 750; letter-spacing: -0.035em; line-height: 1; }
+  .stat .lbl { font-size: 26px; color: var(--muted); }
+
+  /* Comparison */
+  .cmp { position: absolute; left: 260px; top: 300px; width: 1400px; }
+  .cmp .row { display: grid; grid-template-columns: 1.3fr 1fr 1fr; align-items: center; height: 92px; border-bottom: 1px solid var(--line); font-size: 32px; opacity: 0; }
+  .cmp .row.head { font-size: 26px; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; height: 70px; }
+  .cmp .v { font-weight: 650; display: flex; align-items: center; gap: 14px; }
+  .cmp .v::before { content: "✓"; width: 40px; height: 40px; border-radius: 50%; background: rgba(52, 211, 153, 0.16); color: var(--green); display: grid; place-items: center; font-size: 24px; }
+  .cmp .c { color: var(--dim); display: flex; align-items: center; gap: 14px; }
+  .cmp .c::before { content: "✕"; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 77, 79, 0.12); color: #f87171; display: grid; place-items: center; font-size: 22px; }
+
+  .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.55) 100%); pointer-events: none; }
+  .fadeout { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  .pill { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.16); font-size: 22px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="glow" id="glowA"></div>
+  <div class="glow" id="glowB"></div>
+
+  <!-- 1 Intro -->
+  <section class="scene" id="s1">
+    <img class="abs" id="s1logo" src="assets/icon.png" style="left:810px;top:250px;width:300px;height:300px" />
+    <div class="abs" id="s1name" style="left:0;right:0;top:575px;text-align:center;font-size:150px;font-weight:750;letter-spacing:-0.05em">Vido</div>
+    <div class="abs" id="s1tag" style="left:0;right:0;top:770px;text-align:center;font-size:44px;font-weight:600;letter-spacing:-0.02em">Clip the moment you just played.</div>
+    <div class="abs" id="s1sub" style="left:0;right:0;top:840px;text-align:center;font-size:30px;color:var(--muted)">A tiny, private replay buffer for Windows.</div>
+  </section>
+
+  <!-- 2 Always buffering -->
+  <section class="scene" id="s2">
+    <img class="abs" id="s2bg" src="assets/g1.png" style="left:0;top:0;width:1920px;height:1080px;transform-origin:50% 50%" />
+    <div class="abs" style="inset:0;background:linear-gradient(90deg,rgba(10,11,14,.92) 0%,rgba(10,11,14,.55) 45%,rgba(10,11,14,.1) 75%),linear-gradient(0deg,rgba(10,11,14,.95) 0%,transparent 45%)"></div>
+    <div class="copy" style="top:150px">
+      <div class="eyebrow"><span class="dot"></span>Always buffering</div>
+      <div class="swap" style="height:330px">
+        <div class="abs" id="s2a" style="width:600px"><div class="title">Your last 30 seconds. Always ready.</div><div class="sub" style="margin-top:24px">Vido quietly keeps the last moments of your screen and every audio device in memory.</div></div>
+        <div class="abs" id="s2b" style="width:600px;opacity:0"><div class="title">One key. Saved instantly.</div><div class="sub" style="margin-top:24px">No re-encode, no stutter. And it's already on your clipboard.</div></div>
+      </div>
+    </div>
+    <div class="strip" id="s2strip"><div class="tiles" id="s2tiles"></div><div class="bracket" id="s2br"><div class="lab">Last 30 s · in memory</div></div><div class="live" id="s2live"></div></div>
+    <div class="keys" id="s2keys" style="left:690px;top:600px"><div class="key">Ctrl</div><div class="key">Shift</div><div class="key">F6</div></div>
+    <div class="popup" id="s2pop" style="left:1380px;top:70px"><div class="ic">✓</div><div><div class="t1">Clip saved · 0:30</div><div class="t2">Copied. Ctrl+V to paste it anywhere</div></div></div>
+    <div class="flash" id="s2flash"></div>
+  </section>
+
+  <!-- 3 Make it longer -->
+  <section class="scene" id="s3">
+    <div class="copy" style="top:330px">
+      <div class="eyebrow unique"><span class="dot"></span>Only in Vido · Make it longer</div>
+      <div class="title">Missed the ending? Save again.</div>
+      <div class="sub">Press save within 15 seconds and both saves become one longer clip. The short one goes to the Recycle Bin.</div>
+    </div>
+    <div class="tl" id="tl">
+      <div class="axis"></div>
+      <div class="seg win15" id="tlwin"><div class="lab" style="font-size:20px;color:#ffb4b4;left:14px;top:22px;transform:none">15 s to extend</div></div>
+      <div class="seg clip1" id="tlc1"><div class="lab">Clip · 0:30</div></div>
+      <div class="seg clipx" id="tlcx"><div class="lab">One clip · 0:40</div></div>
+      <div class="head" id="tlhead"></div>
+      <div class="keys small" id="tlk1"><div class="key">Ctrl</div><div class="key">Shift</div><div class="key">F6</div></div>
+      <div class="keys small" id="tlk2"><div class="key">Ctrl</div><div class="key">Shift</div><div class="key">F6</div></div>
+    </div>
+    <div class="popup" id="s3pop1" style="left:1350px;top:110px"><div class="ic">✓</div><div><div class="t1">Clip saved · 0:30</div><div class="t2">Copied to the clipboard</div></div></div>
+    <div class="popup" id="s3pop2" style="left:1350px;top:110px"><div class="ic">✓</div><div><div class="t1">Clip extended · 0:40</div><div class="t2">One longer clip, nothing to stitch</div></div></div>
+  </section>
+
+  <!-- 4 Paste / drag -->
+  <section class="scene" id="s4">
+    <div class="copy" style="top:330px">
+      <div class="eyebrow"><span class="dot"></span>Share in a second</div>
+      <div class="title">Ctrl+V it into any chat.</div>
+      <div class="sub">Every clip lands on your clipboard as a real video file. Or drag it straight out of Vido.</div>
+    </div>
+    <div class="chat">
+      <div class="hdr"><span>#</span>squad-clips</div>
+      <div class="msg" id="m1" style="top:104px;opacity:1"><div class="av" style="background:#6366f1"></div><div><div class="who">Juno <em>today at 21:04</em></div><div class="txt">did anyone get that last round??</div></div></div>
+      <div class="msg" id="m2" style="top:196px"><div class="av" style="background:#ef4444"></div><div><div class="who">You <em>today at 21:04</em></div><div class="att" style="position:relative"><img src="assets/t1.png" /><div class="play" style="left:194px;top:93px">▶</div><div class="meta"><span>Skyline Rush_2026-10-24_21-04.mp4</span><span>28.4 MB</span></div></div></div></div>
+      <div class="input" id="chatin">Message #squad-clips</div>
+    </div>
+    <div class="keys" id="s4keys" style="left:1080px;top:880px"><div class="key">Ctrl</div><div class="key">V</div></div>
+    <div class="dragcard" id="s4card"><img src="assets/t4.png" /><div>Frontier Ops_2026-10-24.mp4</div></div>
+    <svg class="cursor" id="s4cur" viewBox="0 0 24 24"><path d="M4 2l15 9-7 1.5 4 7.5-3 1.5-4-7.5L4 19z" fill="#fff" stroke="#000" stroke-width="1.2" /></svg>
+  </section>
+
+  <!-- 5 Re-encode on save -->
+  <section class="scene" id="s5">
+    <div class="copy" style="top:300px">
+      <div class="eyebrow unique"><span class="dot"></span>Re-encode on save</div>
+      <div class="title">Discord-sized. Automatically.</div>
+      <div class="sub">Vido saves instantly, compresses in the background, and only pings you when the small file is ready.</div>
+    </div>
+    <div class="frame" id="s5f"><div class="cam"><img src="shots/settings-saving.png" /><div class="hl" id="s5hl" style="left:1322px;top:522px;width:100px;height:36px"></div></div></div>
+    <div class="popup" id="s5p1" style="left:1290px;top:640px"><div class="ic" style="background:rgba(255,255,255,.1);color:#fff">↻</div><div style="flex:1"><div class="t1">Clip saved · re-encoding…</div><div class="bar"><span id="s5bar"></span></div></div></div>
+    <div class="popup" id="s5p2" style="left:1290px;top:640px"><div class="ic">✓</div><div><div class="t1">Clip ready · 19.4 MB</div><div class="t2">Fits Discord. Copied, Ctrl+V to paste</div></div></div>
+  </section>
+
+  <!-- 6 Library -->
+  <section class="scene" id="s6">
+    <div class="copy">
+      <div class="eyebrow"><span class="dot"></span>Clip library</div>
+      <div class="swap" style="height:360px">
+        <div class="abs" id="s6a" style="width:560px"><div class="title">Sorted by game. Automatically.</div><div class="sub" style="margin-top:24px">Vido recognises the game via Windows Game Bar and your launchers, and files each clip in its folder.</div></div>
+        <div class="abs" id="s6b" style="width:560px;opacity:0"><div class="title">Search, star, bulk-shrink.</div><div class="sub" style="margin-top:24px">Favorites, rename, multi-select, and drag any clip straight out.</div></div>
+      </div>
+    </div>
+    <div class="frame" id="s6f"><div class="cam">
+      <img src="shots/clips-game.png" /><img id="s6sel" src="shots/clips-select.png" style="opacity:0" />
+      <div class="hl" id="s6h1" style="left:254px;top:226px;width:126px;height:30px"></div>
+      <div class="hl" id="s6h2" style="left:254px;top:579px;width:110px;height:30px"></div>
+      <div class="hl" id="s6h3" style="left:962px;top:168px;width:162px;height:40px"></div>
+      <div class="hl" id="s6h4" style="left:774px;top:972px;width:614px;height:54px"></div>
+    </div></div>
+  </section>
+
+  <!-- 7 Multi-track editor -->
+  <section class="scene" id="s7">
+    <div class="copy">
+      <div class="eyebrow unique"><span class="dot"></span>Multi-track audio</div>
+      <div class="swap" style="height:380px">
+        <div class="abs" id="s7a" style="width:560px"><div class="title">Every device on its own track.</div><div class="sub" style="margin-top:24px">Game, voice chat, your mic: each one recorded separately, plus a mix that plays everywhere.</div></div>
+        <div class="abs" id="s7b" style="width:560px;opacity:0"><div class="title">Mute your mic after the fact.</div><div class="sub" style="margin-top:24px">Turn any track down or off and hear it live. Export each as WAV, too.</div></div>
+      </div>
+    </div>
+    <div class="frame" id="s7f"><div class="cam">
+      <img src="shots/editor.png" />
+      <div class="abs" id="s7mute" style="left:365px;top:966px;width:1022px;height:50px;background:rgba(10,11,14,.82);opacity:0"></div>
+      <div class="abs" id="s7mtag" style="left:180px;top:972px;width:178px;height:36px;border-radius:8px;background:var(--red);color:#fff;font-size:20px;font-weight:700;display:grid;place-items:center;opacity:0">MIC MUTED</div>
+      <div class="hl" id="s7h1" style="left:142px;top:862px;width:1250px;height:156px"></div>
+    </div></div>
+  </section>
+
+  <!-- 8 Blur -->
+  <section class="scene" id="s8">
+    <div class="copy">
+      <div class="eyebrow unique"><span class="dot"></span>Privacy blur</div>
+      <div class="title">Hide names and chat in two drags.</div>
+      <div class="sub">Drop blur boxes over anything private. You see it live, and it's burned into the export.</div>
+    </div>
+    <div class="frame" id="s8f"><div class="cam">
+      <img src="shots/editor.png" />
+      <img id="s8after" src="shots/editor-blur-edit.png" style="clip-path:inset(0 100% 0 0)" />
+      <div class="abs" id="s8line" style="top:82px;height:602px;width:4px;background:#fff;box-shadow:0 0 24px #fff;opacity:0"></div>
+    </div></div>
+  </section>
+
+  <!-- 9 Quick formats -->
+  <section class="scene" id="s9">
+    <div class="copy">
+      <div class="eyebrow"><span class="dot"></span>Quick formats</div>
+      <div class="swap" style="height:400px">
+        <div class="abs" id="s9a" style="width:560px"><div class="title">Phone-ready in one click.</div><div class="sub" style="margin-top:24px">9:16 for Shorts, TikTok and Reels: drag a vertical window, or fit the whole frame on a blurred background.</div></div>
+        <div class="abs" id="s9b" style="width:560px;opacity:0"><div class="title">GIFs, speed and fades.</div><div class="sub" style="margin-top:24px">An animated GIF in one click. Slow-mo to 4×, fade in and out, all previewed live.</div></div>
+      </div>
+    </div>
+    <div class="frame" id="s9f"><div class="cam">
+      <img src="shots/editor-phone.png" /><img id="s9gif" src="shots/editor-gif.png" style="opacity:0" />
+      <div class="hl" id="s9h1" style="left:1430px;top:136px;width:240px;height:48px"></div>
+      <div class="hl" id="s9h2" style="left:1430px;top:226px;width:358px;height:58px"></div>
+    </div></div>
+    <div class="phone" id="s9phone" style="left:1460px;top:330px"><div class="notch"></div><div class="scr"><img src="assets/g0.png" /></div></div>
+  </section>
+
+  <!-- 10 Storage -->
+  <section class="scene" id="s10">
+    <div class="copy">
+      <div class="eyebrow"><span class="dot"></span>Storage</div>
+      <div class="title">See what eats your disk.</div>
+      <div class="sub">Space per game, your biggest clips, and one click to shrink old ones to a fraction of the size.</div>
+    </div>
+    <div class="frame" id="s10f"><div class="cam">
+      <img src="shots/storage.png" /><img id="s10b" src="shots/storage-shrink.png" style="opacity:0" />
+      <div class="hl" id="s10h1" style="left:660px;top:300px;width:842px;height:186px"></div>
+      <div class="hl" id="s10h2" style="left:1370px;top:986px;width:124px;height:44px"></div>
+    </div></div>
+  </section>
+
+  <!-- 11 Light & local -->
+  <section class="scene" id="s11">
+    <div class="abs" id="s11t" style="left:160px;top:170px"><div class="eyebrow"><span class="dot"></span>Light. Local. Yours.</div><div class="title" style="margin-top:22px;font-size:76px">Built to stay out of your way.</div></div>
+    <div class="stats">
+      <div class="stat"><div class="big" id="ram">~30 MB</div><div class="lbl">RAM idling in the tray, UI fully unloaded</div></div>
+      <div class="stat"><div class="big">GPU</div><div class="lbl">capture + encode on NVIDIA, AMD or Intel</div></div>
+      <div class="stat"><div class="big">0 ms</div><div class="lbl">re-encoding when you save: instant remux</div></div>
+      <div class="stat"><div class="big">0</div><div class="lbl">accounts, uploads, ads or watermarks</div></div>
+      <div class="stat"><div class="big">0</div><div class="lbl">telemetry. Clips never leave your PC</div></div>
+      <div class="stat"><div class="big">Portable</div><div class="lbl">unzip and run, or a per-user installer</div></div>
+    </div>
+  </section>
+
+  <!-- 12 Comparison -->
+  <section class="scene" id="s12">
+    <div class="abs" id="s12t" style="left:260px;top:150px"><div class="title" style="font-size:72px">Vido vs. Bloated Competitor</div></div>
+    <div class="cmp">
+      <div class="row head"><div></div><div>Vido</div><div>Bloated Competitor</div></div>
+      <div class="row"><div>Account needed</div><div class="v">No</div><div class="c">Yes</div></div>
+      <div class="row"><div>Works fully offline</div><div class="v">Yes</div><div class="c">No</div></div>
+      <div class="row"><div>Telemetry, ads, upsells</div><div class="v">None</div><div class="c">Yes</div></div>
+      <div class="row"><div>Idle RAM</div><div class="v">~30 MB + buffer</div><div class="c">300 MB – 1 GB</div></div>
+      <div class="row"><div>Updates</div><div class="v">Your choice</div><div class="c">Forced</div></div>
+      <div class="row"><div>Open source</div><div class="v">GPL-3.0</div><div class="c">No</div></div>
+    </div>
+  </section>
+
+  <!-- 13 Outro -->
+  <section class="scene" id="s13">
+    <img class="abs" id="s13logo" src="assets/icon.png" style="left:860px;top:230px;width:200px;height:200px" />
+    <div class="abs" id="s13name" style="left:0;right:0;top:450px;text-align:center;font-size:130px;font-weight:750;letter-spacing:-0.05em">Vido</div>
+    <div class="abs" id="s13tag" style="left:0;right:0;top:640px;text-align:center;font-size:40px;font-weight:600">Free and open source for Windows 10 and 11.</div>
+    <div class="abs" id="s13url" style="left:0;right:0;top:730px;text-align:center"><span class="pill" style="font-size:30px;padding:14px 30px;color:#fff;font-family:'Geist Mono',monospace">github.com/LegendNed/Vido</span></div>
+  </section>
+
+  <div class="vignette"></div>
+  <div class="fadeout" id="fadeout"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eo = (x) => 1 - Math.pow(1 - x, 3);
+const eio = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const back = (x) => { const c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+const set = (el, o) => { for (const k in o) el.style[k] = o[k]; };
+// Fades in over [a, a+d] and out over [b-d, b].
+const inout = (t, a, b, d = 0.4) => Math.min(eo(prog(t, a, a + d)), 1 - eo(prog(t, b - d, b)));
+// Rises into place at `a`.
+function rise(el, t, a, d = 0.6, dy = 34) {
+  const x = eo(prog(t, a, a + d));
+  set(el, { opacity: x, transform: `translateY(${(1 - x) * dy}px)` });
+}
+function popup(el, t, a, b) {
+  const x = back(prog(t, a, a + 0.45));
+  const o = Math.min(prog(t, a, a + 0.2), 1 - prog(t, b - 0.3, b));
+  set(el, { opacity: clamp(o), transform: `translateX(${(1 - clamp(x, 0, 1.2)) * 60}px) scale(${0.92 + 0.08 * clamp(x, 0, 1.1)})` });
+}
+// Key press: appear at a, pressed at p, gone at b.
+function keys(el, t, a, p, b) {
+  set(el, { opacity: inout(t, a, b, 0.25), transform: `translateY(${(1 - eo(prog(t, a, a + 0.3))) * 20}px)` });
+  const down = t >= p && t < p + 0.18;
+  for (const k of el.children) set(k, { transform: down ? "translateY(6px)" : "none", boxShadow: down ? "0 1px 0 #0c0d10, 0 8px 18px rgba(0,0,0,.5)" : "" });
+}
+// Camera over a 1920x1080 screenshot inside a frame: keys [t, zoom, focusX, focusY].
+function cam(frame, t, ks) {
+  const W = frame.clientWidth, H = frame.clientHeight;
+  let k = ks[0];
+  let z, fx, fy;
+  if (t <= ks[0][0]) [, z, fx, fy] = ks[0];
+  else if (t >= ks[ks.length - 1][0]) [, z, fx, fy] = ks[ks.length - 1];
+  else for (let i = 0; i < ks.length - 1; i++) {
+    const [ta, za, xa, ya] = ks[i], [tb, zb, xb, yb] = ks[i + 1];
+    if (t >= ta && t <= tb) { const e = eio(prog(t, ta, tb)); z = lerp(za, zb, e); fx = lerp(xa, xb, e); fy = lerp(ya, yb, e); break; }
+  }
+  const s = (W / 1920) * z;
+  // Never show past the screenshot's edges.
+  const hw = W / 2 / s, hh = H / 2 / s;
+  fx = hw >= 960 ? 960 : clamp(fx, hw, 1920 - hw);
+  fy = hh >= 540 ? 540 : clamp(fy, hh, 1080 - hh);
+  frame.firstElementChild.style.transform = `translate(${W / 2 - fx * s}px, ${H / 2 - fy * s}px) scale(${s})`;
+}
+function hl(el, t, a, b) {
+  const o = inout(t, a, b, 0.35);
+  set(el, { opacity: o, transform: `scale(${1 + 0.06 * (1 - eo(prog(t, a, a + 0.5)))})` });
+}
+function frameIn(el, t, a, b) {
+  const x = eo(prog(t, a, a + 0.8));
+  set(el, { opacity: inout(t, a, b, 0.5), transform: `translateX(${(1 - x) * 80}px) scale(${0.97 + 0.03 * x})` });
+}
+// Caption A rises in at `riseAt`, then swaps to caption B at `at` (fully set every frame).
+function captions(a, b, t, riseAt, at) {
+  if (t < at - 0.25) {
+    rise(a, t, riseAt);
+    set(b, { opacity: 0, transform: "translateY(26px)" });
+  } else swap(a, b, t, at);
+}
+function swap(a, b, t, at) {
+  const x = prog(t, at - 0.25, at + 0.35);
+  set(a, { opacity: 1 - x, transform: `translateY(${-x * 20}px)` });
+  set(b, { opacity: x, transform: `translateY(${(1 - x) * 26}px)` });
+}
+
+// [scene, start, end, designed length]: each scene's animation is written for its
+// designed length and played faster to fit [start, end].
+const SCENES = [
+  ["s1", 0, 3.5, 6], ["s2", 3.5, 11, 10], ["s3", 11, 19, 11], ["s4", 19, 25.5, 8], ["s5", 25.5, 32, 8],
+  ["s7", 32, 39, 12], ["s10", 39, 45, 8], ["s11", 45, 50.5, 10], ["s12", 50.5, 55.5, 8], ["s13", 55.5, 60, 7],
+];
+const DURATION = 60;
+
+// Buffer strip tiles (repeated frames).
+(() => {
+  const tiles = $("s2tiles");
+  for (let i = 0; i < 18; i++) {
+    const im = document.createElement("img");
+    im.src = `assets/t${(i * 5) % 6}.png`;
+    tiles.appendChild(im);
+  }
+})();
+
+const R = {
+  s1(t) {
+    const x = back(prog(t, 0.2, 1.1));
+    set($("s1logo"), { opacity: clamp(prog(t, 0.2, 0.6)), transform: `scale(${0.6 + 0.4 * clamp(x, 0, 1.15)}) rotate(${(1 - clamp(x, 0, 1)) * -8}deg)` });
+    rise($("s1name"), t, 0.9, 0.7, 40);
+    rise($("s1tag"), t, 1.8);
+    rise($("s1sub"), t, 2.4);
+  },
+  s2(t) {
+    set($("s2bg"), { transform: `scale(${1.12 - 0.08 * prog(t, 0, 10)}) translateX(${-20 * prog(t, 0, 10)}px)` });
+    const press = 5.0;
+    // Tiles scroll until the save, then freeze.
+    const scroll = Math.min(t, press) * 60;
+    $("s2tiles").style.left = `${-scroll % (225 * 6)}px`;
+    $("s2live").style.left = "1594px";
+    const br = $("s2br");
+    set(br, { left: "1000px", width: "596px", opacity: inout(t, 0.8, 9.6, 0.4) });
+    if (t > press) set(br, { borderColor: "#34d399", boxShadow: "0 0 50px rgba(52,211,153,.6)" });
+    else set(br, { borderColor: "#fff", boxShadow: "" });
+    set($("s2strip"), { opacity: inout(t, 0.3, 9.8, 0.5), transform: `translateY(${(1 - eo(prog(t, 0.3, 1))) * 40}px)` });
+    captions($("s2a"), $("s2b"), t, 0.4, 5.6);
+    keys($("s2keys"), t, 4.2, press, 6.4);
+    popup($("s2pop"), t, press + 0.12, 9.6);
+    $("s2flash").style.opacity = 0.35 * (1 - prog(t, press, press + 0.35)) * (t >= press ? 1 : 0);
+  },
+  s3(t) {
+    const tl = $("tl");
+    const px = (g) => (g / 60) * 1100;
+    const g = Math.min(60, 20 + Math.max(0, t - 0.6) * 4);
+    const s1 = 4, s2 = 6.5; // save times (scene-local)
+    $("tlhead").style.left = `${px(g) - 2}px`;
+    set($("tlhead"), { opacity: inout(t, 0.4, 10.8, 0.3) });
+    for (const el of tl.querySelectorAll(".axis")) el.style.opacity = inout(t, 0.3, 10.8, 0.4);
+    if (!tl.dataset.ticks) {
+      for (let s = 0; s <= 60; s += 10) {
+        const d = document.createElement("div");
+        d.className = "tick";
+        d.style.left = `${px(s)}px`;
+        d.textContent = `${s}s`;
+        tl.appendChild(d);
+      }
+      tl.dataset.ticks = 1;
+    }
+    for (const el of tl.querySelectorAll(".tick")) el.style.opacity = inout(t, 0.3, 10.8, 0.4) * 0.9;
+    // First clip: [6, 36].
+    const c1 = $("tlc1");
+    const c1x = eo(prog(t, s1, s1 + 0.5));
+    set(c1, { left: `${px(36 - 30 * c1x)}px`, width: `${px(30 * c1x)}px`, opacity: Math.min(c1x, 1 - prog(t, s2, s2 + 0.3)) });
+    // The 15 s window after it, shrinking as time passes.
+    const w = $("tlwin");
+    const left15 = Math.max(0, 51 - Math.max(g, 36));
+    set(w, { left: `${px(Math.max(g, 36))}px`, width: `${px(left15)}px`, opacity: t > s1 + 0.3 && t < s2 + 0.1 ? 1 : 0 });
+    // Extended clip: [6, 46].
+    const cx = $("tlcx");
+    const ex = eo(prog(t, s2, s2 + 0.6));
+    set(cx, { left: `${px(6)}px`, width: `${px(30 + 10 * ex)}px`, top: "120px", opacity: t >= s2 ? 1 : 0 });
+    keys($("tlk1"), t, s1 - 0.8, s1, s1 + 0.9);
+    keys($("tlk2"), t, s2 - 0.8, s2, s2 + 0.9);
+    $("tlk1").style.left = `${px(36) - 110}px`; $("tlk1").style.top = "0px";
+    $("tlk2").style.left = `${px(46) - 110}px`; $("tlk2").style.top = "0px";
+    popup($("s3pop1"), t, s1 + 0.1, s2 - 0.1);
+    popup($("s3pop2"), t, s2 + 0.15, 10.8);
+    rise(tl.parentElement.querySelector(".copy"), t, 0.2);
+  },
+  s4(t) {
+    rise($("s4").querySelector(".copy"), t, 0.2);
+    set($("s4").querySelector(".chat"), { opacity: inout(t, 0.1, 8, 0.4), transform: `translateX(${(1 - eo(prog(t, 0.1, 0.8))) * 80}px)` });
+    keys($("s4keys"), t, 1.2, 2.0, 2.9);
+    const pasted = prog(t, 2.15, 2.6);
+    set($("m2"), { opacity: eo(pasted), transform: `translateY(${(1 - eo(pasted)) * 30}px)` });
+    // Drag a clip card from the left into the chat.
+    const a = 4.0, b = 5.6;
+    const d = eio(prog(t, a, b));
+    const x = lerp(140, 1100, d), y = lerp(780, 520, d) - Math.sin(d * Math.PI) * 120;
+    set($("s4card"), { left: `${x}px`, top: `${y}px`, opacity: t > a - 0.3 && t < b + 0.35 ? clamp(prog(t, a - 0.3, a)) * (1 - prog(t, b, b + 0.35)) : 0, transform: `rotate(${-4 + 4 * d}deg) scale(${1 - 0.15 * prog(t, b - 0.2, b + 0.3)})` });
+    set($("s4cur"), { left: `${x + 220}px`, top: `${y + 120}px`, opacity: t > a - 0.3 && t < b + 0.8 ? 1 : 0 });
+    // The dropped clip becomes a message, replacing the pasted one.
+    if (t > b + 0.1) {
+      const k = eo(prog(t, b + 0.1, b + 0.5));
+      $("m2").querySelector("img").src = "assets/t4.png";
+      $("m2").querySelector(".meta span").textContent = "Frontier Ops_2026-10-24.mp4";
+      set($("m2"), { opacity: k, transform: `translateY(${(1 - k) * 30}px)` });
+    } else {
+      $("m2").querySelector("img").src = "assets/t1.png";
+      $("m2").querySelector(".meta span").textContent = "Skyline Rush_2026-10-24_21-04.mp4";
+    }
+  },
+  s5(t) {
+    rise($("s5").querySelector(".copy"), t, 0.2);
+    frameIn($("s5f"), t, 0.1, 8);
+    cam($("s5f"), t, [[0, 1.0, 960, 540], [1.2, 1.0, 960, 540], [2.6, 2.1, 1080, 700], [8, 2.2, 1100, 710]]);
+    hl($("s5hl"), t, 2.6, 4.2);
+    popup($("s5p1"), t, 3.2, 5.7);
+    $("s5bar").style.width = `${eio(prog(t, 3.4, 5.5)) * 100}%`;
+    popup($("s5p2"), t, 5.6, 8);
+  },
+  s6(t) {
+    captions($("s6a"), $("s6b"), t, 0.2, 5.2);
+    frameIn($("s6f"), t, 0.1, 10);
+    cam($("s6f"), t, [[0, 1.0, 960, 540], [1.0, 1.0, 960, 540], [2.4, 1.35, 700, 420], [4.6, 1.35, 760, 460], [5.4, 1.0, 960, 540], [10, 1.08, 1000, 620]]);
+    hl($("s6h1"), t, 1.6, 3.2);
+    hl($("s6h2"), t, 2.4, 3.8);
+    hl($("s6h3"), t, 3.6, 4.8);
+    $("s6sel").style.opacity = prog(t, 5.0, 5.5);
+    hl($("s6h4"), t, 6.2, 9.5);
+  },
+  s7(t) {
+    captions($("s7a"), $("s7b"), t, 0.2, 5.4);
+    frameIn($("s7f"), t, 0.1, 12);
+    cam($("s7f"), t, [[0, 1.0, 960, 540], [1.2, 1.0, 960, 540], [2.6, 1.55, 760, 920], [9.2, 1.55, 760, 920], [10.4, 1.0, 960, 540]]);
+    hl($("s7h1"), t, 2.8, 4.8);
+    const m = eo(prog(t, 5.6, 6.1));
+    $("s7mute").style.opacity = m * 0.9;
+    set($("s7mtag"), { opacity: m, transform: `scale(${0.8 + 0.2 * back(prog(t, 5.6, 6.1))})` });
+  },
+  s8(t) {
+    rise($("s8").querySelector(".copy"), t, 0.2);
+    frameIn($("s8f"), t, 0.1, 8);
+    cam($("s8f"), t, [[0, 1.0, 960, 540], [0.9, 1.0, 960, 540], [2.0, 1.42, 770, 390], [8, 1.48, 770, 390]]);
+    // Before/after wipe across the video.
+    const w = eio(prog(t, 2.4, 4.4));
+    const x = 137 + w * 1266;
+    $("s8after").style.clipPath = `inset(0 ${1920 - x}px 0 0)`;
+    set($("s8line"), { left: `${x - 2}px`, opacity: t > 2.3 && t < 4.6 ? 1 : 0 });
+  },
+  s9(t) {
+    captions($("s9a"), $("s9b"), t, 0.2, 5.4);
+    frameIn($("s9f"), t, 0.1, 10);
+    cam($("s9f"), t, [[0, 1.0, 960, 540], [1.0, 1.0, 960, 540], [5.0, 1.0, 960, 540], [6.2, 1.9, 1560, 330], [10, 1.95, 1580, 330]]);
+    hl($("s9h1"), t, 1.0, 2.8);
+    // Phone mockup with the vertical crop.
+    const p = back(prog(t, 2.2, 2.9));
+    set($("s9phone"), { opacity: inout(t, 2.2, 5.3, 0.3), transform: `translateY(${(1 - clamp(p, 0, 1.1)) * 120}px) rotate(${-6 + 6 * clamp(p, 0, 1)}deg)` });
+    $("s9gif").style.opacity = prog(t, 5.2, 5.7);
+    hl($("s9h2"), t, 6.6, 9.6);
+  },
+  s10(t) {
+    rise($("s10").querySelector(".copy"), t, 0.2);
+    frameIn($("s10f"), t, 0.1, 8);
+    cam($("s10f"), t, [[0, 1.0, 960, 540], [1.0, 1.0, 960, 540], [2.2, 1.45, 1080, 400], [3.8, 1.45, 1080, 400], [4.6, 1.0, 960, 540], [5.6, 1.5, 1100, 900], [8, 1.55, 1150, 920]]);
+    hl($("s10h1"), t, 1.8, 3.8);
+    $("s10b").style.opacity = prog(t, 4.2, 4.7);
+    hl($("s10h2"), t, 5.8, 7.8);
+  },
+  s11(t) {
+    rise($("s11t"), t, 0.2);
+    $("s11").querySelectorAll(".stat").forEach((el, i) => {
+      const a = 1.0 + i * 0.55;
+      const x = eo(prog(t, a, a + 0.6));
+      set(el, { opacity: x, transform: `translateY(${(1 - x) * 40}px) scale(${0.96 + 0.04 * x})` });
+    });
+  },
+  s12(t) {
+    rise($("s12t"), t, 0.2);
+    $("s12").querySelectorAll(".row").forEach((el, i) => rise(el, t, 0.7 + i * 0.45, 0.5, 24));
+  },
+  s13(t) {
+    const x = back(prog(t, 0.2, 1.0));
+    set($("s13logo"), { opacity: clamp(prog(t, 0.2, 0.5)), transform: `scale(${0.7 + 0.3 * clamp(x, 0, 1.12)})` });
+    rise($("s13name"), t, 0.7, 0.7, 40);
+    rise($("s13tag"), t, 1.4);
+    rise($("s13url"), t, 2.0);
+  },
+};
+
+function render(t) {
+  for (const s of document.querySelectorAll(".scene")) if (!SCENES.some(([id]) => id === s.id)) s.style.display = "none";
+  for (const [id, a, b, len] of SCENES) {
+    const el = $(id);
+    const on = t >= a && t < b;
+    el.style.display = on ? "block" : "none";
+    if (!on) continue;
+    // Cross-dissolve at the edges (the last scene fades to black instead).
+    el.style.opacity = id === "s13" ? Math.min(1, prog(t, a, a + 0.5)) : inout(t, a, b, 0.45);
+    R[id](((t - a) * len) / (b - a));
+  }
+  // Slow ambient glows.
+  set($("glowA"), { left: `${-300 + 200 * Math.sin(t / 9)}px`, top: `${-350 + 120 * Math.cos(t / 11)}px`, width: "1400px", height: "1400px",
+    background: "radial-gradient(circle, rgba(255,77,79,.13), transparent 62%)" });
+  set($("glowB"), { left: `${1000 + 160 * Math.cos(t / 10)}px`, top: `${300 + 120 * Math.sin(t / 8)}px`, width: "1500px", height: "1500px",
+    background: "radial-gradient(circle, rgba(140,160,255,.10), transparent 60%)" });
+  $("fadeout").style.opacity = prog(t, DURATION - 1.2, DURATION - 0.1);
+}
+window.render = render;
+window.DURATION = DURATION;
+// Preview: ?t=12 renders that moment; ?play plays in real time.
+const q = new URLSearchParams(location.search);
+if (q.has("play")) { const s = performance.now(); const f = () => { render((performance.now() - s) / 1000); requestAnimationFrame(f); }; f(); }
+else render(Number(q.get("t") || 0));
+</script>
+</body>
+</html>

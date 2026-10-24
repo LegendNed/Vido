@@ -1,0 +1,146 @@
+[
+ {
+  "click": "Clips",
+  "wait": 1500
+ },
+ {
+  "eval": "localStorage.setItem('vido.clips.view.v2', JSON.stringify({sort:'newest',group:'game',size:3})); true"
+ },
+ {
+  "reload": true,
+  "click": "Clips",
+  "wait": 1500,
+  "shot": "clips-game.png"
+ },
+ {
+  "click": "Select",
+  "wait": 500
+ },
+ {
+  "eval": "(() => { const t=[...document.querySelectorAll('.clip-thumb')]; [1,2,4].forEach(i=>t[i]?.click()); return t.length; })()",
+  "wait": 700,
+  "shot": "clips-select.png"
+ },
+ {
+  "click": "Done",
+  "wait": 400
+ },
+ {
+  "eval": "localStorage.setItem('vido.clips.view.v2', JSON.stringify({sort:'newest',group:'date',size:3})); true"
+ },
+ {
+  "click": "Storage",
+  "wait": 1500,
+  "shot": "storage.png"
+ },
+ {
+  "eval": "(() => { document.querySelector('main').scrollTop = 4000; return true; })()",
+  "wait": 700,
+  "shot": "storage-shrink.png"
+ },
+ {
+  "click": "Saving",
+  "wait": 1200,
+  "shot": "settings-saving.png"
+ },
+ {
+  "click": "Clips",
+  "wait": 1200
+ },
+ {
+  "eval": "(() => { document.querySelector('.clip-thumb')?.click(); return true; })()",
+  "wait": 1200
+ },
+ {
+  "click": "Edit",
+  "wait": 3000
+ },
+ {
+  "eval": "(() => { const v=document.querySelector('.video-box video'); const i=document.createElement('img'); i.src='/trailer/build/mock-assets/f0.png'; i.className='poster-stand-in'; i.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none'; v.after(i); window.S=(x,y)=>{const r=v.getBoundingClientRect(); const sc=Math.min(r.width/2560,r.height/1440); const ox=r.left+(r.width-2560*sc)/2, oy=r.top+(r.height-1440*sc)/2; return [ox+x*sc, oy+y*sc];}; return getComputedStyle(v.parentElement).position; })()",
+  "wait": 800,
+  "shot": "editor.png"
+ },
+ {
+  "click": "Blur",
+  "wait": 500
+ },
+ {
+  "click": "Add area",
+  "wait": 500
+ },
+ {
+  "dragJs": "[...S(1600,900), ...S(1733,887)]",
+  "wait": 300
+ },
+ {
+  "dragJs": "[...S(1346,713), ...S(466,1026)]",
+  "wait": 300
+ },
+ {
+  "click": "Add area",
+  "wait": 500
+ },
+ {
+  "dragJs": "[...S(1706.7,960), ...S(1426.7,775)]",
+  "wait": 300
+ },
+ {
+  "dragJs": "[...S(1246.7,687.5), ...S(2300,514)]",
+  "wait": 600,
+  "shot": "editor-blur-edit.png"
+ },
+ {
+  "click": "Done",
+  "wait": 800,
+  "shot": "editor-blur.png"
+ },
+ {
+  "click": "Phone (9:16)",
+  "wait": 900,
+  "shot": "editor-phone.png"
+ },
+ {
+  "click": "Done",
+  "wait": 400
+ },
+ {
+  "click": "Fit",
+  "wait": 900,
+  "shot": "editor-fit.png"
+ },
+ {
+  "click": "GIF",
+  "wait": 600
+ },
+ {
+  "pick": [
+   ".export-timing-field:nth-child(1) button",
+   "2×"
+  ],
+  "wait": 300
+ },
+ {
+  "pick": [
+   ".export-timing-field:nth-child(2) button",
+   "0.5 s"
+  ],
+  "wait": 300
+ },
+ {
+  "pick": [
+   ".export-timing-field:nth-child(3) button",
+   "0.5 s"
+  ],
+  "wait": 500
+ },
+ {
+  "eval": "(() => { document.querySelector('.video-box video').currentTime=12; return true; })()",
+  "wait": 900,
+  "shot": "editor-gif.png"
+ },
+ {
+  "eval": "(() => { document.querySelector('.video-box video').currentTime=0.3; return true; })()",
+  "wait": 900,
+  "shot": "editor-gif-fade.png"
+ }
+]

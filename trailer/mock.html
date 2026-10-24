@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vido trailer mock</title>
+    <script type="module">
+      // Fakes the Tauri backend so the real UI can be captured for the trailer
+      // (fictional games, no real files). Served by Vite: /trailer/mock.html
+      import defaults from "/config/default-settings.json";
+      const settings = structuredClone(defaults);
+      settings.firstRunCompleted = true;
+      const now = new Date("2026-10-22T18:40:00").getTime();
+      const day = 86400000;
+      const ages = [0.01, 0.08, 0.3, 0.9, 1.1, 1.4, 2.2, 3.1, 4.5, 6.0, 9, 14, 40, 75];
+      const lens = [30, 45, 30, 30, 60, 30, 30, 45, 30, 20, 30, 60, 30, 30];
+      const games = ["Skyline Rush", "Skyline Rush", "Neon Drift", null, "Frontier Ops", "Skyline Rush", "Hollow Peak", "Neon Drift", null, "Frontier Ops", "Skyline Rush", "Hollow Peak", "Neon Drift", "Frontier Ops"];
+      const pad = (n) => String(n).padStart(2, "0");
+      const root = "C:\\Users\\you\\Videos\\Vido";
+      const clips = ages.map((a, i) => {
+        const d = new Date(now - a * day);
+        const name = `${games[i] ?? "Clip"}_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.mp4`;
+        return {
+          path: games[i] ? `${root}\\${games[i]}\\${name}` : `${root}\\${name}`,
+          fileName: name, sizeBytes: (lens[i] * 1.9 + i * 3) * 1048576, modifiedMs: d.getTime(), durationSec: lens[i],
+          width: 2560, height: 1440, fps: 60, videoCodec: "h264", container: "mp4",
+          audioTracks: ["Mix", "Desktop audio", "Microphone"].map((title, index) => ({ index, title, codec: "aac", channels: 2, sampleRate: 48000, bitrateKbps: 192 })),
+          thumbnail: `/trailer/build/mock-assets/t${i % 6}.png`, favorite: i === 1 || i === 4 || i === 9,
+        };
+      });
+      const status = { state: "buffering", bufferedSeconds: 30, targetSeconds: 30, sizeBytes: 96e6, storage: "memory", source: "Display 1", captureApi: "WGC", encoder: "h264_nvenc", zeroCopy: true, width: 2560, height: 1440, fps: 60, videoBitrateKbps: 25000, droppedFrames: 0, recording: null, audio: [], warnings: [] };
+      const enc = (id, label, codec, vendor, hardware) => ({ id, label, codec, vendor, hardware, available: true });
+      const wave = (seed) => Array.from({ length: 1600 }, (_, i) => Math.min(1, Math.abs(Math.sin(i / (17 + seed)) * Math.sin(i / (91 + seed * 7))) * 0.8 + ((i * 7919 * (seed + 3)) % 97) / 400));
+      const update = { version: "0.2.2", currentVersion: "0.2.1", notes: "## What's new\n- **Faster saves** on NVIDIA\n- Fixed the overlay on 4K displays\n\n**Full Changelog**: [0.2.1...0.2.2](https://github.com/LegendNed/Vido/compare/0.2.1...0.2.2)", date: null, staged: false };
+      const replies = {
+        get_app_info: { version: "0.4.0", portable: false, ffmpegVersion: "8.1", settingsFile: "", logDir: "", cacheDir: "C:\\Users\\you\\AppData\\Local\\Vido\\cache", defaultOutputDir: root, outputDir: root },
+        get_settings: settings, update_settings: settings, get_default_settings: defaults, get_buffer_status: status, list_clips: clips,
+        list_displays: [{ id: "d1", name: "Display 1", x: 0, y: 0, width: 2560, height: 1440, refreshHz: 165, primary: true, hdr: false, adapter: "NVIDIA GeForce RTX" }],
+        list_windows: [],
+        list_audio_devices: [{ id: "o1", name: "Headphones (USB Audio)", kind: "output", isDefault: true }, { id: "i1", name: "Microphone (USB Audio)", kind: "input", isDefault: true }],
+        get_hotkey_status: Object.entries(settings.hotkeys).map(([action, accelerator]) => ({ action, accelerator, registered: true })),
+        get_encoder_capabilities: { encoders: [enc("h264_nvenc", "NVIDIA NVENC H.264", "h264", "nvidia", true), enc("libx264", "x264 (CPU)", "h264", "cpu", false)], gpus: ["NVIDIA GeForce RTX"], ffmpegVersion: "8.1", bestH264: "h264_nvenc", bestHevc: null, bestAv1: null },
+        recommend_quality: "high",
+        get_clip_details: { info: { ...clips[0], durationSec: 30 }, keyframes: Array.from({ length: 31 }, (_, i) => i) },
+        estimate_export: { canStreamCopy: true, copyStart: 4, willCopyVideo: false, outputDuration: 18.5, outputWidth: 1920, outputHeight: 1080, videoBitrateKbps: 8200, audioBitrateKbps: 128, estimatedBytes: 19.6e6, estimateIsRough: false, warnings: [] },
+        prepare_audio_preview: [null, null, null], get_current_game: "Skyline Rush", get_pending_update: null, check_for_updates: null,
+        get_disk_space: { folder: root, freeBytes: 412e9, totalBytes: 1000e9 },
+      };
+      let cb = 1;
+      window.__TAURI_INTERNALS__ = {
+        metadata: { currentWindow: { label: "main" }, currentWebview: { windowLabel: "main", label: "main" } },
+        invoke: async (cmd, args) => {
+          if (cmd === "update_settings") Object.assign(settings, args.settings);
+          if (cmd === "get_waveform") return wave(args?.track ?? 1);
+          if (cmd === "estimate_export") {
+            const r = args.request, d = (r.trimEnd - r.trimStart) / r.speed;
+            const base = { ...replies.estimate_export, outputDuration: d };
+            if (r.gif) return { ...base, outputWidth: r.verticalFit ? 270 : 480, outputHeight: r.verticalFit ? 480 : 270, videoBitrateKbps: 1170, audioBitrateKbps: 0, estimatedBytes: d * 146e3, estimateIsRough: true, warnings: ["GIFs have no sound"] };
+            if (r.verticalFit) return { ...base, outputWidth: 1080, outputHeight: 1920, estimatedBytes: d * 1.1e6 };
+            if (r.crop) return { ...base, outputWidth: r.crop.width, outputHeight: r.crop.height, estimatedBytes: d * 0.9e6 };
+            return { ...base, estimatedBytes: d * 1.06e6 };
+          }
+          if (cmd.startsWith("plugin:window|is_maximized")) return false;
+          if (cmd.startsWith("plugin:event|")) return cb++;
+          return replies[cmd] ?? null;
+        },
+        transformCallback: () => cb++, unregisterCallback: () => {},
+        convertFileSrc: (p) => (p.endsWith(".mp4") ? "/trailer/build/mock-assets/clip.mp4#" : p),
+      };
+      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+      await import("/src/main.tsx");
+    </script>
+  </head>
+  <body><div id="root"></div></body>
+</html>
