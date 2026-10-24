@@ -22,7 +22,7 @@ watermark or telemetry**. Everything stays on your PC.
 - **Private:** no accounts, uploads, telemetry, ads or watermarks. The only thing Vido ever
   sends is an update check to GitHub, which you can turn off.
 
-[![Watch the 60-second trailer](docs/images/trailer.png)](trailer/Vido-trailer.mp4)
+https://github.com/user-attachments/assets/1fb14899-bd96-4b93-a78a-c034d1d5489b
 
 ---
 
