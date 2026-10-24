@@ -22,6 +22,8 @@ watermark or telemetry**. Everything stays on your PC.
 - **Private:** no accounts, uploads, telemetry, ads or watermarks. The only thing Vido ever
   sends is an update check to GitHub, which you can turn off.
 
+[![Watch the 60-second trailer](docs/images/trailer.png)](trailer/Vido-trailer.mp4)
+
 ---
 
 ## Vido vs. Bloated Competitor
@@ -203,6 +205,7 @@ frame (Shift: 1 s), **I/O** set in/out, **Ctrl+Z / Ctrl+Y** undo/redo.
 - [Settings & files](docs/SETTINGS.md): where Vido keeps settings, logs and caches, hotkey rules.
 - [Architecture](docs/ARCHITECTURE.md): threads, capture session, export pipeline, IPC.
 - [Known limitations](docs/HOW-IT-WORKS.md#known-limitations).
+- [Trailer](trailer/README.md): the 60-second video above and the scripts that render it.
 
 ## License
 
