@@ -62,12 +62,24 @@ async function drag([x1, y1, x2, y2]) {
 await send("Page.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
 await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "dark" }] });
+// Waits until the app has rendered (its sidebar is there); Vite may still be compiling.
+async function appReady() {
+  for (let i = 0; i < 120; i++) {
+    if (await ev(`[...document.querySelectorAll("button")].some((b) => b.textContent.trim() === "Clips")`)) {
+      await sleep(800);
+      return;
+    }
+    await sleep(250);
+  }
+  throw new Error("the mock UI did not load");
+}
 await send("Page.navigate", { url: "http://localhost:5199/trailer/mock.html" });
-await sleep(4500);
+await appReady();
 for (const s of steps) {
   if (s.reload) {
     await send("Page.reload");
-    await sleep(4000);
+    await sleep(500);
+    await appReady();
   }
   if (s.click)
     console.log("click", s.click, await ev(`(() => { const b = [...document.querySelectorAll("button,[role=menuitem],[role=option],[role=radio]")].find((b) => b.textContent.trim() === ${JSON.stringify(s.click)}); b?.click(); return !!b; })()`));
