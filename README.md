@@ -1,173 +1,152 @@
+<div align="center">
+
+<img src="site/public/img/icon.png" width="96" alt="Vido logo" />
+
 # Vido
 
-**Clip the last 30 seconds of your game with one key.** Vido is a lightweight replay-buffer
-clipper for Windows, like the big clipping apps, but **without the account, cloud, ads,
-watermark or telemetry**. Everything stays on your PC.
+**Clip the moment you just played.**
+
+Vido keeps the last 30 seconds of your game in memory. Press one key and the clip is saved
+instantly, already on your clipboard. No account, no cloud, no ads.
+
+[![Latest release](https://img.shields.io/github/v/release/LegendNed/Vido?label=release&color=e5484d)](https://github.com/LegendNed/Vido/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/LegendNed/Vido/total?color=e5484d)](https://github.com/LegendNed/Vido/releases)
+[![CI](https://github.com/LegendNed/Vido/actions/workflows/ci.yml/badge.svg)](https://github.com/LegendNed/Vido/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+[![Windows 10 & 11](https://img.shields.io/badge/Windows-10%20%26%2011-0078D4?logo=windows)](#download)
+
+**[Download for Windows](https://github.com/LegendNed/Vido/releases/latest/download/Vido-setup.exe)**
+· [Portable zip](https://github.com/LegendNed/Vido/releases/latest/download/Vido-portable-x64.zip)
+· [Website](https://vido.rip)
+· [Features](#features)
+· [Compare](#vido-vs-bloated-competitor)
+· [FAQ](#faq)
+· [Docs](#documentation)
+· [Report a bug](https://github.com/LegendNed/Vido/issues)
+
+</div>
+
+https://github.com/user-attachments/assets/1fb14899-bd96-4b93-a78a-c034d1d5489b
 
 > **Heads-up:** Vido is mostly AI-generated: most of its code and docs were written with an AI
 > coding assistant, then directed, tested and reviewed by a human. Expect rough edges, and please
 > report anything that breaks.
 
-![Vido: Clips](docs/images/clips.png)
+## Built to stay out of your way
 
-- **Always ready:** Vido keeps the last moments of your screen and audio in memory. Press your
-  hotkey and the clip is saved in milliseconds, with no re-encoding.
-- **Paste it anywhere:** a saved clip is copied to the clipboard, so you can **Ctrl+V** it straight
-  into Discord or a folder.
-- **Quick edits:** trim, crop, blur private details, make a vertical 9:16 version, mute or turn
-  down individual audio tracks, and shrink clips to fit Discord's upload limit.
-- **Lightweight:** about **30 MB of RAM** idling in the tray (closing the window unloads the UI
-  completely), plus the buffer itself (roughly 50–200 MB for 30 s). Capture and encoding stay on
-  your GPU (NVIDIA, AMD or Intel), so CPU use is tiny.
-- **Private:** no accounts, uploads, telemetry, ads or watermarks. The only thing Vido ever
-  sends is an update check to GitHub, which you can turn off.
+|            |                                                                     |
+| :--------: | ------------------------------------------------------------------- |
+| **~30 MB** | RAM while idling in the tray, with the UI fully unloaded            |
+|  **GPU**   | Capture and encoding on NVIDIA, AMD or Intel, so CPU use stays tiny |
+|  **0 ms**  | Re-encoding when you save: the buffer is copied straight to disk    |
+|   **0**    | Accounts, uploads, ads, watermarks or telemetry                     |
 
-https://github.com/user-attachments/assets/1fb14899-bd96-4b93-a78a-c034d1d5489b
+The only thing Vido ever sends is an update check to GitHub, which you can turn off.
 
----
+## Features
+
+Instant saves, a real editor and sensible defaults, in an app that never asks you to sign in.
+
+### Missed the ending? Just save again.
+
+Press save within 15 seconds and both saves become one longer clip. The short one goes to the
+Recycle Bin, so there's nothing to stitch together. _Only in Vido._
+
+### Discord-sized, automatically
+
+Turn on **Re-encode on save** and Vido saves instantly, compresses in the background, and only
+pings you when the small file is ready to paste.
+
+- Presets for Discord's 10 / 20 / 25 / 50 MB limits
+- Hardware encoding on your GPU
+- The big original never shows up in your folder
+
+### Every device on its own track
+
+Game audio, voice chat and your mic are recorded separately, plus a mix that plays everywhere.
+Mute your mic after the fact and hear the change live.
+
+- Volume and mute per track, previewed live
+- Export every track as WAV
+- Optional noise suppression for mics
+
+### Hide names and chat in two drags
+
+Drop blur boxes over usernames, chat or anything private. You see the blur live, and it's burned
+into the export.
+
+![Editor](docs/images/editor.png)
+
+### Phone-ready. GIF-ready. One click.
+
+**Quick formats:** 9:16 for Shorts, TikTok and Reels (drag a vertical window, or fit the whole
+frame on a soft blurred background), or turn the moment into a GIF (15 fps, up to 480 px, at most
+30 s).
+
+- Speed from 0.25× to 4×, fade in and out
+- Trim, crop and screenshot any frame
+- Save as a copy, or replace the clip (the original goes to the Recycle Bin)
+
+### Small things that add up
+
+|                           |                                                                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sorted by game**        | Vido recognises the game through Windows Game Bar and your launchers (Steam, Epic, GOG, EA, Ubisoft) and files every clip in its own folder. |
+| **Ctrl+V or drag it out** | Each saved clip is on your clipboard as a real video file. Paste it into chat, copy it from the clip card, or drag it straight out of Vido.  |
+| **Clip library**          | Group by date or game, search, favorites, rename, and bulk actions on several clips at once.                                                 |
+| **Storage page**          | See space per game and your biggest clips, and shrink old clips to a fraction of the size in one click.                                      |
+| **Only while you play**   | Optionally, the buffer starts with your game and stops a minute after it closes.                                                             |
+| **Overlay & sound**       | A "Clip saved" popup and a soft save sound. The overlay never shows up in your recordings.                                                   |
+| **Updates on your terms** | Vido checks GitHub for new versions and asks first. Updates are signed; automatic installs are opt-in.                                       |
+| **Portable**              | Unzip and run, with settings next to the exe. Or use the per-user installer, no admin needed.                                                |
+
+![Clips](docs/images/clips.png)
 
 ## Vido vs. Bloated Competitor
 
-|                                         | **Vido**                                  | **Bloated Competitor**      |
-| --------------------------------------- | ----------------------------------------- | --------------------------- |
-| Account needed                          | No                                        | Yes, to use the app         |
-| Works fully offline                     | Yes                                       | No                          |
-| Clips uploaded to a cloud / social feed | Never                                     | Built in                    |
-| Telemetry and analytics                 | None                                      | Yes                         |
-| Ads, upsells, premium tier              | None                                      | Yes                         |
-| Open source                             | Yes (GPL-3.0)                             | No                          |
-| Saving a clip                           | Instant remux, no re-encode               | Instant                     |
-| Ctrl+V the video into Discord           | Yes, copied on save                       | Through its own share links |
-| Fit Discord's free upload limit         | One-click "Discord (no Nitro)" preset     | Yes                         |
-| Portable version (no install)           | Yes                                       | No                          |
-| Multiple audio tracks                   | Every device on its own track, plus a mix | Mixed by default            |
-| Per-track editing                       | Mute / volume per track, heard live       | Basic                       |
-| Idle RAM                                | ~30 MB + buffer                           | Heavier (300mb-1gb)         |
-| Overlay kept out of your clips          | Always (Windows capture exclusion)        | Not guaranteed              |
-| Updates                                 | You choose (auto-install is opt-in)       | Forced, automatic           |
-| Automatic game detection                | Yes                                       | Yes                         |
+If you want a social network for your clips, the competitor does more of that. If you want your
+clips on your own disk, read on.
 
-Vido is for people who want their clips on their own disk and nothing else. If you want a social
-platform built around your clips, the competitor does more of that.
+|                                     | **Vido**            | **Bloated Competitor**      |
+| ----------------------------------- | ------------------- | --------------------------- |
+| Account needed                      | No                  | Yes, to use the app         |
+| Works fully offline                 | Yes                 | No                          |
+| Clips uploaded to a cloud or feed   | Never               | Built in                    |
+| Telemetry, ads and upsells          | None                | Yes                         |
+| Idle RAM                            | ~30 MB + buffer     | 300 MB – 1 GB               |
+| Every audio device on its own track | Yes                 | Mixed by default            |
+| Ctrl+V the video into Discord       | Yes, copied on save | Through its own share links |
+| Portable version (no install)       | Yes                 | No                          |
+| Updates                             | Your choice         | Forced, automatic           |
+| Open source                         | GPL-3.0             | No                          |
 
----
-
-## Download & install
-
-Get the latest version from **[Releases](https://github.com/LegendNed/Vido/releases/latest)**:
+## Download
 
 | Download                                                                                                      | What it is                                                                       |
 | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | **[Vido-setup.exe](https://github.com/LegendNed/Vido/releases/latest/download/Vido-setup.exe)**               | Installer. Per-user, no admin rights needed, adds a Start-menu entry.            |
 | **[Vido-portable-x64.zip](https://github.com/LegendNed/Vido/releases/latest/download/Vido-portable-x64.zip)** | Portable. Unzip anywhere and run `vido.exe`; settings stay in the `data` folder. |
 
-**Requirements**
+**Requirements:** Windows 10 (1903 or newer) or 11, 64-bit, and the Microsoft Edge WebView2
+Runtime (already on Windows 11; the installer adds it if missing). A GPU with a hardware video
+encoder is recommended: tested on NVIDIA and AMD, Intel Quick Sync supported but less tested.
+Without one, Vido falls back to the CPU.
 
-- Windows 10 (1903 or newer) or Windows 11, 64-bit.
-- Microsoft Edge WebView2 Runtime (already on Windows 11; the installer adds it if missing).
-- A GPU with a hardware video encoder is recommended. Tested on NVIDIA (RTX 5090) and AMD
-  hardware; Intel Quick Sync is supported but less tested. Without one, Vido falls back to the CPU.
-
-Windows SmartScreen may warn about an unknown publisher on first launch: choose **More info →
-Run anyway**.
-
----
+Windows SmartScreen may warn about an unknown publisher on first launch: choose **More info → Run
+anyway**.
 
 ## Getting started
 
-1. **Run Vido.** A short setup asks which display to record, which audio to include, how long
-   your clips should be and how good they should look (it suggests a quality for your PC).
-2. **Play.** Vido sits in the tray (bottom-right of the taskbar) and keeps buffering. It starts
-   with Windows by default; you can turn that off in Settings → General.
-3. **Press Ctrl+Shift+F6** (or **Save clip** in the window or tray menu) when something happens.
-   A small "Clip saved" popup appears over the game and the clip is ready to paste.
-4. **Open Vido** from the tray to watch, edit or delete your clips.
+1. **Run Vido.** A short setup asks which display and audio to record, how long your clips should
+   be and how good they should look (it suggests a quality for your PC).
+2. **Play.** Vido sits in the tray and keeps buffering. It starts with Windows by default (turn
+   that off in Settings → General).
+3. **Press Ctrl+Shift+F6** when something happens. A "Clip saved" popup appears and the clip is
+   ready to paste.
+4. **Open Vido** from the tray to watch, edit or delete your clips. They're saved to `Videos\Vido`
+   (change it in Settings → Saving).
 
-Clips are saved to `Videos\Vido` (change it in Settings → Saving).
-
-![Overview](docs/images/overview.png)
-
----
-
-## What you can do
-
-### Save clips
-
-- **Sorted by game:** clips of anything Windows' Game Bar recognises as a game, or that Steam,
-  Epic, GOG, EA app or Ubisoft Connect installed, go into a folder named after the game
-  (everything else stays in the main folder), and the Clips page can filter by game.
-- **Clip length** from 5 seconds to 10 minutes. Saving takes everything in the buffer.
-- **Quality presets** (Low, Standard, High, Native, or your own resolution, frame rate and bitrate).
-- Record a **display, a window** (found again after the game restarts) **or a region**.
-- **Audio:** any number of speakers/headphones and microphones, each on its own track, plus a mix
-  that plays everywhere. Optional noise suppression for microphones.
-- **Re-encode on save** (optional): Vido saves instantly, then compresses the clip in the
-  background (e.g. to 20 MB for Discord) and tells you when it's ready.
-- **After saving:** copy the video (default) or its path, open the folder or editor, or run your
-  own command.
-- **Make it longer:** missed the end? Save again within 15 seconds and the second save replaces
-  the first with one longer clip (can be turned off).
-- **Only while a game runs** (optional): the buffer starts when a game does and stops a minute
-  after it closes. Stop it by hand mid-game and it stays stopped until that game closes.
-- **Manual recording** for longer sessions, and **pause** the buffer when you don't need it.
-
-![Video settings](docs/images/settings-video.png)
-
-### Watch and edit
-
-- A **Clips** library grouped by date, by game or not at all, with a resizable grid and a
-  built-in player (←/→ to step through clips). **Search**, **favorites** and **rename** clips, or
-  select several to favorite, export audio from, shrink or delete them together. **Drag a clip**
-  straight into Discord, a folder or a browser upload box.
-- The **editor** has a timeline with one lane per audio track: trim with the handles, mute or
-  change the volume of each track (heard live), crop, take a PNG of the current frame, undo/redo.
-- **Blur** names, chat or anything private: drag one or more boxes over it.
-- **Quick formats:** **Phone (9:16)** for Shorts, TikTok and Reels (drag a 9:16 window, or fit
-  the whole frame on a blurred background), or an animated **GIF** (15 fps, up to 480 px, at most
-  30 s).
-- **Speed** from 0.25× to 4× and **fade in / fade out** (to black and silence), previewed live.
-- **Export audio tracks** as WAV files (one per track) from the editor or the clip menu.
-- **Save** writes a copy next to the clip; **Save & override** replaces it (the original goes to
-  the Recycle Bin).
-- **Export presets:** **Discord (no Nitro)** (20 MB), Original (instant, lossless when you only
-  trim), 10 / 25 / 50 MB, High quality, Small (HEVC), or anything under Advanced.
-
-![Editor](docs/images/editor.png)
-
-### Storage
-
-The **Storage** page shows how full the drive is, which games' clips take the most space, and the
-biggest clips (play, show in folder or delete). **Shrink old clips** re-encodes clips older than a
-week, month or more to HEVC or H.264 at 1080p and replaces them (the originals go to the Recycle
-Bin), skipping favorites and clips that are already small. It keeps running while you use the rest
-of the app.
-
-### Overlay and sound
-
-- A **"Clip saved" popup** in the corner of your choice (on by default), and an optional
-  always-visible buffer indicator. Both float over borderless and windowed games and never show
-  up in your recordings.
-- A soft **save sound** (Tap, Two-Tone, Bloop, Pluck or your own WAV) with its own volume.
-
-![Overlay settings](docs/images/settings-overlay.png)
-
-### Updates
-
-When a new version is out, an **Update** button appears in the top bar: it shows what's new and
-installs the update in one click (Vido restarts by itself). Updates are signed, and Vido refuses
-anything that doesn't match its signature. In Settings → General you can turn the check off, or
-let Vido install updates automatically the next time it starts. The portable version updates
-itself in place and keeps its `data` folder.
-
-### Looks
-
-Light and dark themes follow Windows. The sidebar can be full, icons only or hidden.
-
-![Clips in light mode](docs/images/clips-light.png)
-
----
-
-## Hotkeys
+### Hotkeys
 
 | Action                               | Default        |
 | ------------------------------------ | -------------- |
@@ -177,26 +156,38 @@ Light and dark themes follow Windows. The sidebar can be full, icons only or hid
 | Open the last clip                   | Ctrl+Shift+F11 |
 | Open the editor (last clip)          | Ctrl+Shift+F12 |
 
-Change them in Settings → Hotkeys. In the editor: **Space** play/pause, **←/→** previous/next
-frame (Shift: 1 s), **I/O** set in/out, **Ctrl+Z / Ctrl+Y** undo/redo.
+Change them in Settings → Hotkeys. In the editor: **Space** play/pause, **←/→** previous/next frame
+(Shift: 1 s), **I/O** set in/out, **Ctrl+Z / Ctrl+Y** undo/redo.
 
----
+## FAQ
 
-## Good to know
+**Does it slow down my game?**
+Capture and encoding run on your GPU's video engine, separate from the parts that render your
+game. CPU use stays tiny.
 
-- **Exclusive fullscreen:** Windows can't capture true exclusive-fullscreen games, and the overlay
-  can't appear over them. Most modern games work fine; if your clips are black, switch the game
-  to **borderless** or **windowed**. The save sound still plays.
+**Where do my clips go?**
+Into `Videos\Vido` on your PC, sorted into a folder per game. Nothing is ever uploaded.
+
+**Can it record fullscreen games?**
+Borderless and windowed games, yes. True exclusive fullscreen can't be captured by Windows'
+capture API; if your clips are black, switch the game to borderless.
+
+**Is it really free?**
+Yes. Vido is open source under GPL-3.0: no premium tier, no watermark, no account.
+
+<details>
+<summary><b>Good to know</b></summary>
+
 - **Games running as administrator** only receive hotkeys from programs that also run as
   administrator. Run Vido as administrator in that case.
 - **Microphone:** allow desktop apps under _Windows Settings → Privacy & security → Microphone_.
 - **HDR** screens are recorded as SDR.
 - **Low disk space:** with less than 10 GB free on the clips (or buffer) drive, the buffer stops
   and won't start until there's more room, so a full disk never breaks a save.
-- **Disk buffer:** keeping the buffer on disk instead of RAM writes constantly and wears out
-  SSDs; Vido asks before you turn it on.
+- **Disk buffer:** keeping the buffer on disk instead of RAM writes constantly and wears out SSDs;
+  Vido asks before you turn it on.
 
----
+</details>
 
 ## Documentation
 
@@ -206,6 +197,7 @@ frame (Shift: 1 s), **I/O** set in/out, **Ctrl+Z / Ctrl+Y** undo/redo.
 - [Architecture](docs/ARCHITECTURE.md): threads, capture session, export pipeline, IPC.
 - [Known limitations](docs/HOW-IT-WORKS.md#known-limitations).
 - [Trailer](trailer/README.md): the 60-second video above and the scripts that render it.
+- [Website](site/README.md): the [vido.rip](https://vido.rip) landing page and how to publish it.
 
 ## License
 
