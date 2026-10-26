@@ -1,7 +1,8 @@
 # vido.rip
 
 Vido's website: one static page ([public/index.html](public/index.html)) served by Cloudflare
-Workers as static assets. There's no build step and no Worker script.
+Workers as static assets. There's no build step; the only script, [src/index.js](src/index.js),
+redirects `www.vido.rip` to `vido.rip` so Google indexes one copy of the page.
 
 ## Run it locally
 
@@ -34,7 +35,7 @@ engines only see one site. `pnpm run check` validates the config without deployi
   [sitemap](public/sitemap.xml).
 - [llms.txt](public/llms.txt) is a plain-text summary of Vido for AI assistants.
 - The page has a canonical URL, Open Graph and Twitter tags for link previews, and JSON-LD
-  (`SoftwareApplication` and `FAQPage`) so Google can show it as a free Windows app with FAQ
+  (`SoftwareApplication`, `FAQPage` and `VideoObject`) so Google can show it as a free Windows app with FAQ
   answers.
 
 **Cloudflare can block AI crawlers on your domain.** After adding vido.rip, open

@@ -1,12 +1,16 @@
-// Vido's website (https://vido.rip): a static site served by Cloudflare Workers
-// (assets only, no Worker script). `pnpm run deploy` publishes it.
+// Vido's website (https://vido.rip): a static site served by Cloudflare Workers.
+// src/index.js only redirects www to the bare domain. `pnpm run deploy` publishes it.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vido",
   "compatibility_date": "2026-10-24",
+  "main": "src/index.js",
   "assets": {
     "directory": "./public",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // The Worker must see www requests before a static file answers them.
+    "run_worker_first": true
   },
   // vido.rip must be a zone in the same Cloudflare account: on deploy, Wrangler
   // creates the DNS records and certificates for these hostnames.
