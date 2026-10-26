@@ -294,6 +294,8 @@ fn setup(
         }
     }
     update::install_staged(&handle);
+    // First start after an update: open the window (not just the tray) and say so.
+    let just_updated = update::take_updated_marker(&handle.state::<AppState>().paths.data_dir);
     update::start_checks(&handle);
 
     // Clips staged for re-encoding when Vido last closed.
@@ -401,8 +403,9 @@ fn setup(
     // with the right colors.
     theme::start_watcher(&handle);
 
-    let show_window =
-        !settings.first_run_completed || !(settings.general.start_minimized || start_hidden);
+    let show_window = just_updated
+        || !settings.first_run_completed
+        || !(settings.general.start_minimized || start_hidden);
     if show_window {
         ui::show_main(&handle, None);
     }
@@ -498,6 +501,7 @@ pub fn run() {
         .manage(HotkeyManager::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_app_info,
+            update::take_update_notice,
             commands::get_accent_colors,
             commands::get_settings,
             commands::get_default_settings,
@@ -521,7 +525,7 @@ pub fn run() {
             commands::delete_clip,
             commands::reveal_clip,
             commands::open_clip_external,
-            commands::copy_clip_path,
+            commands::copy_clip,
             commands::get_waveform,
             commands::recommend_quality,
             commands::prepare_audio_preview,

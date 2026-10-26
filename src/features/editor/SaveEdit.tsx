@@ -50,6 +50,19 @@ export function SaveActions({
   onReplaced: () => void;
 }) {
   const notify = useApp((s) => s.notify);
+  /** The saved-clip notice's buttons. */
+  const savedActions = (clip: string) => [
+    { label: "Play", run: () => void commands.openClipExternal(clip) },
+    {
+      label: "Copy",
+      run: () =>
+        void commands.copyClip(clip).then(
+          () => notify("info", "Clip copied", "Paste it anywhere with Ctrl+V."),
+          (e: unknown) => notify("error", "Couldn't copy the clip", errorMessage(e)),
+        ),
+    },
+    { label: "Open folder", run: () => void commands.revealClip(clip) },
+  ];
   const [job, setJob] = useState<SaveJob | null>(null);
   const [confirming, setConfirming] = useState(false);
   // The job id arrives with the command's reply; a quick stream copy may finish
@@ -62,7 +75,12 @@ export function SaveActions({
     setJob(null);
     if (o.ok) {
       if (mode === "override") {
-        notify("info", `Replaced ${fileName(path)}`, "The original is in the Recycle Bin.");
+        notify(
+          "info",
+          `Replaced ${fileName(path)}`,
+          "The original is in the Recycle Bin.",
+          savedActions(path),
+        );
         onReplaced();
       } else {
         const out = o.result.outputPath;
@@ -70,10 +88,7 @@ export function SaveActions({
           "info",
           `Saved ${fileName(out)}`,
           o.result.videoCopied ? "Saved without re-encoding." : undefined,
-          [
-            { label: "Show in folder", run: () => void commands.revealClip(out) },
-            { label: "Play", run: () => void commands.openClipExternal(out) },
-          ],
+          savedActions(out),
         );
       }
       return;

@@ -8,7 +8,6 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_autostart::ManagerExt;
-use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use ts_rs::TS;
@@ -486,11 +485,12 @@ pub fn open_clip_external(app: AppHandle, path: String) -> AppResult<()> {
 }
 
 #[tauri::command]
-pub fn copy_clip_path(app: AppHandle, path: String) -> AppResult<()> {
+/// Puts the clip file itself on the clipboard, so Ctrl+V pastes the video.
+pub fn copy_clip(app: AppHandle, path: String) -> AppResult<()> {
     let p = ensure_clip(&app, &path)?;
-    app.clipboard()
-        .write_text(p.to_string_lossy().into_owned())
-        .map_err(|e| AppError::internal(e.to_string()))
+    crate::win::copy_file_to_clipboard(&p)
+        .map(|_| ())
+        .map_err(|e| AppError::new(ErrorCode::Io, e.to_string()))
 }
 
 #[tauri::command]

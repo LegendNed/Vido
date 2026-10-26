@@ -255,6 +255,11 @@ fn apply(app: &AppHandle, update: &Update, bytes: &[u8]) -> AppResult<()> {
     let _ = std::fs::remove_dir_all(staging_dir(app));
     let state = app.state::<AppState>();
     tracing::info!("installing update {}", update.version);
+    // The restarted copy reads this to open its window and say the update worked.
+    let _ = std::fs::write(
+        state.paths.data_dir.join(UPDATED_MARKER),
+        env!("CARGO_PKG_VERSION"),
+    );
     state.engine.shutdown();
     if state.paths.portable {
         swap_portable_files(bytes, &state.paths.exe_dir)?;
@@ -386,6 +391,38 @@ fn restart_later(exe: &Path) {
     }
 }
 
+/// Written next to the settings just before an update is installed; holds the
+/// version being replaced.
+const UPDATED_MARKER: &str = "updated-from";
+
+/// The version this copy replaced, until the window has shown the notice.
+static UPDATED_FROM: Mutex<Option<String>> = Mutex::new(None);
+
+/// Called at start: whether this is the first start after an update (the marker
+/// names an older version). The marker is removed either way, so a failed
+/// install doesn't report success next time.
+pub fn take_updated_marker(data_dir: &Path) -> bool {
+    let path = data_dir.join(UPDATED_MARKER);
+    let Ok(prev) = std::fs::read_to_string(&path) else {
+        return false;
+    };
+    let _ = std::fs::remove_file(&path);
+    let prev = prev.trim().to_owned();
+    if prev.is_empty() || prev == env!("CARGO_PKG_VERSION") {
+        return false;
+    }
+    tracing::info!("updated from {prev} to {}", env!("CARGO_PKG_VERSION"));
+    *UPDATED_FROM.lock() = Some(prev);
+    true
+}
+
+/// The version replaced by the update this start completed, once (the window
+/// shows it as a notice).
+#[tauri::command]
+pub fn take_update_notice() -> Option<String> {
+    UPDATED_FROM.lock().take()
+}
+
 /// `--wait-pid=<pid>`: passed to the restarted copy after a portable update.
 const WAIT_PID_ARG: &str = "--wait-pid=";
 
@@ -420,6 +457,21 @@ pub fn wait_for_previous() {
 mod tests {
     use super::*;
     use std::io::Write;
+
+    #[test]
+    fn updated_marker_reports_an_older_version_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let marker = dir.path().join(UPDATED_MARKER);
+        // A failed install leaves the current version in the marker: no notice.
+        std::fs::write(&marker, env!("CARGO_PKG_VERSION")).unwrap();
+        assert!(!take_updated_marker(dir.path()));
+        assert!(!marker.exists());
+        std::fs::write(&marker, "0.0.1\n").unwrap();
+        assert!(take_updated_marker(dir.path()));
+        assert!(!marker.exists());
+        assert_eq!(take_update_notice().as_deref(), Some("0.0.1"));
+        assert_eq!(take_update_notice(), None);
+    }
 
     fn zip_of(files: &[(&str, &[u8])]) -> Vec<u8> {
         let mut buf = Cursor::new(Vec::new());

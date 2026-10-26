@@ -31,6 +31,8 @@ import type {
 export const commands = {
   // App & settings
   getAppInfo: () => invoke<AppInfo>("get_app_info"),
+  /** The version an update just replaced (once, on the first start after it), or `null`. */
+  takeUpdateNotice: () => invoke<string | null>("take_update_notice"),
   /** Windows accent palette; also pushed as `accent-changed`. */
   getAccentColors: () => invoke<AccentColors>("get_accent_colors"),
   getSettings: () => invoke<Settings>("get_settings"),
@@ -66,7 +68,8 @@ export const commands = {
   deleteClip: (path: string) => invoke<undefined>("delete_clip", { path }),
   revealClip: (path: string) => invoke<undefined>("reveal_clip", { path }),
   openClipExternal: (path: string) => invoke<undefined>("open_clip_external", { path }),
-  copyClipPath: (path: string) => invoke<undefined>("copy_clip_path", { path }),
+  /** Puts the clip file on the clipboard (Ctrl+V pastes the video). */
+  copyClip: (path: string) => invoke<undefined>("copy_clip", { path }),
   getWaveform: (path: string, track: number, buckets: number) =>
     invoke<number[]>("get_waveform", { path, track, buckets }),
   /** One playable copy per audio track (`null` if the webview can't play it). */

@@ -115,6 +115,14 @@ export const useApp = create<AppStore>((set, get) => ({
     ]);
     set({ info, settings, confirmed: settings, status, pendingUpdate });
     void get().loadCaps();
+    void commands.takeUpdateNotice().then((from) => {
+      if (from)
+        get().notify(
+          "info",
+          "Update successful",
+          `Vido ${info.version} is installed (was ${from}).`,
+        );
+    });
   },
 
   setStatus: (status) => {

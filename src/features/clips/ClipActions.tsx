@@ -26,7 +26,7 @@ import { useApp } from "../../stores/app";
 const stemOf = (name: string) => name.replace(/\.[^.]+$/, "");
 
 /**
- * A clip's star and its "⋯" menu (open in player, show in folder, copy path,
+ * A clip's star, copy button and "⋯" menu (open in player, show in folder,
  * rename, export audio, delete), on cards and the latest-clip tile.
  */
 export function ClipActions({ clip }: { clip: ClipInfo }) {
@@ -57,6 +57,20 @@ export function ClipActions({ clip }: { clip: ClipInfo }) {
           className={clip.favorite ? "text-warning" : undefined}
         />
       </UiButton>
+      <UiButton
+        variant="ghost"
+        size="icon-sm"
+        title="Copy clip"
+        aria-label="Copy clip"
+        onClick={() =>
+          void act(async () => {
+            await commands.copyClip(clip.path);
+            notify("info", "Clip copied", "Paste it anywhere with Ctrl+V.");
+          })
+        }
+      >
+        <Icon name="copy" size={14} />
+      </UiButton>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <UiButton variant="ghost" size="icon-sm" title="More" aria-label="More actions">
@@ -69,16 +83,6 @@ export function ClipActions({ clip }: { clip: ClipInfo }) {
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => void act(() => commands.revealClip(clip.path))}>
             <Icon name="folder" /> Show in folder
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() =>
-              void act(async () => {
-                await commands.copyClipPath(clip.path);
-                notify("info", "Path copied");
-              })
-            }
-          >
-            <Icon name="copy" /> Copy file path
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => {
