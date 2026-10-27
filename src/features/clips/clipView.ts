@@ -82,14 +82,15 @@ export function sortClips(clips: ClipInfo[], sort: ClipSort): ClipInfo[] {
   return [...clips].sort(by[sort]);
 }
 
-/** Date heading for a clip: Today, Yesterday, This week, This month, or "October 2026". */
+/**
+ * Date heading for a clip: This week (the last 7 days, so a few recent clips share
+ * one row), This month, or "October 2026". Cards still show "Today 19:23".
+ */
 export function dateGroup(ms: number, now = new Date()): string {
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const today = day(now);
   const d = new Date(ms);
   const diffDays = Math.round((today - day(d)) / 86_400_000);
-  if (diffDays <= 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return "This week";
   if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) return "This month";
   return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
